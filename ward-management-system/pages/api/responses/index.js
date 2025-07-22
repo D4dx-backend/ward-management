@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
@@ -7,13 +8,20 @@ import User from '../../../models/User';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  let session;
   
-  if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    session = await getServerSession(req, res, authOptions);
+    
+    if (!session) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    await connectToDatabase();
+  } catch (error) {
+    console.error('Initial setup error:', error);
+    return res.status(500).json({ message: 'Server initialization error', error: error.message });
   }
-  
-  await connectToDatabase();
   
   if (req.method === 'GET') {
     try {
@@ -52,17 +60,32 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 });
       
-      // Log the report view activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.REPORT_VIEW,
-        description: `Viewed reports with filters: ${JSON.stringify({ formType, weekNumber, year, wardId, coordinatorId })}`,
-        metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
-        district: session.user.district,
-        ward: session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
+      // Log the report view activity with better description
+      try {
+        let description = 'Viewed reports';
+        if (formType) {
+          description += ` (${formType.replace('Report', ' Reports')})`;
+        }
+        if (year) {
+          description += ` for ${year}`;
+        }
+        if (weekNumber) {
+          description += ` week ${weekNumber}`;
+        }
+        
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.REPORT_VIEW,
+          description,
+          metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
+          district: session.user.district || 'Unknown',
+          ward: session.user.ward || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log report view activity:', logError);
+      }
       
       return res.status(200).json(responses);
     } catch (error) {
@@ -115,7 +138,7 @@ export default async function handler(req, res) {
           return res.status(404).json({ message: 'Ward not found' });
         }
         
-        if (ward.wardAdmin.toString() !== session.user.id) {
+        if (ward.wardAdmin && ward.wardAdmin.toString() !== session.user.id) {
           return res.status(403).json({ message: 'You are not authorized to submit reports for this ward' });
         }
       }
@@ -139,48 +162,93 @@ export default async function handler(req, res) {
         }
       }
       
-      // Create new response
-      const newResponse = new Response({
+      // Validate ObjectIds
+      const mongoose = require('mongoose');
+      
+      if (!mongoose.Types.ObjectId.isValid(formTemplateId)) {
+        return res.status(400).json({ message: 'Invalid form template ID' });
+      }
+      
+      if (!mongoose.Types.ObjectId.isValid(session.user.id)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      if (formTemplate.formType === 'wardReport' && wardId && !mongoose.Types.ObjectId.isValid(wardId)) {
+        return res.status(400).json({ message: 'Invalid ward ID' });
+      }
+      
+      // Create new response object
+      const responseData = {
         formTemplate: formTemplateId,
         respondent: session.user.id,
-        ward: formTemplate.formType === 'wardReport' ? wardId : undefined,
         formType: formTemplate.formType,
         responses,
         weekNumber: formTemplate.weekNumber,
         year: formTemplate.year,
-        district: session.user.district,
-      });
+        district: session.user.district || 'Unknown',
+      };
       
-      await newResponse.save();
+      // Add ward only for ward reports
+      if (formTemplate.formType === 'wardReport' && wardId) {
+        responseData.ward = wardId;
+      }
       
-      // Log the form submission activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.FORM_SUBMIT,
-        description: `Submitted ${formTemplate.formType} for week ${formTemplate.weekNumber}, ${formTemplate.year}`,
-        entityType: 'Response',
-        entityId: newResponse._id,
-        metadata: { 
-          formType: formTemplate.formType, 
-          weekNumber: formTemplate.weekNumber, 
-          year: formTemplate.year,
-          wardId: wardId || null
-        },
-        district: session.user.district,
-        ward: wardId || session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
+      const newResponse = new Response(responseData);
+      
+      // Validate the response object before saving
+      const validationError = newResponse.validateSync();
+      if (validationError) {
+        console.error('Validation error:', validationError);
+        return res.status(400).json({ 
+          message: 'Validation error', 
+          error: validationError.message,
+          details: Object.keys(validationError.errors).map(key => ({
+            field: key,
+            message: validationError.errors[key].message
+          }))
+        });
+      }
+      
+      // Save the response
+      const savedResponse = await newResponse.save();
+      
+      // Log the form submission activity (wrapped in try-catch to prevent failure)
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.FORM_SUBMIT,
+          description: `Submitted ${formTemplate.formType} for week ${formTemplate.weekNumber}, ${formTemplate.year}`,
+          entityType: 'Response',
+          entityId: savedResponse._id,
+          metadata: { 
+            formType: formTemplate.formType, 
+            weekNumber: formTemplate.weekNumber, 
+            year: formTemplate.year,
+            wardId: wardId || null
+          },
+          district: session.user.district || 'Unknown',
+          ward: wardId || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log activity, but continuing:', logError);
+      }
       
       // Populate response details
-      const savedResponse = await Response.findById(newResponse._id)
+      const populatedResponse = await Response.findById(savedResponse._id)
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name email')
         .populate('ward', 'name district');
       
-      return res.status(201).json(savedResponse);
+      return res.status(201).json(populatedResponse);
     } catch (error) {
-      return res.status(500).json({ message: 'Error creating response', error: error.message });
+      console.error('Error in POST /api/responses:', error);
+      return res.status(500).json({ 
+        message: 'Error creating response', 
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
   

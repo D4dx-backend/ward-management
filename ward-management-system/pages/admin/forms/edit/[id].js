@@ -161,6 +161,7 @@ export default function EditForm() {
       const updateData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
+        isActive: form.isActive, // Preserve the current active status
         fields: formData.fields.map((field, index) => {
           console.log(`Processing field ${index + 1}:`, field);
           

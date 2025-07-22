@@ -174,7 +174,7 @@ export default function Home() {
 
         {/* Recent Activity and Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RecentActivity logs={recentLogs} />
+          <RecentActivity logs={recentLogs} userRole={session.user.role} />
           <RecentReports reports={recentReports} userRole={session.user.role} />
         </div>
 
@@ -253,7 +253,7 @@ export default function Home() {
 
         {/* Recent Activity and Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RecentActivity logs={recentLogs} />
+          <RecentActivity logs={recentLogs} userRole={session.user.role} />
           <RecentReports reports={recentReports} userRole={session.user.role} />
         </div>
 
@@ -286,13 +286,13 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <StatsCard
             title="Reports Submitted"
-            value={stats.reports}
+            value={stats.submittedReports || 0}
             icon="📝"
             color="blue"
           />
           <StatsCard
             title="Pending Reports"
-            value="1"
+            value={stats.pendingReports || 0}
             icon="⏰"
             color="yellow"
           />
@@ -326,7 +326,7 @@ export default function Home() {
 
         {/* Recent Activity and Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RecentActivity logs={recentLogs} />
+          <RecentActivity logs={recentLogs} userRole={session.user.role} />
           <RecentReports reports={recentReports} userRole={session.user.role} />
         </div>
 

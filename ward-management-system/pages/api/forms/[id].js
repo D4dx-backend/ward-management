@@ -43,10 +43,13 @@ export default async function handler(req, res) {
 
       const { title, description, fields, isActive } = req.body;
 
-      // Validate input data
-      if (!title || !fields) {
+      // Check if this is a status-only update
+      const isStatusOnlyUpdate = isActive !== undefined && !title && !fields;
+      
+      // Validate input data - allow status-only updates
+      if (!isStatusOnlyUpdate && (!title || !fields)) {
         console.log('Missing required data - title:', !!title, 'fields:', !!fields);
-        return res.status(400).json({ message: 'Title and fields are required' });
+        return res.status(400).json({ message: 'Title and fields are required for content updates' });
       }
 
       const form = await FormTemplate.findById(id);
@@ -58,73 +61,89 @@ export default async function handler(req, res) {
 
       console.log('Found form:', form.title, 'Type:', form.formType);
 
-      // Validate fields structure
-      if (!Array.isArray(fields) || fields.length === 0) {
-        console.log('Invalid fields array:', fields);
-        return res.status(400).json({ message: 'Fields must be a non-empty array' });
-      }
-
-      // Minimal field validation - just check basic structure
-      console.log('Performing minimal validation...');
-
-      for (let i = 0; i < fields.length; i++) {
-        const field = fields[i];
-        console.log(`Field ${i + 1}:`, JSON.stringify(field, null, 2));
-
-        // Only check absolutely required fields
-        if (!field.label || !field.type) {
-          console.log(`Field ${i + 1} missing label or type`);
-          return res.status(400).json({
-            message: `Field ${i + 1} is missing label (${field.label}) or type (${field.type})`,
-            field: field
-          });
+      // Only validate fields if this is not a status-only update
+      if (!isStatusOnlyUpdate) {
+        // Validate fields structure
+        if (!Array.isArray(fields) || fields.length === 0) {
+          console.log('Invalid fields array:', fields);
+          return res.status(400).json({ message: 'Fields must be a non-empty array' });
         }
 
-        // Only validate select options if it's a select field with options
-        if (field.type === 'select' && field.options && Array.isArray(field.options)) {
-          const validOptions = field.options.filter(opt => opt && opt.trim());
-          if (field.options.length > 0 && validOptions.length === 0) {
-            console.log(`Select field "${field.label}" has empty options`);
+        // Minimal field validation - just check basic structure
+        console.log('Performing minimal validation...');
+
+        for (let i = 0; i < fields.length; i++) {
+          const field = fields[i];
+          console.log(`Field ${i + 1}:`, JSON.stringify(field, null, 2));
+
+          // Only check absolutely required fields
+          if (!field.label || !field.type) {
+            console.log(`Field ${i + 1} missing label or type`);
             return res.status(400).json({
-              message: `Select field "${field.label}" has empty options`,
+              message: `Field ${i + 1} is missing label (${field.label}) or type (${field.type})`,
               field: field
             });
           }
-        }
-      }
 
-      console.log('All fields passed minimal validation');
+          // Only validate select options if it's a select field with options
+          if (field.type === 'select' && field.options && Array.isArray(field.options)) {
+            const validOptions = field.options.filter(opt => opt && opt.trim());
+            if (field.options.length > 0 && validOptions.length === 0) {
+              console.log(`Select field "${field.label}" has empty options`);
+              return res.status(400).json({
+                message: `Select field "${field.label}" has empty options`,
+                field: field
+              });
+            }
+          }
+        }
+
+        console.log('All fields passed minimal validation');
+      } else {
+        console.log('Status-only update, skipping field validation');
+      }
 
       console.log('All validations passed, updating form...');
 
       // Update form properties
-      form.title = title.trim();
-      form.description = description ? description.trim() : '';
-      if (isActive !== undefined) form.isActive = isActive;
-      form.fields = fields;
+      if (isStatusOnlyUpdate) {
+        // Only update the status
+        console.log('Updating form status only:', isActive);
+        form.isActive = isActive;
+      } else {
+        // Update all form content
+        form.title = title.trim();
+        form.description = description ? description.trim() : '';
+        if (isActive !== undefined) form.isActive = isActive;
+        form.fields = fields;
+      }
 
       console.log('Saving form to database...');
       const savedForm = await form.save();
       console.log('Form saved successfully, ID:', savedForm._id);
 
       // Log the form update activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.FORM_UPDATE,
-        description: `Updated form: ${savedForm.title} (${savedForm.formType})`,
-        entityType: 'FormTemplate',
-        entityId: savedForm._id,
-        metadata: {
-          formType: savedForm.formType,
-          weekNumber: savedForm.weekNumber,
-          year: savedForm.year,
-          fieldsCount: savedForm.fields.length
-        },
-        district: session.user.district,
-        ward: session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.FORM_UPDATE,
+          description: `Updated form: ${savedForm.title} (${savedForm.formType})`,
+          entityType: 'FormTemplate',
+          entityId: savedForm._id,
+          metadata: {
+            formType: savedForm.formType,
+            weekNumber: savedForm.weekNumber,
+            year: savedForm.year,
+            fieldsCount: savedForm.fields.length
+          },
+          district: session.user.district || 'Unknown',
+          ward: session.user.ward || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log form update activity:', logError);
+      }
 
       return res.status(200).json(savedForm);
     } catch (error) {

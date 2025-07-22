@@ -13,18 +13,33 @@ export const logActivity = async ({
   userAgent = null
 }) => {
   try {
-    const log = new ActivityLog({
+    // Create log object with only valid fields
+    const logData = {
       user: userId,
       action,
       description,
-      entityType,
-      entityId,
       metadata,
-      district,
-      ward,
+      district: district || 'Unknown',
       ipAddress,
       userAgent
-    });
+    };
+    
+    // Only add entityType if it's not null
+    if (entityType) {
+      logData.entityType = entityType;
+    }
+    
+    // Only add entityId if it's not null
+    if (entityId) {
+      logData.entityId = entityId;
+    }
+    
+    // Only add ward if it's not null
+    if (ward) {
+      logData.ward = ward;
+    }
+    
+    const log = new ActivityLog(logData);
     
     await log.save();
     return log;

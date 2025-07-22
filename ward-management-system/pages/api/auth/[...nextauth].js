@@ -31,12 +31,22 @@ export const authOptions = {
           throw new Error('Invalid password');
         }
         
+        // For ward admins, get district from their assigned ward
+        let userDistrict = user.district;
+        if (user.role === 'wardAdmin' && !userDistrict) {
+          const Ward = require('../../../models/Ward').default;
+          const userWard = await Ward.findOne({ wardAdmin: user._id });
+          if (userWard) {
+            userDistrict = userWard.district;
+          }
+        }
+        
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
-          district: user.district || null,
+          district: userDistrict || null,
           mobileNumber: user.mobileNumber || null,
         };
       }
@@ -64,12 +74,22 @@ export const authOptions = {
           throw new Error('Invalid PIN code');
         }
         
+        // For ward admins, get district from their assigned ward
+        let userDistrict = user.district;
+        if (user.role === 'wardAdmin' && !userDistrict) {
+          const Ward = require('../../../models/Ward').default;
+          const userWard = await Ward.findOne({ wardAdmin: user._id });
+          if (userWard) {
+            userDistrict = userWard.district;
+          }
+        }
+        
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
-          district: user.district || null,
+          district: userDistrict || null,
           mobileNumber: user.mobileNumber,
         };
       }
@@ -122,7 +142,9 @@ export const authOptions = {
           action: ACTIONS.LOGIN,
           description: `User logged in successfully via ${loginMethod}`,
           district: user.district || 'Unknown',
-          ward: user.ward || null
+          ward: user.ward || null,
+          entityType: 'User',
+          entityId: user.id
         });
       } catch (error) {
         console.error('Failed to log login activity:', error);
@@ -149,7 +171,9 @@ export const authOptions = {
           action: ACTIONS.LOGOUT,
           description: `User logged out successfully`,
           district: token.district || 'Unknown',
-          ward: token.ward || null
+          ward: token.ward || null,
+          entityType: 'User',
+          entityId: token.sub
         });
       } catch (error) {
         console.error('Failed to log logout activity:', error);

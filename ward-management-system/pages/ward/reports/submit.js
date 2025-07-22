@@ -106,18 +106,18 @@ export default function SubmitWardReport() {
       }
 
       // Submit response
-      await axios.post('/api/responses', {
+      const response = await axios.post('/api/responses', {
         formTemplateId: selectedForm._id,
         responses: formData,
         wardId: selectedWard,
       });
-
       setSuccess('Ward report submitted successfully');
       setFormData({});
       setSelectedForm(null);
       setSelectedWard('');
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'An error occurred while submitting the report';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

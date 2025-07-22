@@ -126,23 +126,27 @@ export default async function handler(req, res) {
       await newForm.save();
       
       // Log the form creation activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.FORM_CREATE,
-        description: `Created form: ${newForm.title} (${newForm.formType})`,
-        entityType: 'FormTemplate',
-        entityId: newForm._id,
-        metadata: { 
-          formType: newForm.formType, 
-          weekNumber: newForm.weekNumber, 
-          year: newForm.year,
-          fieldsCount: newForm.fields.length
-        },
-        district: session.user.district,
-        ward: session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.FORM_CREATE,
+          description: `Created form: ${newForm.title} (${newForm.formType})`,
+          entityType: 'FormTemplate',
+          entityId: newForm._id,
+          metadata: { 
+            formType: newForm.formType, 
+            weekNumber: newForm.weekNumber, 
+            year: newForm.year,
+            fieldsCount: newForm.fields.length
+          },
+          district: session.user.district || 'Unknown',
+          ward: session.user.ward || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log form creation activity:', logError);
+      }
       
       return res.status(201).json(newForm);
     } catch (error) {

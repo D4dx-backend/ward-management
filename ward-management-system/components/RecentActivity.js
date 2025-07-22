@@ -1,6 +1,9 @@
 import Link from 'next/link';
+import { useState } from 'react';
 
-const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
+const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stateAdmin" }) => {
+  const [showAll, setShowAll] = useState(false);
+  const displayLogs = showAll ? logs : logs.slice(0, 3);
   const getActionBadgeColor = (action) => {
     const colors = {
       LOGIN: 'bg-green-100 text-green-800',
@@ -18,31 +21,94 @@ const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
     return colors[action] || 'bg-gray-100 text-gray-800';
   };
 
+  const formatActionText = (action) => {
+    const actionTexts = {
+      LOGIN: 'Login',
+      LOGOUT: 'Logout',
+      FORM_SUBMIT: 'Form Submit',
+      FORM_CREATE: 'Form Create',
+      FORM_UPDATE: 'Form Update',
+      FORM_DELETE: 'Form Delete',
+      USER_CREATE: 'User Create',
+      USER_UPDATE: 'User Update',
+      USER_DELETE: 'User Delete',
+      REPORT_VIEW: 'Report View',
+      REPORT_EXPORT: 'Report Export',
+    };
+    return actionTexts[action] || action.replace('_', ' ');
+  };
+
+  const formatDescription = (log) => {
+    // Handle REPORT_VIEW actions with JSON filters
+    if (log.action === 'REPORT_VIEW' && log.description.includes('filters:')) {
+      try {
+        const match = log.description.match(/filters:\s*({.*})/);
+        if (match) {
+          const filters = JSON.parse(match[1]);
+          let parts = [];
+          
+          if (filters.formType) {
+            parts.push(`${filters.formType.replace('Report', ' Reports')}`);
+          }
+          if (filters.year) {
+            parts.push(`for ${filters.year}`);
+          }
+          if (filters.weekNumber) {
+            parts.push(`week ${filters.weekNumber}`);
+          }
+          
+          return `Viewed ${parts.join(' ') || 'reports'}`;
+        }
+      } catch (e) {
+        // If parsing fails, fall back to original description
+      }
+    }
+    
+    return log.description;
+  };
+
   const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now - time) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) return `${diffInHours}h ago`;
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}d ago`;
-    
+
     return time.toLocaleDateString();
   };
+
+  const getViewAllLink = () => {
+    switch (userRole) {
+      case 'stateAdmin':
+        return '/admin/logs';
+      case 'coordinator':
+        return '/coordinator/logs';
+      case 'wardAdmin':
+        return '/ward/logs'; // Ward admins can view their activity logs
+      default:
+        return '/admin/logs';
+    }
+  };
+
+  const shouldShowViewAll = true; // Show "View all" for all user roles
 
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <Link href="/admin/logs" className="text-sm text-blue-600 hover:text-blue-800">
-            View all
-          </Link>
+          {shouldShowViewAll && (
+            <Link href={getViewAllLink()} className="text-sm text-blue-600 hover:text-blue-800">
+              View all
+            </Link>
+          )}
         </div>
       </div>
       <div className="divide-y divide-gray-200">
@@ -56,7 +122,7 @@ const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
             </div>
           </div>
         ) : (
-          logs.map((log) => (
+          displayLogs.map((log) => (
             <div key={log._id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -73,15 +139,15 @@ const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
                         {log.user?.name || 'Unknown User'}
                       </p>
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeColor(log.action)}`}>
-                        {log.action.replace('_', ' ')}
+                        {formatActionText(log.action)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-500 truncate">
-                      {log.description}
+                      {formatDescription(log)}
                     </p>
-                    {log.ward && (
+                    {(log.ward || log.district) && (
                       <p className="text-xs text-gray-400">
-                        {log.ward.name}, {log.district}
+                        {log.ward ? `${log.ward.name}, ${log.ward.district || log.district}` : log.district}
                       </p>
                     )}
                   </div>
@@ -92,6 +158,18 @@ const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
               </div>
             </div>
           ))
+        )}
+        
+        {/* Show more/less button */}
+        {logs.length > 3 && (
+          <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <button
+              onClick={() => setShowAll(!showAll)}
+              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            >
+              {showAll ? `Show less` : `Show ${logs.length - 3} more activities`}
+            </button>
+          </div>
         )}
       </div>
     </div>

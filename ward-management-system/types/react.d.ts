@@ -1,0 +1,11 @@
+declare module 'react';
+declare module 'react-dom';
+declare module 'next';
+declare module 'next/router';
+declare module 'next/head';
+declare module 'next/link';
+declare module 'next-auth/react';
+declare module 'next-auth/next';
+declare module 'axios';
+declare module 'bcryptjs';
+declare module 'mongoose';
