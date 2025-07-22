@@ -8,15 +8,31 @@ import { logActivity, ACTIONS } from '../../../lib/logger';
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
   
-  if (!session || session.user.role !== 'stateAdmin') {
+  if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
+  }
+  
+  // Only state admin and coordinators can access users
+  if (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator') {
+    return res.status(403).json({ message: 'Forbidden' });
   }
   
   await connectToDatabase();
   
   if (req.method === 'GET') {
     try {
-      const users = await User.find({}).select('-password -pinCode');
+      let users;
+      
+      if (session.user.role === 'stateAdmin') {
+        // State admin can see all users
+        users = await User.find({}).select('-password -pinCode');
+      } else if (session.user.role === 'coordinator') {
+        // Coordinator can only see users from their district
+        users = await User.find({ 
+          district: session.user.district 
+        }).select('-password -pinCode');
+      }
+      
       return res.status(200).json(users);
     } catch (error) {
       return res.status(500).json({ message: 'Error fetching users', error: error.message });
@@ -24,6 +40,19 @@ export default async function handler(req, res) {
   }
   
   if (req.method === 'POST') {
+    // Only state admin can create users, coordinators can only create ward admins in their district
+    if (session.user.role === 'coordinator') {
+      // Coordinators can only create ward admins in their own district
+      if (req.body.role !== 'wardAdmin') {
+        return res.status(403).json({ message: 'Coordinators can only create ward admin accounts' });
+      }
+      if (req.body.district && req.body.district !== session.user.district) {
+        return res.status(403).json({ message: 'You can only create users in your own district' });
+      }
+    } else if (session.user.role !== 'stateAdmin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    
     try {
       const { name, email, password, role, district, mobileNumber, pinCode, wardId } = req.body;
       

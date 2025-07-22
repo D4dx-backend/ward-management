@@ -82,15 +82,15 @@ export default function AdminWards() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get all wards
       const wardsResponse = await axios.get('/api/wards');
-      
+
       // Get all users
       const usersResponse = await axios.get('/api/users');
       const coordinators = usersResponse.data.filter(user => user.role === 'coordinator');
       const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
-      
+
       setWards(wardsResponse.data);
       setFilteredWards(wardsResponse.data);
       setCoordinators(coordinators);
@@ -107,7 +107,7 @@ export default function AdminWards() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
+
     if (name === 'district') {
       setSelectedDistrict(value);
       setFormData({ ...formData, [name]: value, panchayath: '' });
@@ -147,7 +147,7 @@ export default function AdminWards() {
       const newWards = [...wards, response.data];
       setWards(newWards);
       setFilteredWards(newWards);
-      
+
       // Reset form and close modal
       resetForm();
       setShowCreateModal(false);
@@ -165,12 +165,12 @@ export default function AdminWards() {
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
 
       // Update wards list
-      const updatedWards = wards.map(ward => 
+      const updatedWards = wards.map(ward =>
         ward._id === editingWard._id ? response.data : ward
       );
       setWards(updatedWards);
       setFilteredWards(updatedWards);
-      
+
       // Reset form and close modal
       resetForm();
       setShowEditModal(false);
@@ -356,7 +356,7 @@ export default function AdminWards() {
               .map((admin) => (
                 <option key={admin._id} value={admin._id}>
                   {admin.name} {admin.district ? `(${admin.district})` : ''}
-                  {wards.find(ward => ward.wardAdmin?._id === admin._id && ward._id !== editingWard?._id) 
+                  {wards.find(ward => ward.wardAdmin?._id === admin._id && ward._id !== editingWard?._id)
                     ? ' - Already Assigned' : ''}
                 </option>
               ))}
@@ -485,7 +485,7 @@ export default function AdminWards() {
               className="max-w-md"
             />
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
