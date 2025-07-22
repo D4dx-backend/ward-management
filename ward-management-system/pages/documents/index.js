@@ -40,18 +40,38 @@ export default function Documents() {
     }
   };
 
-  const handleDownload = async (documentId) => {
+  const handleDownload = async (documentId, fileName) => {
     try {
-      const response = await fetch(`/api/documents/download/${documentId}`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/documents/download/${documentId}`);
       
-      if (response.ok) {
-        // Download tracking successful
-        console.log('Download tracked');
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('File not found. The document may have been removed or moved.');
+        } else {
+          alert('Failed to download file. Please try again.');
+        }
+        return;
       }
+
+      // If it's a redirect response, handle it
+      if (response.redirected) {
+        window.open(response.url, '_blank');
+        return;
+      }
+
+      // For direct file downloads
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
-      console.error('Error tracking download:', error);
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
     }
   };
 
@@ -160,15 +180,12 @@ export default function Documents() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {document.fileUrl ? (
-                        <a 
-                          href={document.fileUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800"
-                          onClick={() => handleDownload(document._id)}
+                        <button
+                          onClick={() => handleDownload(document._id, document.fileName)}
+                          className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
                         >
                           {document.fileName || 'Download File'}
-                        </a>
+                        </button>
                       ) : (
                         'No file'
                       )}
