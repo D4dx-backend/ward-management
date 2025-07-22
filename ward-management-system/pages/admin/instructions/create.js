@@ -15,15 +15,15 @@ export default function CreateInstruction() {
   
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
-    type: 'instruction',
-    targetAudience: 'both',
+    description: '',
+    targetAudience: 'all',
     priority: 'medium',
-    districts: [],
-    expiresAt: '',
-    attachmentUrl: '',
-    attachmentName: '',
+    fileUrl: '',
+    fileName: '',
   });
+  
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   // Redirect if not authenticated or not state admin
   if (status === 'unauthenticated') {
@@ -44,13 +44,30 @@ export default function CreateInstruction() {
     });
   };
 
-  const handleDistrictsChange = (e) => {
-    const value = e.target.value;
-    const districts = value ? value.split(',').map(d => d.trim()).filter(d => d) : [];
-    setFormData({
-      ...formData,
-      districts
-    });
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setSelectedFile(file);
+  };
+
+  const uploadFile = async () => {
+    if (!selectedFile) return null;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await axios.post('/api/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      throw new Error('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -60,12 +77,30 @@ export default function CreateInstruction() {
 
     try {
       // Validate form
-      if (!formData.title || !formData.content) {
+      if (!formData.title || !formData.description) {
         throw new Error('Please fill in all required fields');
       }
 
+      let fileData = null;
+      
+      // Upload file if selected
+      if (selectedFile) {
+        fileData = await uploadFile();
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        title: formData.title,
+        description: formData.description,
+        targetAudience: formData.targetAudience,
+        priority: formData.priority,
+        fileUrl: fileData?.url || null,
+        fileName: fileData?.filename || null,
+        fileSize: fileData?.size || null,
+      };
+
       // Submit form
-      await axios.post('/api/instructions', formData);
+      await axios.post('/api/instructions', submissionData);
       router.push('/admin/instructions');
     } catch (error) {
       setError(error.response?.data?.message || error.message);
@@ -127,24 +162,7 @@ export default function CreateInstruction() {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Type *
-                </label>
-                <select
-                  id="type"
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="instruction">Instruction</option>
-                  <option value="document">Document</option>
-                </select>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="targetAudience" className="block text-sm font-medium text-gray-700 mb-1">
                   Target Audience *
@@ -157,9 +175,9 @@ export default function CreateInstruction() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                 >
-                  <option value="both">Both Coordinators & Ward Admins</option>
+                  <option value="all">All Users</option>
                   <option value="coordinators">Coordinators Only</option>
-                  <option value="wardAdmins">Ward Admins Only</option>
+                  <option value="ward_admins">Ward Admins Only</option>
                 </select>
               </div>
 
@@ -178,92 +196,47 @@ export default function CreateInstruction() {
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
                   <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
-                Content *
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Description *
               </label>
               <textarea
-                id="content"
-                name="content"
-                value={formData.content}
+                id="description"
+                name="description"
+                value={formData.description}
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows="6"
-                placeholder="Enter the instruction content or document details"
+                placeholder="Enter the instruction description"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="districts" className="block text-sm font-medium text-gray-700 mb-1">
-                  Specific Districts (Optional)
-                </label>
-                <input
-                  type="text"
-                  id="districts"
-                  name="districts"
-                  value={formData.districts.join(', ')}
-                  onChange={handleDistrictsChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter districts separated by commas (leave empty for all districts)"
-                />
-                <p className="text-xs text-gray-500 mt-1">Leave empty to apply to all districts</p>
-              </div>
-
-              <div>
-                <label htmlFor="expiresAt" className="block text-sm font-medium text-gray-700 mb-1">
-                  Expires At (Optional)
-                </label>
-                <input
-                  type="datetime-local"
-                  id="expiresAt"
-                  name="expiresAt"
-                  value={formData.expiresAt}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Leave empty for no expiration</p>
-              </div>
-            </div>
-
             <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Attachment (Optional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="attachmentName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Attachment Name
-                  </label>
-                  <input
-                    type="text"
-                    id="attachmentName"
-                    name="attachmentName"
-                    value={formData.attachmentName}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., Guidelines Document.pdf"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="attachmentUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                    Attachment URL
-                  </label>
-                  <input
-                    type="url"
-                    id="attachmentUrl"
-                    name="attachmentUrl"
-                    value={formData.attachmentUrl}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://example.com/document.pdf"
-                  />
-                </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">File Attachment (Optional)</h3>
+              <div>
+                <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-1">
+                  Choose File
+                </label>
+                <input
+                  type="file"
+                  id="file"
+                  onChange={handleFileChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG (Max 20MB)
+                </p>
+                {selectedFile && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  </div>
+                )}
               </div>
             </div>
 
@@ -277,9 +250,17 @@ export default function CreateInstruction() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || uploading}
               >
-                {isSubmitting ? (
+                {uploading ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Uploading File...
+                  </div>
+                ) : isSubmitting ? (
                   <div className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -1,0 +1,8 @@
+This is a sample instruction file for testing the download functionality.
+
+Instructions:
+1. This file should be downloadable from the instructions page
+2. The download should work through the API endpoint
+3. Users should be able to access this file if they have proper permissions
+
+Test completed successfully if you can read this content.

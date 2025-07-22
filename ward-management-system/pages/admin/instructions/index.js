@@ -358,7 +358,7 @@ export default function AdminInstructions() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {instruction.fileUrl ? (
                         <a 
-                          href={instruction.fileUrl} 
+                          href={`/api/instructions/download/${instruction._id}`}
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-800"

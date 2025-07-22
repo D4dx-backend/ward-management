@@ -182,6 +182,41 @@ export default function Instructions() {
     }
   };
 
+  const handleDownload = async (instructionId, fileName) => {
+    try {
+      const response = await fetch(`/api/instructions/download/${instructionId}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('File not found. The attachment may have been removed or moved.');
+        } else {
+          alert('Failed to download file. Please try again.');
+        }
+        return;
+      }
+
+      // If it's a redirect response, handle it
+      if (response.redirected) {
+        window.open(response.url, '_blank');
+        return;
+      }
+
+      // For direct file downloads
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -290,18 +325,16 @@ export default function Instructions() {
                     <td className="px-4 py-4 text-sm text-gray-900">
                       <div className="break-words">
                         {instruction.fileUrl ? (
-                          <a 
-                            href={instruction.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
+                          <button
+                            onClick={() => handleDownload(instruction._id, instruction.fileName)}
+                            className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
                           >
                             {instruction.fileName ? 
                               (instruction.fileName.length > 15 ? 
                                 instruction.fileName.substring(0, 15) + '...' : 
                                 instruction.fileName) 
                               : 'Download'}
-                          </a>
+                          </button>
                         ) : (
                           <span className="text-gray-400">No file</span>
                         )}
