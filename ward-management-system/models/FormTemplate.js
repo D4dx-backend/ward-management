@@ -7,7 +7,7 @@ const SubQuestionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno'],
+    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno', 'checkbox'],
     required: true,
   },
   required: {
@@ -29,7 +29,7 @@ const FieldSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno'],
+    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno', 'checkbox'],
     required: true,
   },
   required: {
@@ -100,4 +100,9 @@ const FormTemplateSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.FormTemplate || mongoose.model('FormTemplate', FormTemplateSchema);
+// Force model refresh to pick up enum changes
+if (mongoose.models.FormTemplate) {
+  delete mongoose.models.FormTemplate;
+}
+
+export default mongoose.model('FormTemplate', FormTemplateSchema);

@@ -21,7 +21,14 @@ export default function EditForm() {
     title: '',
     description: '',
     fields: [
-      { label: '', type: 'text', required: false, options: [] }
+      {
+        label: '',
+        type: 'text',
+        required: false,
+        options: [],
+        subQuestions: [],
+        showSubQuestionsWhen: ''
+      }
     ]
   });
 
@@ -41,12 +48,24 @@ export default function EditForm() {
       setIsLoading(true);
       const response = await axios.get(`/api/forms/${id}`);
       const formData = response.data;
-      
+
       setForm(formData);
       setFormData({
         title: formData.title,
         description: formData.description || '',
-        fields: formData.fields || [{ label: '', type: 'text', required: false, options: [] }]
+        fields: formData.fields ? formData.fields.map(field => ({
+          ...field,
+          subQuestions: field.subQuestions || [],
+          showSubQuestionsWhen: field.showSubQuestionsWhen || '',
+          options: field.options || []
+        })) : [{
+          label: '',
+          type: 'text',
+          required: false,
+          options: [],
+          subQuestions: [],
+          showSubQuestionsWhen: ''
+        }]
       });
       setError('');
     } catch (error) {
@@ -96,7 +115,14 @@ export default function EditForm() {
   const addField = () => {
     setFormData({
       ...formData,
-      fields: [...formData.fields, { label: '', type: 'text', required: false, options: [] }]
+      fields: [...formData.fields, {
+        label: '',
+        type: 'text',
+        required: false,
+        options: [],
+        subQuestions: [],
+        showSubQuestionsWhen: ''
+      }]
     });
   };
 
@@ -126,30 +152,86 @@ export default function EditForm() {
           throw new Error('All fields must have a label and type');
         }
 
-        if (field.type === 'select' && (!field.options || field.options.length === 0 || field.options.some(opt => !opt.trim()))) {
+        if (field.type === 'select' && (!field.options || field.options.length === 0 || field.options.some(opt => !opt || !opt.trim()))) {
           throw new Error('Select fields must have at least one non-empty option');
         }
       }
 
       // Submit form
-      await axios.put(`/api/forms/${id}`, {
+      const updateData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        fields: formData.fields.map(field => ({
-          ...field,
-          label: field.label.trim(),
-          options: field.options ? field.options.filter(opt => opt.trim()).map(opt => opt.trim()) : []
-        }))
-      });
-      
+        fields: formData.fields.map((field, index) => {
+          console.log(`Processing field ${index + 1}:`, field);
+          
+          const processedField = {
+            label: field.label.trim(),
+            type: field.type,
+            required: Boolean(field.required),
+            options: field.options ? field.options.filter(opt => opt && opt.trim()).map(opt => opt.trim()) : [],
+            subQuestions: field.subQuestions ? field.subQuestions.filter(subQ => subQ.label && subQ.label.trim()).map(subQ => ({
+              label: subQ.label.trim(),
+              type: subQ.type || 'text',
+              required: Boolean(subQ.required),
+              options: subQ.options ? subQ.options.filter(opt => opt && opt.trim()).map(opt => opt.trim()) : []
+            })) : [],
+            showSubQuestionsWhen: field.showSubQuestionsWhen || ''
+          };
+          
+          console.log(`Processed field ${index + 1}:`, processedField);
+          return processedField;
+        })
+      };
+
+      console.log('=== SENDING UPDATE DATA ===');
+      console.log('Update data:', JSON.stringify(updateData, null, 2));
+
+      await axios.put(`/api/forms/${id}`, updateData);
+
       setSuccess('Form updated successfully!');
-      
+
       // Redirect back to forms list after a short delay
       setTimeout(() => {
         router.push('/admin/forms');
       }, 2000);
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      console.error('=== FORM UPDATE ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
+      
+      let errorMessage = 'Failed to update form';
+      
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        
+        // Handle validation errors with details
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorMessage = `Validation errors: ${errorData.errors.join(', ')}`;
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+          
+          // Add field details if available
+          if (errorData.field) {
+            errorMessage += ` (Field: ${JSON.stringify(errorData.field)})`;
+          }
+          if (errorData.subQuestion) {
+            errorMessage += ` (Sub-question: ${JSON.stringify(errorData.subQuestion)})`;
+          }
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Add status for debugging
+      if (error.response?.status) {
+        errorMessage += ` (Status: ${error.response.status})`;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }
@@ -187,7 +269,7 @@ export default function EditForm() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Edit Form</h1>
             <p className="mt-1 text-sm text-gray-600">
-              {form.formType === 'coordinatorReport' ? 'Coordinator Report' : 'Ward Report'} - 
+              {form.formType === 'coordinatorReport' ? 'Coordinator Report' : 'Ward Report'} -
               Week {form.weekNumber}, {form.year}
             </p>
           </div>
@@ -330,10 +412,11 @@ export default function EditForm() {
                             required
                           >
                             <option value="text">Text</option>
-                            <option value="textarea">Textarea</option>
                             <option value="number">Number</option>
+                            <option value="textarea">Text Area</option>
                             <option value="select">Select</option>
                             <option value="checkbox">Checkbox</option>
+                            <option value="yesno">Yes/No</option>
                             <option value="date">Date</option>
                           </select>
                         </div>

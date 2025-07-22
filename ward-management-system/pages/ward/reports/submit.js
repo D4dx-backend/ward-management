@@ -90,8 +90,18 @@ export default function SubmitWardReport() {
       const requiredFields = selectedForm.fields.filter(field => field.required);
       
       for (const field of requiredFields) {
-        if (!formData[field.label] && formData[field.label] !== 0) {
-          throw new Error(`Field "${field.label}" is required`);
+        const fieldValue = formData[field.label];
+        
+        // For checkbox fields, check if the value exists (can be true or false)
+        if (field.type === 'checkbox') {
+          if (fieldValue === undefined || fieldValue === null) {
+            throw new Error(`Field "${field.label}" is required`);
+          }
+        } else {
+          // For other fields, check if value exists and is not empty
+          if (!fieldValue && fieldValue !== 0 && fieldValue !== false) {
+            throw new Error(`Field "${field.label}" is required`);
+          }
         }
       }
 
@@ -158,6 +168,48 @@ export default function SubmitWardReport() {
               <option key={index} value={option}>{option}</option>
             ))}
           </select>
+        );
+      case 'checkbox':
+        return (
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={formData[field.label] === true || formData[field.label] === 'true'}
+              onChange={(e) => handleInputChange(field.label, e.target.checked)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              required={field.required && !formData[field.label]}
+            />
+            <span className="ml-2 text-sm text-gray-700">Check if applicable</span>
+          </div>
+        );
+      case 'yesno':
+        return (
+          <div className="flex space-x-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name={`field_${field.label}`}
+                value="yes"
+                checked={formData[field.label] === 'yes'}
+                onChange={(e) => handleInputChange(field.label, e.target.value)}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                required={field.required}
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name={`field_${field.label}`}
+                value="no"
+                checked={formData[field.label] === 'no'}
+                onChange={(e) => handleInputChange(field.label, e.target.value)}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                required={field.required}
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">No</span>
+            </label>
+          </div>
         );
       case 'date':
         return (

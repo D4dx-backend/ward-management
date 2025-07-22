@@ -8,7 +8,11 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
     const initialData = {};
     form.fields.forEach((field, fieldIndex) => {
       if (!formData[`field_${fieldIndex}`]) {
-        initialData[`field_${fieldIndex}`] = field.type === 'yesno' ? '' : '';
+        if (field.type === 'checkbox') {
+          initialData[`field_${fieldIndex}`] = false;
+        } else {
+          initialData[`field_${fieldIndex}`] = '';
+        }
       }
       
       // Initialize sub-questions
@@ -16,7 +20,11 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
         field.subQuestions.forEach((subQuestion, subIndex) => {
           const subKey = `field_${fieldIndex}_sub_${subIndex}`;
           if (!formData[subKey]) {
-            initialData[subKey] = subQuestion.type === 'yesno' ? '' : '';
+            if (subQuestion.type === 'checkbox') {
+              initialData[subKey] = false;
+            } else {
+              initialData[subKey] = '';
+            }
           }
         });
       }
@@ -164,6 +172,20 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
           </div>
         );
 
+      case 'checkbox':
+        return (
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={fieldValue === 'true' || fieldValue === true}
+              onChange={(e) => handleFieldChange(fieldIndex, e.target.checked, field)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              required={field.required && !fieldValue}
+            />
+            <span className="ml-2 text-sm text-gray-700">Check if applicable</span>
+          </div>
+        );
+
       case 'date':
         return (
           <input
@@ -276,6 +298,20 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
               />
               <span className="ml-2 text-sm font-medium text-gray-700">No</span>
             </label>
+          </div>
+        );
+
+      case 'checkbox':
+        return (
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={subValue === 'true' || subValue === true}
+              onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.checked)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              required={subQuestion.required && !subValue}
+            />
+            <span className="ml-2 text-sm text-gray-700">Check if applicable</span>
           </div>
         );
 

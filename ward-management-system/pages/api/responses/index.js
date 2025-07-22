@@ -121,11 +121,21 @@ export default async function handler(req, res) {
       }
       
       // Validate responses against form fields
-      const requiredFields = formTemplate.fields.filter(field => field.required).map(field => field.label);
+      const requiredFields = formTemplate.fields.filter(field => field.required);
       
       for (const field of requiredFields) {
-        if (!responses[field] && responses[field] !== 0) {
-          return res.status(400).json({ message: `Missing required field: ${field}` });
+        const fieldValue = responses[field.label];
+        
+        // For checkbox fields, check if the value exists (can be true or false)
+        if (field.type === 'checkbox') {
+          if (fieldValue === undefined || fieldValue === null) {
+            return res.status(400).json({ message: `Missing required field: ${field.label}` });
+          }
+        } else {
+          // For other fields, check if value exists and is not empty
+          if (!fieldValue && fieldValue !== 0 && fieldValue !== false) {
+            return res.status(400).json({ message: `Missing required field: ${field.label}` });
+          }
         }
       }
       
