@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { useState } from 'react';
 
 const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stateAdmin" }) => {
-  const [showAll, setShowAll] = useState(false);
-  const displayLogs = showAll ? logs : logs.slice(0, 3);
+  // Always show only the first 3 items, full details available via "View all"
+  const displayLogs = logs.slice(0, 3);
   const getActionBadgeColor = (action) => {
     const colors = {
       LOGIN: 'bg-green-100 text-green-800',
@@ -46,7 +45,7 @@ const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stat
         if (match) {
           const filters = JSON.parse(match[1]);
           let parts = [];
-          
+
           if (filters.formType) {
             parts.push(`${filters.formType.replace('Report', ' Reports')}`);
           }
@@ -56,14 +55,14 @@ const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stat
           if (filters.weekNumber) {
             parts.push(`week ${filters.weekNumber}`);
           }
-          
+
           return `Viewed ${parts.join(' ') || 'reports'}`;
         }
       } catch (e) {
         // If parsing fails, fall back to original description
       }
     }
-    
+
     return log.description;
   };
 
@@ -158,18 +157,6 @@ const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stat
               </div>
             </div>
           ))
-        )}
-        
-        {/* Show more/less button */}
-        {logs.length > 3 && (
-          <div className="px-6 py-3 border-t border-gray-200 bg-gray-50">
-            <button
-              onClick={() => setShowAll(!showAll)}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {showAll ? `Show less` : `Show ${logs.length - 3} more activities`}
-            </button>
-          </div>
         )}
       </div>
     </div>
