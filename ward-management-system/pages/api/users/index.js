@@ -17,7 +17,36 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const users = await User.find({}).select('-password -pinCode');
-      return res.status(200).json(users);
+      
+      // Get ward information to populate district data
+      const Ward = require('../../../models/Ward').default;
+      const wards = await Ward.find({}).select('coordinator wardAdmin district');
+      
+      // Create a map of user districts based on their ward assignments
+      const userDistrictMap = new Map();
+      
+      wards.forEach(ward => {
+        if (ward.coordinator) {
+          userDistrictMap.set(ward.coordinator.toString(), ward.district);
+        }
+        if (ward.wardAdmin) {
+          userDistrictMap.set(ward.wardAdmin.toString(), ward.district);
+        }
+      });
+      
+      // Populate district information for users
+      const usersWithDistricts = users.map(user => {
+        const userObj = user.toObject();
+        
+        // If user doesn't have district in their profile, get it from ward assignment
+        if (!userObj.district && userDistrictMap.has(user._id.toString())) {
+          userObj.district = userDistrictMap.get(user._id.toString());
+        }
+        
+        return userObj;
+      });
+      
+      return res.status(200).json(usersWithDistricts);
     } catch (error) {
       return res.status(500).json({ message: 'Error fetching users', error: error.message });
     }

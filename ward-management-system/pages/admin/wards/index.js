@@ -91,6 +91,8 @@ export default function AdminWards() {
       const coordinators = usersResponse.data.filter(user => user.role === 'coordinator');
       const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
       
+
+      
       setWards(wardsResponse.data);
       setFilteredWards(wardsResponse.data);
       setCoordinators(coordinators);
@@ -161,6 +163,11 @@ export default function AdminWards() {
     setError('');
 
     try {
+      // Validate form
+      if (!formData.name || !formData.wardNumber || !formData.panchayath || !formData.district || !formData.coordinatorId) {
+        throw new Error('Ward name, number, panchayath, district, and coordinator are required');
+      }
+
       // Update ward
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
 
@@ -175,7 +182,11 @@ export default function AdminWards() {
       resetForm();
       setShowEditModal(false);
       setEditingWard(null);
+      
+      // Clear any existing errors
+      setError('');
     } catch (error) {
+      console.error('Error updating ward:', error);
       setError(error.response?.data?.message || error.message);
     }
   };
@@ -344,22 +355,26 @@ export default function AdminWards() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">No Ward Admin Assigned</option>
-            {wardAdmins
-              .filter(admin => {
-                // For editing, allow current ward admin to be selected
-                if (editingWard && admin._id === editingWard.wardAdmin?._id) {
-                  return true;
-                }
-                // Only show ward admins that are not already assigned to other wards
-                return !wards.some(ward => ward.wardAdmin?._id === admin._id);
-              })
-              .map((admin) => (
-                <option key={admin._id} value={admin._id}>
+            {wardAdmins.map((admin) => {
+              // Check if this admin is assigned to any ward
+              const assignedWard = wards.find(ward => ward.wardAdmin?._id === admin._id);
+              const isCurrentWardAdmin = editingWard && admin._id === editingWard.wardAdmin?._id;
+              const isAssignedToOtherWard = assignedWard && assignedWard._id !== editingWard?._id;
+              
+              return (
+                <option 
+                  key={admin._id} 
+                  value={admin._id}
+                  disabled={isAssignedToOtherWard}
+                >
                   {admin.name} {admin.district ? `(${admin.district})` : ''}
-                  {wards.find(ward => ward.wardAdmin?._id === admin._id && ward._id !== editingWard?._id) 
-                    ? ' - Already Assigned' : ''}
+                  {isAssignedToOtherWard ? ` - Already Assigned` : ''}
                 </option>
-              ))}
+              );
+            })}
+            {wardAdmins.length === 0 && (
+              <option disabled>Loading ward admins...</option>
+            )}
           </select>
           <p className="text-xs text-gray-500 mt-1">
             Each ward admin can only be assigned to one ward

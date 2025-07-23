@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       const [users, wards, forms, responses] = await Promise.all([
         User.countDocuments(),
         Ward.countDocuments(),
-        FormTemplate.countDocuments(),
+        FormTemplate.countDocuments({ isActive: true }),
         Response.countDocuments()
       ]);
 
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ timestamp: -1 })
         .limit(10);
-      
+
       recentLogs.push(...logs);
 
       // Get recent reports (last 10)
@@ -56,14 +56,14 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 })
         .limit(10);
-      
+
       // Transform the reports to match the expected format
       const transformedReports = reports.map(report => ({
         ...report.toObject(),
         form: report.formTemplate, // Map formTemplate to form for compatibility
         user: report.respondent     // Map respondent to user for compatibility
       }));
-      
+
       recentReports.push(...transformedReports);
 
       // Get recent login history (last 10)
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ loginTime: -1 })
         .limit(10);
-      
+
       recentLogins.push(...logins);
 
     } else if (session.user.role === 'coordinator') {
@@ -91,7 +91,7 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ timestamp: -1 })
         .limit(10);
-      
+
       recentLogs.push(...logs);
 
       // Get recent reports from coordinator's district (last 10)
@@ -101,14 +101,14 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 })
         .limit(10);
-      
+
       // Transform the reports to match the expected format
       const transformedReports = reports.map(report => ({
         ...report.toObject(),
         form: report.formTemplate, // Map formTemplate to form for compatibility
         user: report.respondent     // Map respondent to user for compatibility
       }));
-      
+
       recentReports.push(...transformedReports);
 
       // Get recent login history from coordinator's district (last 10)
@@ -117,25 +117,25 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ loginTime: -1 })
         .limit(10);
-      
+
       recentLogins.push(...logins);
 
     } else if (session.user.role === 'wardAdmin') {
       // Ward Admin Dashboard Stats
-      
+
       // Get ward admin's wards
       const userWards = await Ward.find({ wardAdmin: session.user.id });
       const wardIds = userWards.map(ward => ward._id);
-      
+
       // Get the district from the ward admin's ward (for logging purposes)
       const userDistrict = userWards.length > 0 ? userWards[0].district : session.user.district;
-      
+
       // Count submitted reports (responses that exist)
-      const submittedReports = await Response.countDocuments({ 
+      const submittedReports = await Response.countDocuments({
         respondent: session.user.id,
         formType: 'wardReport'
       });
-      
+
       // Count pending reports (active forms that haven't been submitted)
       const activeForms = await FormTemplate.find({
         formType: 'wardReport',
@@ -143,23 +143,23 @@ export default async function handler(req, res) {
         enableDateTime: { $lte: new Date() },
         closeDateTime: { $gte: new Date() }
       });
-      
+
       // Check which forms have been submitted
       const submittedFormIds = await Response.distinct('formTemplate', {
         respondent: session.user.id,
         formType: 'wardReport'
       });
-      
-      const pendingReports = activeForms.filter(form => 
+
+      const pendingReports = activeForms.filter(form =>
         !submittedFormIds.some(id => id.toString() === form._id.toString())
       ).length;
-      
+
       stats.submittedReports = submittedReports;
       stats.pendingReports = pendingReports;
       stats.totalReports = submittedReports + pendingReports;
 
       // Get recent activity logs for ward admin (last 10)
-      const logs = await ActivityLog.find({ 
+      const logs = await ActivityLog.find({
         $or: [
           { user: session.user.id },
           { district: userDistrict }
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ timestamp: -1 })
         .limit(10);
-      
+
       recentLogs.push(...logs);
 
       // Get recent reports by ward admin (last 10)
@@ -179,14 +179,14 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 })
         .limit(10);
-      
+
       // Transform the reports to match the expected format
       const transformedReports = reports.map(report => ({
         ...report.toObject(),
         form: report.formTemplate, // Map formTemplate to form for compatibility
         user: report.respondent     // Map respondent to user for compatibility
       }));
-      
+
       recentReports.push(...transformedReports);
 
       // Get recent login history for ward admin (last 10)
@@ -194,7 +194,7 @@ export default async function handler(req, res) {
         .populate('user', 'name role')
         .sort({ loginTime: -1 })
         .limit(10);
-      
+
       recentLogins.push(...logins);
     }
 

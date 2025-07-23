@@ -32,6 +32,23 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
       }
 
+      // Get district information from ward assignments if not in user profile
+      if (!user.district && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
+        const Ward = require('../../../models/Ward').default;
+        const ward = await Ward.findOne({
+          $or: [
+            { coordinator: user._id },
+            { wardAdmin: user._id }
+          ]
+        }).select('district');
+        
+        if (ward) {
+          const userObj = user.toObject();
+          userObj.district = ward.district;
+          return res.status(200).json(userObj);
+        }
+      }
+
       return res.status(200).json(user);
     } catch (error) {
       return res.status(500).json({ message: 'Error fetching user', error: error.message });
@@ -126,6 +143,21 @@ export default async function handler(req, res) {
       const updatedUser = user.toObject();
       delete updatedUser.password;
       delete updatedUser.pinCode;
+
+      // Get district information from ward assignments if not in user profile
+      if (!updatedUser.district && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
+        const Ward = require('../../../models/Ward').default;
+        const ward = await Ward.findOne({
+          $or: [
+            { coordinator: user._id },
+            { wardAdmin: user._id }
+          ]
+        }).select('district');
+        
+        if (ward) {
+          updatedUser.district = ward.district;
+        }
+      }
 
       return res.status(200).json(updatedUser);
     } catch (error) {

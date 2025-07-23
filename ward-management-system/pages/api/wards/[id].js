@@ -1,10 +1,11 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import connectToDatabase from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
 import User from '../../../models/User';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
   
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -43,25 +44,39 @@ export default async function handler(req, res) {
   }
   
   if (req.method === 'PUT') {
-    // Only state admin and coordinator can update wards
-    if (!isStateAdmin && !isCoordinator) {
-      return res.status(403).json({ message: 'Forbidden' });
+    // Only state admin can update wards (for now, to match the frontend)
+    if (!isStateAdmin) {
+      return res.status(403).json({ message: 'Only state administrators can update wards' });
     }
     
     try {
-      const { name, district, coordinatorId, wardAdminId } = req.body;
+      const { 
+        name, 
+        wardNumber, 
+        district, 
+        panchayath, 
+        coordinatorId, 
+        wardAdminId, 
+        population, 
+        area, 
+        description 
+      } = req.body;
       
-      // Update fields
+      // Update all provided fields
       if (name) ward.name = name;
+      if (wardNumber) ward.wardNumber = wardNumber;
       if (district) ward.district = district;
+      if (panchayath) ward.panchayath = panchayath;
+      if (population !== undefined) ward.population = population ? parseInt(population) : null;
+      if (area !== undefined) ward.area = area || null;
+      if (description !== undefined) ward.description = description || null;
       
-      // Update coordinator if provided and user is state admin
-      if (coordinatorId && isStateAdmin) {
+      // Update coordinator if provided
+      if (coordinatorId) {
         const coordinatorUser = await User.findById(coordinatorId);
         if (!coordinatorUser || coordinatorUser.role !== 'coordinator') {
           return res.status(400).json({ message: 'Invalid coordinator ID' });
         }
-        
         ward.coordinator = coordinatorId;
       }
       
@@ -72,10 +87,9 @@ export default async function handler(req, res) {
           if (!wardAdminUser || wardAdminUser.role !== 'wardAdmin') {
             return res.status(400).json({ message: 'Invalid ward admin ID' });
           }
-          
           ward.wardAdmin = wardAdminId;
         } else {
-          // Remove ward admin if null is provided
+          // Remove ward admin if empty string is provided
           ward.wardAdmin = null;
         }
       }
@@ -89,6 +103,7 @@ export default async function handler(req, res) {
       
       return res.status(200).json(updatedWard);
     } catch (error) {
+      console.error('Error updating ward:', error);
       return res.status(500).json({ message: 'Error updating ward', error: error.message });
     }
   }
