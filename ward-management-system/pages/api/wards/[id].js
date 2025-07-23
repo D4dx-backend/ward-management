@@ -52,11 +52,18 @@ export default async function handler(req, res) {
     try {
       const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, population, area, description } = req.body;
 
+      // Coordinators can only update wards in their assigned district
+      if (session.user.role === 'coordinator' && district && district !== session.user.district) {
+        return res.status(403).json({ 
+          message: `Forbidden: You can only manage wards in your assigned district (${session.user.district})` 
+        });
+      }
+
       // Update fields
       if (name) ward.name = name;
       if (wardNumber) ward.wardNumber = wardNumber;
       if (panchayath) ward.panchayath = panchayath;
-      if (district) ward.district = district;
+      if (district && isStateAdmin) ward.district = district; // Only state admin can change district
       if (population !== undefined) ward.population = population ? parseInt(population) : undefined;
       if (area !== undefined) ward.area = area;
       if (description !== undefined) ward.description = description;
@@ -100,9 +107,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    // Only state admin can delete wards
-    if (!isStateAdmin) {
-      return res.status(403).json({ message: 'Forbidden' });
+    // State admin and coordinator can delete wards
+    if (!isStateAdmin && !isCoordinator) {
+      return res.status(403).json({ message: 'Forbidden: Only state admin or ward coordinator can delete wards' });
     }
 
     try {

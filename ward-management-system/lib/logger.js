@@ -13,18 +13,32 @@ export const logActivity = async ({
   userAgent = null
 }) => {
   try {
-    const log = new ActivityLog({
+    // Ensure district is never null or undefined
+    const validDistrict = district || 'Unknown';
+    
+    // Prepare log data - only include entityType if it's not null
+    const logData = {
       user: userId,
       action,
       description,
-      entityType,
-      entityId,
       metadata,
-      district,
-      ward,
+      district: validDistrict,
       ipAddress,
       userAgent
-    });
+    };
+    
+    // Only add entityType and entityId if entityType is provided and valid
+    if (entityType && entityType !== null) {
+      logData.entityType = entityType;
+      logData.entityId = entityId;
+    }
+    
+    // Only add ward if it's not null
+    if (ward && ward !== null) {
+      logData.ward = ward;
+    }
+    
+    const log = new ActivityLog(logData);
     
     await log.save();
     return log;

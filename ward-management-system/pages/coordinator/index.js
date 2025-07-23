@@ -8,6 +8,8 @@ import StatsCard from '../../components/StatsCard';
 import RecentReports from '../../components/RecentReports';
 import RecentActivity from '../../components/RecentActivity';
 import DashboardLoginHistory from '../../components/DashboardLoginHistory';
+import CoordinatorWardsList from '../../components/CoordinatorWardsList';
+import PendingReports from '../../components/PendingReports';
 
 export default function CoordinatorDashboard() {
   const { data: session, status } = useSession();
@@ -21,6 +23,8 @@ export default function CoordinatorDashboard() {
   const [recentReports, setRecentReports] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [recentLogins, setRecentLogins] = useState([]);
+  const [coordinatorWards, setCoordinatorWards] = useState([]);
+  const [pendingReportsList, setPendingReportsList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,139 +42,48 @@ export default function CoordinatorDashboard() {
     try {
       setIsLoading(true);
       
-      // Mock data for coordinator dashboard
-      const mockStats = {
-        totalWards: 15,
-        activeWards: 13,
-        totalReports: 45,
-        pendingReports: 3
-      };
-
-      const mockRecentReports = [
-        {
-          _id: '1',
-          form: { title: 'Weekly Ward Progress Report' },
-          user: { name: 'Ward Admin 1', role: 'wardAdmin' },
-          ward: { name: 'Panchayath Ward 1', district: session?.user?.district || 'Thiruvananthapuram' },
-          submittedAt: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          form: { title: 'Monthly Infrastructure Report' },
-          user: { name: 'Ward Admin 2', role: 'wardAdmin' },
-          ward: { name: 'Panchayath Ward 2', district: session?.user?.district || 'Thiruvananthapuram' },
-          submittedAt: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          _id: '3',
-          form: { title: 'Weekly Coordinator Report' },
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          ward: { name: 'District Office', district: session?.user?.district || 'Thiruvananthapuram' },
-          submittedAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
-
-      const mockRecentActivity = [
-        {
-          _id: '1',
-          action: 'REPORT_SUBMITTED',
-          description: 'Submitted weekly coordinator report',
-          user: { name: session?.user?.name || 'Current User' },
-          timestamp: new Date().toISOString(),
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: '2',
-          action: 'WARD_UPDATED',
-          description: 'Updated ward information for Panchayath Ward 1',
-          user: { name: session?.user?.name || 'Current User' },
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: '3',
-          action: 'USER_CREATED',
-          description: 'Created new ward admin account',
-          user: { name: session?.user?.name || 'Current User' },
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: '4',
-          action: 'WARD_ADMIN_ASSIGNED',
-          description: 'Assigned ward admin to Panchayath Ward 3',
-          user: { name: session?.user?.name || 'Current User' },
-          timestamp: new Date(Date.now() - 10800000).toISOString(),
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: '5',
-          action: 'REPORT_REVIEWED',
-          description: 'Reviewed ward progress report from Ward 2',
-          user: { name: session?.user?.name || 'Current User' },
-          timestamp: new Date(Date.now() - 14400000).toISOString(),
-          district: session?.user?.district || 'Thiruvananthapuram'
-        }
-      ];
-
-      const mockRecentLogins = [
-        {
-          _id: '1',
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          loginTime: new Date().toISOString(),
-          isActive: true,
-          loginMethod: 'Password',
-          deviceType: 'Desktop',
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: '2',
-          user: { name: 'Ward Admin 1', role: 'wardAdmin' },
-          loginTime: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-          isActive: true,
-          loginMethod: 'Password',
-          deviceType: 'Mobile',
-          district: session?.user?.district || 'Thiruvananthapuram',
-          ward: { name: 'Panchayath Ward 1' }
-        },
-        {
-          _id: '3',
-          user: { name: 'Ward Admin 2', role: 'wardAdmin' },
-          loginTime: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-          isActive: true,
-          loginMethod: 'Password',
-          deviceType: 'Desktop',
-          district: session?.user?.district || 'Thiruvananthapuram',
-          ward: { name: 'Panchayath Ward 2' }
-        },
-        {
-          _id: '4',
-          user: { name: 'Ward Admin 3', role: 'wardAdmin' },
-          loginTime: new Date(Date.now() - 5400000).toISOString(), // 1.5 hours ago
-          isActive: false,
-          loginMethod: 'Password',
-          deviceType: 'Tablet',
-          district: session?.user?.district || 'Thiruvananthapuram',
-          ward: { name: 'Panchayath Ward 3' }
-        },
-        {
-          _id: '5',
-          user: { name: 'Ward Admin 4', role: 'wardAdmin' },
-          loginTime: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-          isActive: false,
-          loginMethod: 'Password',
-          deviceType: 'Mobile',
-          district: session?.user?.district || 'Thiruvananthapuram',
-          ward: { name: 'Panchayath Ward 4' }
-        }
-      ];
-
-      setStats(mockStats);
-      setRecentReports(mockRecentReports);
-      setRecentActivity(mockRecentActivity);
-      setRecentLogins(mockRecentLogins);
+      // Fetch real dashboard data from API
+      const response = await axios.get(`/api/dashboard/stats?t=${Date.now()}`);
+      const { stats: apiStats, recentReports: apiReports, recentLogs: apiActivity, recentLogins: apiLogins } = response.data;
+      
+      // Update stats with real data
+      setStats({
+        totalWards: apiStats.totalWards || 0,
+        activeWards: apiStats.activeWards || 0,
+        totalReports: apiStats.totalReports || 0,
+        pendingReports: apiStats.pendingReports || 0
+      });
+      
+      // Set coordinator wards data
+      setCoordinatorWards(apiStats.coordinatorWards || []);
+      
+      // Set pending reports list
+      setPendingReportsList(apiStats.pendingReportsList || []);
+      
+      // Set recent reports with proper structure
+      setRecentReports(apiReports || []);
+      
+      // Set recent activity logs
+      setRecentActivity(apiActivity || []);
+      
+      // Set recent logins
+      setRecentLogins(apiLogins || []);
+      
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      
+      // Fallback to empty data on error
+      setStats({
+        totalWards: 0,
+        activeWards: 0,
+        totalReports: 0,
+        pendingReports: 0
+      });
+      setCoordinatorWards([]);
+      setPendingReportsList([]);
+      setRecentReports([]);
+      setRecentActivity([]);
+      setRecentLogins([]);
     } finally {
       setIsLoading(false);
     }
@@ -232,17 +145,40 @@ export default function CoordinatorDashboard() {
           />
         </div>
 
-        {/* Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Main Dashboard Content - 3 Containers */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* My Wards */}
+          <div className="lg:col-span-1">
+            <CoordinatorWardsList 
+              wards={coordinatorWards} 
+              title="My Wards"
+              showCount={true}
+            />
+          </div>
+
           {/* Recent Reports */}
           <div className="lg:col-span-1">
             <RecentReports 
               reports={recentReports} 
-              title="Recent Reports"
+              title="Reports Submitted"
               userRole="coordinator"
+              showCount={true}
             />
           </div>
 
+          {/* Pending Reports */}
+          <div className="lg:col-span-1">
+            <PendingReports 
+              pendingReports={pendingReportsList} 
+              title="Pending Reports"
+              userRole="coordinator"
+              showCount={true}
+            />
+          </div>
+        </div>
+
+        {/* Additional Dashboard Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Activity */}
           <div className="lg:col-span-1">
             <RecentActivity 
@@ -251,14 +187,14 @@ export default function CoordinatorDashboard() {
               userRole="coordinator"
             />
           </div>
-        </div>
 
-        {/* Recent Logins */}
-        <div className="grid grid-cols-1 gap-6">
-          <DashboardLoginHistory 
-            logins={recentLogins} 
-            userRole="coordinator"
-          />
+          {/* Recent Logins */}
+          <div className="lg:col-span-1">
+            <DashboardLoginHistory 
+              logins={recentLogins} 
+              userRole="coordinator"
+            />
+          </div>
         </div>
 
 

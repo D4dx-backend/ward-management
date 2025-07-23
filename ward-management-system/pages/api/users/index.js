@@ -27,9 +27,29 @@ export default async function handler(req, res) {
         // State admin can see all users
         users = await User.find({}).select('-password -pinCode');
       } else if (session.user.role === 'coordinator') {
-        // Coordinator can only see users from their district
-        users = await User.find({ 
+        // Coordinator can see:
+        // 1. Users from their district
+        // 2. Ward admins assigned to wards in their district
+        // 3. All ward admins (for assignment purposes)
+        
+        const Ward = require('../../../models/Ward').default;
+        
+        // Get ward admins assigned to wards in coordinator's district
+        const wardsInDistrict = await Ward.find({ 
           district: session.user.district 
+        }).select('wardAdmin');
+        
+        const wardAdminIds = wardsInDistrict
+          .filter(ward => ward.wardAdmin)
+          .map(ward => ward.wardAdmin);
+        
+        // Get users: district match OR ward admin assigned to district wards OR all ward admins
+        users = await User.find({
+          $or: [
+            { district: session.user.district },
+            { _id: { $in: wardAdminIds } },
+            { role: 'wardAdmin' } // Allow coordinators to see all ward admins for assignment
+          ]
         }).select('-password -pinCode');
       }
       

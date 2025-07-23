@@ -11,7 +11,16 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
   
-  await connectToDatabase();
+  try {
+    await connectToDatabase();
+    console.log('Database connected successfully');
+  } catch (dbError) {
+    console.error('Database connection failed:', dbError);
+    return res.status(500).json({ 
+      message: 'Database connection failed', 
+      error: dbError.message 
+    });
+  }
   
   if (req.method === 'GET') {
     try {
@@ -48,11 +57,23 @@ export default async function handler(req, res) {
     }
     
     try {
+      console.log('Ward creation request body:', req.body);
+      console.log('Session user:', session.user);
+      
       const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, population, area, description } = req.body;
       
       // Validate required fields
       if (!name || !wardNumber || !panchayath || !district) {
+        console.log('Validation failed - missing required fields:', { name, wardNumber, panchayath, district });
         return res.status(400).json({ message: 'Name, ward number, panchayath, and district are required' });
+      }
+
+      // Coordinators can only create wards in their assigned district
+      if (session.user.role === 'coordinator' && district !== session.user.district) {
+        console.log('District restriction violation:', { userDistrict: session.user.district, requestedDistrict: district });
+        return res.status(403).json({ 
+          message: `Forbidden: You can only create wards in your assigned district (${session.user.district})` 
+        });
       }
       
       // Determine coordinator ID
@@ -85,6 +106,19 @@ export default async function handler(req, res) {
       }
       
       // Create new ward
+      console.log('Creating ward with data:', {
+        name,
+        wardNumber,
+        panchayath,
+        district,
+        coordinator,
+        wardAdmin,
+        population: population ? parseInt(population) : undefined,
+        area,
+        description,
+        createdBy: session.user.id,
+      });
+      
       const newWard = new Ward({
         name,
         wardNumber,
@@ -98,16 +132,46 @@ export default async function handler(req, res) {
         createdBy: session.user.id,
       });
       
+      console.log('Saving ward to database...');
       await newWard.save();
+      console.log('Ward saved successfully:', newWard._id);
       
       // Populate coordinator and ward admin details
       const savedWard = await Ward.findById(newWard._id)
         .populate('coordinator', 'name email')
         .populate('wardAdmin', 'name email');
       
+      console.log('Ward creation completed:', savedWard);
       return res.status(201).json(savedWard);
     } catch (error) {
-      return res.status(500).json({ message: 'Error creating ward', error: error.message });
+      console.error('Ward creation error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code
+      });
+      
+      // Handle specific MongoDB errors
+      if (error.code === 11000) {
+        return res.status(400).json({ 
+          message: 'Ward with this number already exists in this panchayath and district',
+          error: 'Duplicate ward number'
+        });
+      }
+      
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({ 
+          message: 'Validation failed',
+          error: validationErrors.join(', ')
+        });
+      }
+      
+      return res.status(500).json({ 
+        message: 'Error creating ward', 
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
   

@@ -14,9 +14,7 @@ const ResponseSchema = new mongoose.Schema({
   ward: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Ward',
-    required: function() {
-      return this.formType === 'wardReport';
-    },
+    required: false, // Make it optional and handle validation in API
   },
   formType: {
     type: String,
@@ -24,8 +22,7 @@ const ResponseSchema = new mongoose.Schema({
     required: true,
   },
   responses: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed,
+    type: mongoose.Schema.Types.Mixed,
     required: true,
   },
   weekNumber: {

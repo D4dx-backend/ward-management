@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin' }) => {
+const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin', showCount = false }) => {
   const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const time = new Date(timestamp);
@@ -35,7 +35,14 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+            {showCount && (
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {reports.length}
+              </span>
+            )}
+          </div>
           <Link href={getViewAllLink()} className="text-sm text-blue-600 hover:text-blue-800">
             View all
           </Link>

@@ -44,8 +44,19 @@ export default function ManageWards() {
     } else if (status === 'authenticated') {
       // Set district and panchayaths first
       const userDistrict = session.user.district;
+      console.log('User district:', userDistrict);
       setSelectedDistrict(userDistrict);
-      setAvailablePanchayaths(getPanchayathsByDistrict(userDistrict));
+      
+      // Get panchayaths from local data first
+      const localPanchayaths = getPanchayathsByDistrict(userDistrict);
+      console.log('Local panchayaths:', localPanchayaths);
+      
+      // If no local panchayaths, set test panchayath
+      if (localPanchayaths.length === 0) {
+        setAvailablePanchayaths(['test panchayath']);
+      } else {
+        setAvailablePanchayaths(localPanchayaths);
+      }
       
       // Set form data with district
       setFormData(prev => ({
@@ -73,22 +84,25 @@ export default function ManageWards() {
     }
   }, [wards, searchTerm]);
 
-  // Load panchayaths from API when modal opens
+  // Load panchayaths from API when modal opens (only if not already loaded)
   useEffect(() => {
-    if (showCreateModal && session?.user?.district) {
+    if (showCreateModal && session?.user?.district && availablePanchayaths.length === 0) {
       fetchPanchayaths(session.user.district);
     }
   }, [showCreateModal, session?.user?.district]);
 
   const fetchPanchayaths = async (district) => {
     try {
+      console.log('Fetching panchayaths for district:', district);
       const response = await axios.get(`/api/panchayaths?district=${district}`);
+      console.log('Panchayaths response:', response.data);
       setAvailablePanchayaths(response.data);
       setSelectedDistrict(district);
       setFormData(prev => ({ ...prev, district }));
     } catch (error) {
       console.error('Error fetching panchayaths:', error);
-      setAvailablePanchayaths([]);
+      // If API fails, set test panchayath as fallback
+      setAvailablePanchayaths(['test panchayath']);
     }
   };
 
@@ -154,13 +168,15 @@ export default function ManageWards() {
     setFormData({ ...formData, [name]: value });
   };
 
+  // District is fixed for coordinators - no need for district change handler
+
   const resetForm = () => {
-    const userDistrict = session?.user?.district || '';
+    const userDistrict = session?.user?.district || 'Thiruvananthapuram';
     setFormData({
       name: '',
       wardNumber: '',
       panchayath: '',
-      district: userDistrict,
+      district: userDistrict, // Always set to coordinator's district
       wardAdminId: '',
       population: '',
       area: '',
@@ -170,7 +186,13 @@ export default function ManageWards() {
     // Ensure panchayaths are loaded for the district
     if (userDistrict) {
       setSelectedDistrict(userDistrict);
-      setAvailablePanchayaths(getPanchayathsByDistrict(userDistrict));
+      const localPanchayaths = getPanchayathsByDistrict(userDistrict);
+      // If no local panchayaths, set test panchayath
+      if (localPanchayaths.length === 0) {
+        setAvailablePanchayaths(['test panchayath']);
+      } else {
+        setAvailablePanchayaths(localPanchayaths);
+      }
     }
   };
 
@@ -180,16 +202,16 @@ export default function ManageWards() {
 
     try {
       // Validate form
-      if (!formData.name || !formData.wardNumber || !formData.panchayath) {
-        throw new Error('Ward name, number, and panchayath are required');
+      if (!formData.name || !formData.wardNumber || !formData.panchayath || !formData.district) {
+        throw new Error('Ward name, number, panchayath, and district are required');
       }
-
+      
       // Prepare ward data for API
       const wardData = {
         name: formData.name,
         wardNumber: formData.wardNumber,
         panchayath: formData.panchayath,
-        district: formData.district,
+        district: formData.district, // Use the selected district from form
         coordinatorId: session.user.id,
         wardAdminId: formData.wardAdminId || null,
         population: formData.population ? parseInt(formData.population) : null,
@@ -198,51 +220,35 @@ export default function ManageWards() {
       };
 
       // Try to create ward via API
-      try {
-        const response = await axios.post('/api/wards', wardData);
-        
-        // Update wards list with API response
-        const newWards = [...wards, response.data];
-        setWards(newWards);
-        setFilteredWards(newWards);
-        
-        // Reset form and close modal
-        resetForm();
-        setShowCreateModal(false);
-        
-      } catch (apiError) {
-        // If API fails, create locally for demo purposes
-        console.warn('API creation failed, creating locally:', apiError);
-        
-        const newWard = {
-          _id: Date.now().toString(),
-          name: formData.name,
-          wardNumber: formData.wardNumber,
-          panchayath: formData.panchayath,
-          district: formData.district,
-          coordinator: { _id: session.user.id, name: session.user.name },
-          wardAdmin: formData.wardAdminId ? wardAdmins.find(admin => admin._id === formData.wardAdminId) : null,
-          population: formData.population ? parseInt(formData.population) : null,
-          area: formData.area,
-          description: formData.description
-        };
-
-        // Update wards list locally
-        const newWards = [...wards, newWard];
-        setWards(newWards);
-        setFilteredWards(newWards);
-        
-        // Reset form and close modal
-        resetForm();
-        setShowCreateModal(false);
-        
-        // Show success message even though it's local
-        setError('Ward created locally (API unavailable)');
-        setTimeout(() => setError(''), 3000);
-      }
+      console.log('Sending ward data to API:', wardData);
+      
+      const response = await axios.post('/api/wards', wardData);
+      console.log('API response:', response.data);
+      
+      // Update wards list with API response
+      const newWards = [...wards, response.data];
+      setWards(newWards);
+      setFilteredWards(newWards);
+      
+      // Reset form and close modal
+      resetForm();
+      setShowCreateModal(false);
       
     } catch (error) {
-      setError(error.message);
+      console.error('Ward creation error:', error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        // API responded with an error status
+        const apiError = error.response.data?.message || error.response.data?.error || 'API error occurred';
+        setError(`Failed to create ward: ${apiError}`);
+      } else if (error.request) {
+        // Request was made but no response received
+        setError('Failed to create ward: No response from server. Please check your connection.');
+      } else {
+        // Something else happened
+        setError(`Failed to create ward: ${error.message}`);
+      }
     }
   };
 
@@ -364,19 +370,16 @@ export default function ManageWards() {
           <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-1">
             District *
           </label>
-          <select
+          <input
+            type="text"
             id="district"
             name="district"
-            value={formData.district}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-            disabled={!isEdit} // Only allow editing for state admin
-          >
-            {KERALA_DISTRICTS.map((district) => (
-              <option key={district} value={district}>{district}</option>
-            ))}
-          </select>
+            value={session?.user?.district || 'Thiruvananthapuram'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+            disabled
+            readOnly
+          />
+          <p className="mt-1 text-xs text-gray-500">You can only manage wards in your assigned district</p>
         </div>
 
         <div>
