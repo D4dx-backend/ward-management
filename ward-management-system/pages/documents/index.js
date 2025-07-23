@@ -150,8 +150,16 @@ export default function Documents() {
         </div>
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-hidden">
+            <table className="w-full divide-y divide-gray-200 table-fixed">
+              <colgroup>
+                <col className="w-1/5" />
+                <col className="w-2/5" />
+                <col className="w-1/8" />
+                <col className="w-1/8" />
+                <col className="w-1/12" />
+                <col className="w-1/8" />
+              </colgroup>
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -177,42 +185,50 @@ export default function Documents() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDocuments.map((document) => (
                   <tr key={document._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 truncate">{document.title}</div>
+                    <td className="px-3 py-4">
+                      <div className="text-sm font-medium text-gray-900 truncate max-w-0">{document.title}</div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 truncate">
+                    <td className="px-3 py-4">
+                      <div className="text-sm text-gray-900 truncate max-w-0">
                         {(() => {
                           const desc = document.description || 'No description';
-                          // Show only first 50 characters in one line with "..." for compact table display
-                          if (desc.length > 50) {
-                            return desc.substring(0, 50) + '...';
+                          // Show only first 40 characters in one line with "..." for compact table display
+                          if (desc.length > 40) {
+                            return desc.substring(0, 40) + '...';
                           }
                           return desc;
                         })()}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-4">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(document.category)}`}>
                         {document.category.charAt(0).toUpperCase() + document.category.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {document.fileUrl ? (
-                        <button
-                          onClick={() => handleDownload(document._id, document.fileName)}
-                          className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer"
-                        >
-                          {document.fileName || 'Download File'}
-                        </button>
-                      ) : (
-                        'No file'
-                      )}
+                    <td className="px-3 py-4 text-sm text-gray-900">
+                      <div className="truncate max-w-0">
+                        {document.fileUrl ? (
+                          <button
+                            onClick={() => handleDownload(document._id, document.fileName)}
+                            className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer truncate"
+                          >
+                            {document.fileName ? 
+                              (document.fileName.length > 10 ? 
+                                document.fileName.substring(0, 10) + '...' : 
+                                document.fileName) 
+                              : 'File'}
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(document.createdAt)}
+                    <td className="px-3 py-4 text-sm text-gray-500">
+                      <div className="truncate max-w-0">
+                        {formatDate(document.createdAt)}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-4 text-sm text-gray-900">
                       <Button
                         variant="outline"
                         size="sm"

@@ -14,6 +14,7 @@ export default function AdminInstructions() {
   const [instructions, setInstructions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -23,11 +24,12 @@ export default function AdminInstructions() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    priority: 'medium',
     fileUrl: '',
     fileName: '',
     fileSize: 0,
-    targetAudience: 'all',
-    priority: 'medium'
+    fileType: '',
+    targetAudience: 'all'
   });
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function AdminInstructions() {
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
-      
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: uploadFormData,
@@ -70,7 +72,8 @@ export default function AdminInstructions() {
           ...prev,
           fileUrl: data.url,
           fileName: file.name,
-          fileSize: file.size
+          fileSize: file.size,
+          fileType: file.type
         }));
       } else {
         alert('Failed to upload file');
@@ -85,14 +88,14 @@ export default function AdminInstructions() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      const url = editingInstruction 
+      const url = editingInstruction
         ? `/api/instructions/${editingInstruction._id}`
         : '/api/instructions';
-      
+
       const method = editingInstruction ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -104,11 +107,14 @@ export default function AdminInstructions() {
       if (response.ok) {
         fetchInstructions();
         resetForm();
-        setShowCreateModal(false);
-        setShowEditModal(false);
+        if (editingInstruction) {
+          setShowEditModal(false);
+          setEditingInstruction(null);
+        } else {
+          setShowCreateModal(false);
+        }
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to save instruction');
+        alert('Failed to save instruction');
       }
     } catch (error) {
       console.error('Error saving instruction:', error);
@@ -126,18 +132,19 @@ export default function AdminInstructions() {
     setFormData({
       title: instruction.title,
       description: instruction.description,
+      priority: instruction.priority,
       fileUrl: instruction.fileUrl || '',
       fileName: instruction.fileName || '',
       fileSize: instruction.fileSize || 0,
-      targetAudience: instruction.targetAudience,
-      priority: instruction.priority
+      fileType: instruction.fileType || '',
+      targetAudience: instruction.targetAudience || 'all'
     });
     setShowEditModal(true);
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this instruction?')) return;
-    
+
     try {
       const response = await fetch(`/api/instructions/${id}`, {
         method: 'DELETE',
@@ -158,128 +165,21 @@ export default function AdminInstructions() {
     setFormData({
       title: '',
       description: '',
+      priority: 'medium',
       fileUrl: '',
       fileName: '',
       fileSize: 0,
-      targetAudience: 'all',
-      priority: 'medium'
+      fileType: '',
+      targetAudience: 'all'
     });
-    setEditingInstruction(null);
   };
 
-  const renderInstructionForm = (isEdit = false) => (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div>
-        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-          Title *
-        </label>
-        <input
-          type="text"
-          id="title"
-          required
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter instruction title"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-          Description *
-        </label>
-        <textarea
-          id="description"
-          required
-          rows={4}
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Enter instruction description"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Attachment (Optional)
-        </label>
-        <FileUpload
-          onFileSelect={handleFileUpload}
-          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-          maxSize={10 * 1024 * 1024} // 10MB
-          disabled={uploading}
-        />
-        {formData.fileName && (
-          <div className="mt-2 text-sm text-gray-600">
-            Current file: {formData.fileName}
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="targetAudience" className="block text-sm font-medium text-gray-700 mb-1">
-            Target Audience
-          </label>
-          <select
-            id="targetAudience"
-            value={formData.targetAudience}
-            onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">All</option>
-            <option value="coordinators">Coordinators</option>
-            <option value="ward_admins">Ward Admins</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
-            Priority
-          </label>
-          <select
-            id="priority"
-            value={formData.priority}
-            onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => {
-            if (isEdit) {
-              setShowEditModal(false);
-              setEditingInstruction(null);
-            } else {
-              setShowCreateModal(false);
-            }
-            resetForm();
-          }}
-        >
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          disabled={uploading}
-        >
-          {uploading ? 'Uploading...' : isEdit ? 'Update' : 'Create'} Instruction
-        </Button>
-      </div>
-    </form>
-  );
-
-  const filteredInstructions = instructions.filter(instruction =>
-    instruction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    instruction.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredInstructions = instructions.filter(instruction => {
+    const matchesSearch = instruction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instruction.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPriority = priorityFilter === 'all' || instruction.priority === priorityFilter;
+    return matchesSearch && matchesPriority;
+  });
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -324,29 +224,47 @@ export default function AdminInstructions() {
             onChange={setSearchTerm}
             placeholder="Search instructions..."
           />
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="all">All Priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
         </div>
 
         <Card className="overflow-hidden p-0">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div>
+            <table className="w-full divide-y divide-gray-200 table-fixed">
+              <colgroup>
+                <col className="w-1/4" />
+                <col className="w-1/3" />
+                <col className="w-1/8" />
+                <col className="w-1/8" />
+                <col className="w-1/12" />
+                <col className="w-1/6" />
+              </colgroup>
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Title
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Attachment
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target Audience
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Attachment
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Target
+                  </th>
+                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -354,45 +272,63 @@ export default function AdminInstructions() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInstructions.map((instruction) => (
                   <tr key={instruction._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{instruction.title}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
-                        {instruction.description}
+                    <td className="px-3 py-3">
+                      <div className="text-sm font-medium text-gray-900 truncate" title={instruction.title}>
+                        {instruction.title}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {instruction.fileUrl ? (
-                        <a 
-                          href={`/api/instructions/download/${instruction._id}`}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          {instruction.fileName || 'Download File'}
-                        </a>
-                      ) : (
-                        'No file'
-                      )}
+                    <td className="px-3 py-3">
+                      <div className="text-sm text-gray-900 truncate" title={instruction.description}>
+                        {(() => {
+                          const desc = instruction.description || 'No description';
+                          // Show only first 25 characters for very compact display
+                          if (desc.length > 25) {
+                            return desc.substring(0, 25) + '...';
+                          }
+                          return desc;
+                        })()}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {instruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                         instruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All'}
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex px-1 py-1 text-xs font-semibold rounded ${getPriorityColor(instruction.priority)}`}>
+                        {instruction.priority === 'high' ? 'H' :
+                          instruction.priority === 'low' ? 'L' : 'M'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                        {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
+                    <td className="px-3 py-3 text-sm text-gray-900">
+                      <div className="truncate">
+                        {instruction.fileUrl ? (
+                          <a
+                            href={`/api/instructions/download/${instruction._id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                            title={instruction.fileName}
+                          >
+                            {instruction.fileName ?
+                              (instruction.fileName.length > 8 ?
+                                instruction.fileName.substring(0, 8) + '...' :
+                                instruction.fileName)
+                              : 'File'}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="inline-flex px-1 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {instruction.targetAudience === 'coordinators' ? 'Coord' :
+                          instruction.targetAudience === 'wardAdmins' ? 'Ward' : 'All'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-3 py-3">
+                      <div className="flex space-x-1">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleView(instruction)}
+                          className="text-xs px-2 py-1"
                         >
                           View
                         </Button>
@@ -400,6 +336,7 @@ export default function AdminInstructions() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(instruction)}
+                          className="text-xs px-2 py-1"
                         >
                           Edit
                         </Button>
@@ -407,6 +344,7 @@ export default function AdminInstructions() {
                           variant="danger"
                           size="sm"
                           onClick={() => handleDelete(instruction._id)}
+                          className="text-xs px-2 py-1"
                         >
                           Delete
                         </Button>
@@ -417,7 +355,7 @@ export default function AdminInstructions() {
               </tbody>
             </table>
           </div>
-          
+
           {filteredInstructions.length === 0 && (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -428,32 +366,6 @@ export default function AdminInstructions() {
             </div>
           )}
         </Card>
-      </div>
-
-        {/* Create Instruction Modal */}
-        <Modal
-          isOpen={showCreateModal}
-          title="Add New Instruction"
-          onClose={() => {
-            setShowCreateModal(false);
-            resetForm();
-          }}
-        >
-          {renderInstructionForm(false)}
-        </Modal>
-
-        {/* Edit Instruction Modal */}
-        <Modal
-          isOpen={showEditModal}
-          title="Edit Instruction"
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingInstruction(null);
-            resetForm();
-          }}
-        >
-          {renderInstructionForm(true)}
-        </Modal>
 
         {/* View Instruction Modal */}
         <Modal
@@ -476,7 +388,7 @@ export default function AdminInstructions() {
                   </span>
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     {viewingInstruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                     viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                      viewingInstruction.targetAudience === 'wardAdmins' ? 'Ward Admins' : 'All Users'}
                   </span>
                 </div>
               </div>
@@ -485,7 +397,7 @@ export default function AdminInstructions() {
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
                 <div className="bg-gray-50 p-4 rounded-lg border">
                   <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                    {viewingInstruction.description}
+                    {viewingInstruction.description || 'No description provided'}
                   </p>
                 </div>
               </div>
@@ -493,41 +405,21 @@ export default function AdminInstructions() {
               {viewingInstruction.fileUrl && (
                 <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">Attachment</h4>
-                  <div className="bg-gray-50 p-4 rounded-lg border">
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {viewingInstruction.fileName || 'Attachment'}
-                        </p>
-                        {viewingInstruction.fileSize && (
-                          <p className="text-xs text-gray-500">
-                            {(viewingInstruction.fileSize / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        )}
-                      </div>
-                      <a
-                        href={`/api/instructions/download/${viewingInstruction._id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download
-                      </a>
-                    </div>
-                  </div>
+                  <a
+                    href={`/api/instructions/download/${viewingInstruction._id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Download {viewingInstruction.fileName || 'File'}
+                  </a>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {viewingInstruction.createdAt && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-1">Created</h4>
-                  <p className="text-sm text-gray-900">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Created</h4>
+                  <p className="text-sm text-gray-700">
                     {new Date(viewingInstruction.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -537,148 +429,11 @@ export default function AdminInstructions() {
                     })}
                   </p>
                 </div>
-                {viewingInstruction.updatedAt && viewingInstruction.updatedAt !== viewingInstruction.createdAt && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-1">Last Updated</h4>
-                    <p className="text-sm text-gray-900">
-                      {new Date(viewingInstruction.updatedAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowViewModal(false);
-                    setViewingInstruction(null);
-                  }}
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowViewModal(false);
-                    handleEdit(viewingInstruction);
-                  }}
-                >
-                  Edit Instruction
-                </Button>
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {/* View Instruction Modal */}
-        <Modal
-          isOpen={showViewModal}
-          title="Instruction Details"
-          onClose={() => {
-            setShowViewModal(false);
-            setViewingInstruction(null);
-          }}
-        >
-          {viewingInstruction && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Title</h3>
-                <p className="text-gray-700">{viewingInstruction.title}</p>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-gray-700 whitespace-pre-wrap">{viewingInstruction.description}</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Target Audience</h3>
-                  <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
-                    {viewingInstruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                     viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All'}
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Priority</h3>
-                  <span className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${getPriorityColor(viewingInstruction.priority)}`}>
-                    {viewingInstruction.priority.charAt(0).toUpperCase() + viewingInstruction.priority.slice(1)}
-                  </span>
-                </div>
-              </div>
-
-              {viewingInstruction.fileUrl && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Attachment</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {viewingInstruction.fileName || 'Attachment'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {viewingInstruction.fileSize ? `${(viewingInstruction.fileSize / 1024 / 1024).toFixed(2)} MB` : 'File size unknown'}
-                        </p>
-                      </div>
-                      <a
-                        href={`/api/instructions/download/${viewingInstruction._id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto"
-                      >
-                        <Button variant="outline" size="sm">
-                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                </div>
               )}
-
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Created</h3>
-                <p className="text-gray-600">
-                  {viewingInstruction.createdAt ? new Date(viewingInstruction.createdAt).toLocaleString() : 'Date not available'}
-                </p>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowViewModal(false);
-                    setViewingInstruction(null);
-                  }}
-                >
-                  Close
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowViewModal(false);
-                    handleEdit(viewingInstruction);
-                  }}
-                >
-                  Edit Instruction
-                </Button>
-              </div>
             </div>
           )}
         </Modal>
+      </div>
     </Layout>
   );
 }
