@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -23,6 +23,13 @@ export default function ActivityLogs() {
     limit: 50
   });
   const [totalPages, setTotalPages] = useState(1);
+  const [isFiltering, setIsFiltering] = useState(false);
+  
+  // Refs for maintaining focus
+  const districtInputRef = useRef(null);
+  const dateFromInputRef = useRef(null);
+  const dateToInputRef = useRef(null);
+  const lastFocusedField = useRef(null);
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -33,7 +40,36 @@ export default function ActivityLogs() {
     } else if (status === 'authenticated') {
       fetchLogs();
     }
-  }, [status, session, router, filter]);
+  }, [status, session, router]);
+
+  // Separate effect for filter changes with debouncing
+  useEffect(() => {
+    if (status === 'authenticated' && session.user.role === 'stateAdmin') {
+      setIsFiltering(true);
+      const timeoutId = setTimeout(() => {
+        fetchLogs();
+        setIsFiltering(false);
+      }, 500); // 500ms debounce
+
+      return () => {
+        clearTimeout(timeoutId);
+        setIsFiltering(false);
+      };
+    }
+  }, [filter, status, session]);
+
+  // Effect to restore focus after filtering
+  useEffect(() => {
+    if (!isFiltering && lastFocusedField.current) {
+      const fieldRef = lastFocusedField.current;
+      if (fieldRef && fieldRef.current) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          fieldRef.current.focus();
+        }, 50);
+      }
+    }
+  }, [isFiltering]);
 
   const fetchLogs = async () => {
     try {
@@ -84,7 +120,12 @@ export default function ActivityLogs() {
     return new Date(timestamp).toLocaleString();
   };
 
-  const handleFilterChange = (key, value) => {
+  const handleFilterChange = (key, value, fieldRef = null) => {
+    // Store the currently focused field
+    if (fieldRef) {
+      lastFocusedField.current = fieldRef;
+    }
+    
     setFilter(prev => ({
       ...prev,
       [key]: value,
@@ -136,7 +177,18 @@ export default function ActivityLogs() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Filter Logs</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Filter Logs</h2>
+              {isFiltering && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Filtering...
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
@@ -162,9 +214,10 @@ export default function ActivityLogs() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
                 <input
+                  ref={districtInputRef}
                   type="text"
                   value={filter.district}
-                  onChange={(e) => handleFilterChange('district', e.target.value)}
+                  onChange={(e) => handleFilterChange('district', e.target.value, districtInputRef)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter district"
                 />
@@ -172,18 +225,20 @@ export default function ActivityLogs() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
                 <input
+                  ref={dateFromInputRef}
                   type="date"
                   value={filter.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value, dateFromInputRef)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
                 <input
+                  ref={dateToInputRef}
                   type="date"
                   value={filter.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value, dateToInputRef)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
