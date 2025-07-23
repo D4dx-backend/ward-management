@@ -3,6 +3,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
 import SearchInput from '../../components/SearchInput';
+import Modal from '../../components/Modal';
+import Button from '../../components/Button';
 
 export default function Instructions() {
   const { data: session, status } = useSession();
@@ -11,6 +13,8 @@ export default function Instructions() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingInstruction, setViewingInstruction] = useState(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -182,6 +186,11 @@ export default function Instructions() {
     }
   };
 
+  const handleView = (instruction) => {
+    setViewingInstruction(instruction);
+    setShowViewModal(true);
+  };
+
   const handleDownload = async (instructionId, fileName) => {
     try {
       const response = await fetch(`/api/instructions/download/${instructionId}`);
@@ -277,11 +286,12 @@ export default function Instructions() {
           <div className="w-full overflow-x-auto">
             <table className="w-full divide-y divide-gray-200 table-fixed min-w-full">
               <colgroup>
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '40%' }} />
-                <col style={{ width: '15%' }} />
-                <col style={{ width: '15%' }} />
+                <col style={{ width: '18%' }} />
+                <col style={{ width: '35%' }} />
+                <col style={{ width: '12%' }} />
+                <col style={{ width: '12%' }} />
                 <col style={{ width: '10%' }} />
+                <col style={{ width: '13%' }} />
               </colgroup>
               <thead className="bg-gray-50">
                 <tr>
@@ -300,23 +310,26 @@ export default function Instructions() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInstructions.map((instruction) => (
                   <tr key={instruction._id} className="align-top">
                     <td className="px-4 py-4">
-                      <div className="text-sm font-medium text-gray-900 break-words">
+                      <div className="text-sm font-medium text-gray-900 truncate">
                         {instruction.title || 'Untitled'}
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="text-sm text-gray-900 break-words leading-relaxed">
+                      <div className="text-sm text-gray-900 truncate">
                         {(() => {
                           const desc = instruction.description || 'No description';
-                          // Clean and limit description length for better display
-                          if (desc.length > 300) {
-                            return desc.substring(0, 300) + '...';
+                          // Show only first 50 characters in one line with "..." for compact table display
+                          if (desc.length > 50) {
+                            return desc.substring(0, 50) + '...';
                           }
                           return desc;
                         })()}
@@ -352,6 +365,15 @@ export default function Instructions() {
                         {instruction.createdAt ? formatDate(instruction.createdAt) : 'Unknown'}
                       </div>
                     </td>
+                    <td className="px-4 py-4 text-sm text-gray-900">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleView(instruction)}
+                      >
+                        View
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -368,6 +390,92 @@ export default function Instructions() {
             </div>
           )}
         </div>
+
+        {/* View Instruction Modal */}
+        <Modal
+          isOpen={showViewModal}
+          title="Instruction Details"
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingInstruction(null);
+          }}
+        >
+          {viewingInstruction && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {viewingInstruction.title}
+                </h3>
+                <div className="flex items-center space-x-4 mb-4">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(viewingInstruction.priority)}`}>
+                    {viewingInstruction.priority.charAt(0).toUpperCase() + viewingInstruction.priority.slice(1)} Priority
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {viewingInstruction.description}
+                  </p>
+                </div>
+              </div>
+
+              {viewingInstruction.fileUrl && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Attachment</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex items-center space-x-3">
+                      <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {viewingInstruction.fileName || 'Attachment'}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDownload(viewingInstruction._id, viewingInstruction.fileName)}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-1">Created</h4>
+                <p className="text-sm text-gray-900">
+                  {new Date(viewingInstruction.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+
+              <div className="flex justify-end pt-6 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingInstruction(null);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </Layout>
   );

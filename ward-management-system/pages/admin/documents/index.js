@@ -17,7 +17,9 @@ export default function AdminDocuments() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [editingDocument, setEditingDocument] = useState(null);
+  const [viewingDocument, setViewingDocument] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -115,6 +117,11 @@ export default function AdminDocuments() {
       console.error('Error saving document:', error);
       alert('Failed to save document');
     }
+  };
+
+  const handleView = (document) => {
+    setViewingDocument(document);
+    setShowViewModal(true);
   };
 
   const handleEdit = (document) => {
@@ -407,6 +414,13 @@ export default function AdminDocuments() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => handleView(document)}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => handleEdit(document)}
                         >
                           Edit
@@ -461,6 +475,139 @@ export default function AdminDocuments() {
           }}
         >
           {renderDocumentForm(true)}
+        </Modal>
+
+        {/* View Document Modal */}
+        <Modal
+          isOpen={showViewModal}
+          title="Document Details"
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingDocument(null);
+          }}
+        >
+          {viewingDocument && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {viewingDocument.title}
+                </h3>
+                <div className="flex items-center space-x-4 mb-4">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(viewingDocument.category)}`}>
+                    {viewingDocument.category.charAt(0).toUpperCase() + viewingDocument.category.slice(1)}
+                  </span>
+                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                    {viewingDocument.targetAudience === 'coordinators' ? 'Coordinators' :
+                     viewingDocument.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                  </span>
+                  {viewingDocument.downloadCount && (
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                      {viewingDocument.downloadCount} Downloads
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {viewingDocument.description}
+                  </p>
+                </div>
+              </div>
+
+              {viewingDocument.fileUrl && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">File</h4>
+                  <div className="bg-gray-50 p-4 rounded-lg border">
+                    <div className="flex items-center space-x-3">
+                      <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                          {viewingDocument.fileName || 'Document File'}
+                        </p>
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          {viewingDocument.fileSize && (
+                            <span>
+                              {(viewingDocument.fileSize / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          )}
+                          {viewingDocument.fileType && (
+                            <span>
+                              {viewingDocument.fileType}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <a
+                        href={`/api/documents/download/${viewingDocument._id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-1">Created</h4>
+                  <p className="text-sm text-gray-900">
+                    {new Date(viewingDocument.createdAt).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                {viewingDocument.updatedAt && viewingDocument.updatedAt !== viewingDocument.createdAt && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Last Updated</h4>
+                    <p className="text-sm text-gray-900">
+                      {new Date(viewingDocument.updatedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingDocument(null);
+                  }}
+                >
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    handleEdit(viewingDocument);
+                  }}
+                >
+                  Edit Document
+                </Button>
+              </div>
+            </div>
+          )}
         </Modal>
     </Layout>
   );
