@@ -52,11 +52,39 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 });
       
+      // Create user-friendly description for report viewing
+      let description = 'Viewed reports';
+      const filterParts = [];
+      
+      if (formType) {
+        const formTypeText = formType === 'coordinatorReport' ? 'coordinator reports' : 
+                           formType === 'wardReport' ? 'ward reports' : 'reports';
+        filterParts.push(formTypeText);
+      }
+      
+      if (weekNumber && year) {
+        filterParts.push(`for week ${weekNumber}, ${year}`);
+      } else if (year) {
+        filterParts.push(`for year ${year}`);
+      }
+      
+      if (wardId) {
+        filterParts.push('for specific ward');
+      }
+      
+      if (coordinatorId) {
+        filterParts.push('for specific coordinator');
+      }
+      
+      if (filterParts.length > 0) {
+        description = `Viewed ${filterParts.join(' ')}`;
+      }
+
       // Log the report view activity
       await logActivity({
         userId: session.user.id,
         action: ACTIONS.REPORT_VIEW,
-        description: `Viewed reports with filters: ${JSON.stringify({ formType, weekNumber, year, wardId, coordinatorId })}`,
+        description: description,
         metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
         district: session.user.district,
         ward: session.user.ward,
