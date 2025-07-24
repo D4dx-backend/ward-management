@@ -112,6 +112,53 @@ export default function EditForm() {
     setFormData({ ...formData, fields: updatedFields });
   };
 
+  const addSubQuestion = (fieldIndex) => {
+    const updatedFields = [...formData.fields];
+    if (!updatedFields[fieldIndex].subQuestions) {
+      updatedFields[fieldIndex].subQuestions = [];
+    }
+    updatedFields[fieldIndex].subQuestions.push({
+      label: '',
+      type: 'text',
+      required: false,
+      options: []
+    });
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
+  const removeSubQuestion = (fieldIndex, subIndex) => {
+    const updatedFields = [...formData.fields];
+    updatedFields[fieldIndex].subQuestions.splice(subIndex, 1);
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
+  const handleSubQuestionChange = (fieldIndex, subIndex, property, value) => {
+    const updatedFields = [...formData.fields];
+    updatedFields[fieldIndex].subQuestions[subIndex][property] = value;
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
+  const addSubQuestionOption = (fieldIndex, subIndex) => {
+    const updatedFields = [...formData.fields];
+    if (!updatedFields[fieldIndex].subQuestions[subIndex].options) {
+      updatedFields[fieldIndex].subQuestions[subIndex].options = [];
+    }
+    updatedFields[fieldIndex].subQuestions[subIndex].options.push('');
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
+  const removeSubQuestionOption = (fieldIndex, subIndex, optionIndex) => {
+    const updatedFields = [...formData.fields];
+    updatedFields[fieldIndex].subQuestions[subIndex].options.splice(optionIndex, 1);
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
+  const handleSubQuestionOptionChange = (fieldIndex, subIndex, optionIndex, value) => {
+    const updatedFields = [...formData.fields];
+    updatedFields[fieldIndex].subQuestions[subIndex].options[optionIndex] = value;
+    setFormData({ ...formData, fields: updatedFields });
+  };
+
   const addField = () => {
     setFormData({
       ...formData,
@@ -161,6 +208,7 @@ export default function EditForm() {
       const updateData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
+        formType: form.formType, // Use the updated form type from state
         isActive: form.isActive, // Preserve the current active status
         fields: formData.fields.map((field, index) => {
           console.log(`Processing field ${index + 1}:`, field);
@@ -329,20 +377,26 @@ export default function EditForm() {
                       name="title"
                       value={formData.title}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                       required
+                      placeholder="Enter form title"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Form Type
                     </label>
-                    <input
-                      type="text"
-                      value={form.formType === 'coordinatorReport' ? 'Coordinator Report' : 'Ward Report'}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50"
-                      disabled
-                    />
+                    <select
+                      name="formType"
+                      value={form.formType}
+                      onChange={(e) => {
+                        setForm({ ...form, formType: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="coordinatorReport">Coordinator Report</option>
+                      <option value="wardReport">Ward Report</option>
+                    </select>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -354,7 +408,8 @@ export default function EditForm() {
                     value={formData.description}
                     onChange={handleInputChange}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                    placeholder="Enter form description"
                   />
                 </div>
               </div>
@@ -469,6 +524,169 @@ export default function EditForm() {
                                 >
                                   Remove
                                 </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-questions section */}
+                      {(field.type === 'yesno' || field.type === 'select') && (
+                        <div className="mt-4 border-t border-gray-200 pt-4">
+                          <div className="flex justify-between items-center mb-3">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Sub-questions (Optional)
+                            </label>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => addSubQuestion(index)}
+                            >
+                              Add Sub-question
+                            </Button>
+                          </div>
+
+                          {field.type === 'yesno' && field.subQuestions && field.subQuestions.length > 0 && (
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Show sub-questions when:
+                              </label>
+                              <select
+                                name="showSubQuestionsWhen"
+                                value={field.showSubQuestionsWhen || ''}
+                                onChange={(e) => handleFieldChange(index, e)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value="">Always show</option>
+                                <option value="yes">When answer is Yes</option>
+                                <option value="no">When answer is No</option>
+                              </select>
+                            </div>
+                          )}
+
+                          {field.type === 'select' && field.subQuestions && field.subQuestions.length > 0 && (
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Show sub-questions when option selected:
+                              </label>
+                              <select
+                                name="showSubQuestionsWhen"
+                                value={field.showSubQuestionsWhen || ''}
+                                onChange={(e) => handleFieldChange(index, e)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                <option value="">Always show</option>
+                                {field.options && field.options.map((option, optionIndex) => (
+                                  <option key={optionIndex} value={option}>
+                                    When "{option}" is selected
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                          
+                          <div className="space-y-4">
+                            {field.subQuestions && field.subQuestions.map((subQuestion, subIndex) => (
+                              <div key={subIndex} className="bg-gray-50 p-4 rounded-lg border">
+                                <div className="flex justify-between items-center mb-3">
+                                  <h4 className="text-sm font-medium text-gray-900">Sub-question {subIndex + 1}</h4>
+                                  <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => removeSubQuestion(index, subIndex)}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Sub-question Label *
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={subQuestion.label || ''}
+                                      onChange={(e) => handleSubQuestionChange(index, subIndex, 'label', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="Enter sub-question label"
+                                      required
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Sub-question Type *
+                                    </label>
+                                    <select
+                                      value={subQuestion.type || 'text'}
+                                      onChange={(e) => handleSubQuestionChange(index, subIndex, 'type', e.target.value)}
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                      required
+                                    >
+                                      <option value="text">Text</option>
+                                      <option value="number">Number</option>
+                                      <option value="textarea">Text Area</option>
+                                      <option value="select">Select</option>
+                                      <option value="checkbox">Checkbox</option>
+                                      <option value="date">Date</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="mb-3">
+                                  <label className="flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={subQuestion.required || false}
+                                      onChange={(e) => handleSubQuestionChange(index, subIndex, 'required', e.target.checked)}
+                                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm font-medium text-gray-700">Required Sub-question</span>
+                                  </label>
+                                </div>
+
+                                {subQuestion.type === 'select' && (
+                                  <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                      <label className="block text-sm font-medium text-gray-700">
+                                        Sub-question Options *
+                                      </label>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => addSubQuestionOption(index, subIndex)}
+                                      >
+                                        Add Option
+                                      </Button>
+                                    </div>
+                                    <div className="space-y-2">
+                                      {(subQuestion.options || []).map((option, optionIndex) => (
+                                        <div key={optionIndex} className="flex items-center space-x-2">
+                                          <input
+                                            type="text"
+                                            value={option}
+                                            onChange={(e) => handleSubQuestionOptionChange(index, subIndex, optionIndex, e.target.value)}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            placeholder={`Option ${optionIndex + 1}`}
+                                            required
+                                          />
+                                          <Button
+                                            type="button"
+                                            variant="danger"
+                                            size="sm"
+                                            onClick={() => removeSubQuestionOption(index, subIndex, optionIndex)}
+                                          >
+                                            Remove
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

@@ -47,24 +47,24 @@ export default function ViewReport() {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-400 italic">Not provided</span>;
     }
-    
+
     switch (field.type) {
       case 'number':
-        return <span className="font-semibold text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</span>;
+        return <span className="font-medium text-gray-900">{typeof value === 'number' ? value.toLocaleString() : value}</span>;
       case 'select':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{value}</span>;
+        return <span className="inline-flex px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">{value}</span>;
       case 'textarea':
         return (
-          <div className="whitespace-pre-wrap break-words bg-gray-50 p-3 rounded-md border text-sm">
+          <div className="whitespace-pre-wrap break-words bg-gray-50 p-3 rounded-md border text-sm text-gray-900">
             {value}
           </div>
         );
-      case 'checkbox':
+      case 'yesno':
+        const isYes = value === 'Yes' || value === 'yes' || value === true;
         return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          }`}>
-            {value ? (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isYes ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+            {isYes ? (
               <>
                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -81,10 +81,42 @@ export default function ViewReport() {
             )}
           </span>
         );
-      case 'text':
+      case 'checkbox':
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            }`}>
+            {value ? (
+              <>
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Checked
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                Not checked
+              </>
+            )}
+          </span>
+        );
       case 'email':
+        return (
+          <a href={`mailto:${value}`} className="text-blue-600 hover:text-blue-800 underline">
+            {value}
+          </a>
+        );
       case 'phone':
-        return <span className="text-gray-900">{value}</span>;
+        return (
+          <a href={`tel:${value}`} className="text-blue-600 hover:text-blue-800 underline">
+            {value}
+          </a>
+        );
+      case 'date':
+        return <span className="text-gray-900">{new Date(value).toLocaleDateString()}</span>;
+      case 'text':
       default:
         return <span className="text-gray-900">{value}</span>;
     }
@@ -165,11 +197,10 @@ export default function ViewReport() {
                 <div>
                   <dt className="text-sm font-medium text-gray-500">Report Type</dt>
                   <dd className="mt-1">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      response.formType === 'coordinatorReport' 
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${response.formType === 'coordinatorReport'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-green-100 text-green-800'
+                      }`}>
                       {response.formType === 'coordinatorReport' ? 'Coordinator Report' : 'Ward Report'}
                     </span>
                   </dd>
@@ -218,28 +249,64 @@ export default function ViewReport() {
           {/* Report Data */}
           <Card className="lg:col-span-2">
             <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Report Data</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-6">Report Data</h2>
               {response.formTemplate?.fields && response.formTemplate.fields.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {response.formTemplate.fields.map((field, index) => {
                     // Try different ways to get the field value
                     let fieldValue = null;
                     if (response.responses) {
-                      // Try field.label first (most common)
-                      fieldValue = response.responses[field.label];
+                      // Convert responses Map to regular object if needed
+                      const responsesObj = response.responses instanceof Map ?
+                        Object.fromEntries(response.responses) : response.responses;
+
+                      // The most likely format based on form submission: field_${index}
+                      const fieldKey = `field_${index}`;
+                      fieldValue = responsesObj[fieldKey];
+
+                      // If not found, try field.label (for older data or different submission methods)
+                      if (fieldValue === undefined) {
+                        fieldValue = responsesObj[field.label];
+                      }
+
                       // If not found, try field.name
                       if (fieldValue === undefined && field.name) {
-                        fieldValue = response.responses[field.name];
+                        fieldValue = responsesObj[field.name];
                       }
-                      // If still not found, try field._id
+
+                      // If still not found, try field._id as string
                       if (fieldValue === undefined && field._id) {
-                        fieldValue = response.responses[field._id];
+                        fieldValue = responsesObj[field._id.toString()];
+                      }
+
+                      // Try case-insensitive matching
+                      if (fieldValue === undefined) {
+                        const keys = Object.keys(responsesObj);
+                        const matchingKey = keys.find(key =>
+                          key.toLowerCase() === field.label?.toLowerCase() ||
+                          key.toLowerCase() === field.name?.toLowerCase()
+                        );
+                        if (matchingKey) {
+                          fieldValue = responsesObj[matchingKey];
+                        }
+                      }
+
+                      // Try partial matching
+                      if (fieldValue === undefined) {
+                        const keys = Object.keys(responsesObj);
+                        const matchingKey = keys.find(key =>
+                          key.includes(field.label) ||
+                          (field.label && key.toLowerCase().includes(field.label.toLowerCase()))
+                        );
+                        if (matchingKey) {
+                          fieldValue = responsesObj[matchingKey];
+                        }
                       }
                     }
-                    
+
                     return (
-                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <dt className="text-sm font-semibold text-gray-700 mb-2">
+                      <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <dt className="text-sm font-medium text-gray-700 mb-2">
                           {field.label}
                           {field.required && <span className="text-red-500 ml-1">*</span>}
                         </dt>
@@ -248,6 +315,97 @@ export default function ViewReport() {
                         </dd>
                         {field.description && (
                           <p className="text-xs text-gray-500 mt-2 italic">{field.description}</p>
+                        )}
+
+
+
+                        {/* Handle sub-questions */}
+                        {field.subQuestions && field.subQuestions.length > 0 && (
+                          <div className="mt-4 space-y-3">
+                            <div className="text-xs font-medium text-gray-600 uppercase tracking-wide">Related Questions</div>
+                            <div className="ml-4 space-y-3 border-l-2 border-blue-200 pl-4">
+                              {field.subQuestions.map((subQuestion, subIndex) => {
+                                // Check if sub-questions should be shown based on parent answer
+                                let shouldShowSubQuestion = true;
+
+                                if (field.showSubQuestionsWhen) {
+                                  if (field.type === 'yesno') {
+                                    const parentIsYes = fieldValue === 'Yes' || fieldValue === 'yes' || fieldValue === true;
+                                    shouldShowSubQuestion = (field.showSubQuestionsWhen === 'yes' && parentIsYes) ||
+                                      (field.showSubQuestionsWhen === 'no' && !parentIsYes);
+                                  } else if (field.type === 'select') {
+                                    shouldShowSubQuestion = fieldValue === field.showSubQuestionsWhen;
+                                  }
+                                }
+
+                                if (!shouldShowSubQuestion) {
+                                  return null;
+                                }
+
+                                // Try to find sub-question value
+                                let subValue = null;
+                                if (response.responses) {
+                                  const responsesObj = response.responses instanceof Map ?
+                                    Object.fromEntries(response.responses) : response.responses;
+
+                                  // Try the new combined key format first
+                                  const combinedKey = `${field.label}_${subQuestion.label}`;
+                                  subValue = responsesObj[combinedKey];
+
+                                  // If not found, try the old field_index_sub_index format
+                                  if (subValue === undefined) {
+                                    const fieldKey = `field_${index}_sub_${subIndex}`;
+                                    subValue = responsesObj[fieldKey];
+                                  }
+
+                                  // If still not found, try other key combinations
+                                  if (subValue === undefined) {
+                                    const possibleKeys = [
+                                      `${field.label}_sub_${subQuestion.label}`,
+                                      `${field.name}_${subQuestion.label}`,
+                                      `${field.name}_sub_${subQuestion.label}`,
+                                      subQuestion.label,
+                                      `sub_${subQuestion.label}`,
+                                      `field_${index}_${subIndex}` // Alternative format
+                                    ];
+
+                                    for (const key of possibleKeys) {
+                                      if (responsesObj[key] !== undefined) {
+                                        subValue = responsesObj[key];
+                                        break;
+                                      }
+                                    }
+                                  }
+
+                                  // Try case-insensitive and partial matching for sub-questions
+                                  if (subValue === undefined) {
+                                    const keys = Object.keys(responsesObj);
+                                    const matchingKey = keys.find(key =>
+                                      key.includes(`field_${index}_sub_`) ||
+                                      key.toLowerCase().includes(subQuestion.label.toLowerCase()) ||
+                                      key.includes(`${field.label}_`) ||
+                                      key.includes(`sub_`)
+                                    );
+                                    if (matchingKey) {
+                                      subValue = responsesObj[matchingKey];
+                                    }
+                                  }
+                                }
+
+                                return (
+                                  <div key={subIndex} className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                                    <dt className="text-sm font-medium text-blue-700 mb-1">
+                                      {subQuestion.label}
+                                      {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                                    </dt>
+                                    <dd className="text-sm">
+                                      {renderFieldValue(subQuestion, subValue)}
+                                    </dd>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
                         )}
                       </div>
                     );

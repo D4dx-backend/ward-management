@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
@@ -530,7 +531,11 @@ export default function AdminWards() {
                   <tr key={ward._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 truncate">{ward.name}</div>
+                        <Link href={`/admin/wards/reports/${ward._id}`}>
+                          <div className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate">
+                            {ward.name}
+                          </div>
+                        </Link>
                         <div className="text-xs text-gray-500">Ward #{ward.wardNumber}</div>
                         {ward.description && (
                           <div className="text-xs text-gray-400 truncate mt-1" title={ward.description}>
@@ -590,6 +595,11 @@ export default function AdminWards() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end space-x-1">
+                        <Link href={`/admin/wards/reports/${ward._id}`}>
+                          <Button variant="outline" size="sm">
+                            Reports
+                          </Button>
+                        </Link>
                         <Button variant="outline" size="sm" onClick={() => handleEdit(ward)}>
                           Edit
                         </Button>

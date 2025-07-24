@@ -41,7 +41,7 @@ export default async function handler(req, res) {
       console.log('Request body:', JSON.stringify(req.body, null, 2));
       console.log('Form ID:', id);
 
-      const { title, description, fields, isActive } = req.body;
+      const { title, description, fields, isActive, formType } = req.body;
 
       // Check if this is a status-only update
       const isStatusOnlyUpdate = isActive !== undefined && !title && !fields;
@@ -114,6 +114,7 @@ export default async function handler(req, res) {
         // Update all form content
         form.title = title.trim();
         form.description = description ? description.trim() : '';
+        if (formType) form.formType = formType; // Update form type if provided
         if (isActive !== undefined) form.isActive = isActive;
         form.fields = fields;
       }

@@ -4,14 +4,15 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
   const [visibleSubQuestions, setVisibleSubQuestions] = useState({});
 
   useEffect(() => {
-    // Initialize form data structure
+    // Initialize form data structure only if formData is empty or missing fields
     const initialData = {};
     form.fields.forEach((field, fieldIndex) => {
-      if (!formData[`field_${fieldIndex}`]) {
+      const fieldKey = `field_${fieldIndex}`;
+      if (formData[fieldKey] === undefined) {
         if (field.type === 'checkbox') {
-          initialData[`field_${fieldIndex}`] = false;
+          initialData[fieldKey] = false;
         } else {
-          initialData[`field_${fieldIndex}`] = '';
+          initialData[fieldKey] = '';
         }
       }
       
@@ -19,7 +20,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
       if (field.subQuestions && field.subQuestions.length > 0) {
         field.subQuestions.forEach((subQuestion, subIndex) => {
           const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-          if (!formData[subKey]) {
+          if (formData[subKey] === undefined) {
             if (subQuestion.type === 'checkbox') {
               initialData[subKey] = false;
             } else {
@@ -33,7 +34,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
     if (Object.keys(initialData).length > 0) {
       setFormData(prev => ({ ...prev, ...initialData }));
     }
-  }, [form]);
+  }, [form, setFormData]);
 
   const handleFieldChange = (fieldIndex, value, field) => {
     const fieldKey = `field_${fieldIndex}`;
@@ -49,11 +50,16 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
 
       // Clear sub-question data if they should be hidden
       if (!shouldShowSubQuestions) {
-        const clearedData = { ...formData };
-        field.subQuestions.forEach((_, subIndex) => {
-          delete clearedData[`field_${fieldIndex}_sub_${subIndex}`];
+        setFormData(prev => {
+          const clearedData = { ...prev };
+          field.subQuestions.forEach((_, subIndex) => {
+            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+            if (clearedData[subKey] !== undefined) {
+              delete clearedData[subKey];
+            }
+          });
+          return clearedData;
         });
-        setFormData(clearedData);
       }
     }
   };
@@ -67,7 +73,10 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
     if (!field.showSubQuestionsWhen) return true;
     
     if (field.type === 'yesno') {
-      return field.showSubQuestionsWhen === value;
+      // Handle both cases for compatibility
+      const showWhen = field.showSubQuestionsWhen.toLowerCase();
+      const currentValue = value?.toLowerCase();
+      return showWhen === currentValue || field.showSubQuestionsWhen === value;
     } else if (field.type === 'select') {
       return field.showSubQuestionsWhen === value;
     }
@@ -145,24 +154,24 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
       case 'yesno':
         return (
           <div className="flex space-x-4">
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name={fieldKey}
-                value="yes"
-                checked={fieldValue === 'yes'}
+                value="Yes"
+                checked={fieldValue === 'Yes'}
                 onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 required={field.required}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name={fieldKey}
-                value="no"
-                checked={fieldValue === 'no'}
+                value="No"
+                checked={fieldValue === 'No'}
                 onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 required={field.required}
@@ -274,24 +283,24 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
       case 'yesno':
         return (
           <div className="flex space-x-4">
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name={subKey}
-                value="yes"
-                checked={subValue === 'yes'}
+                value="Yes"
+                checked={subValue === 'Yes'}
                 onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 required={subQuestion.required}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name={subKey}
-                value="no"
-                checked={subValue === 'no'}
+                value="No"
+                checked={subValue === 'No'}
                 onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                 required={subQuestion.required}

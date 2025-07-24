@@ -144,20 +144,50 @@ export default async function handler(req, res) {
       }
       
       // Validate responses against form fields
-      const requiredFields = formTemplate.fields.filter(field => field.required);
-      
-      for (const field of requiredFields) {
-        const fieldValue = responses[field.label];
-        
-        // For checkbox fields, check if the value exists (can be true or false)
-        if (field.type === 'checkbox') {
-          if (fieldValue === undefined || fieldValue === null) {
-            return res.status(400).json({ message: `Missing required field: ${field.label}` });
+      for (const field of formTemplate.fields) {
+        if (field.required) {
+          const fieldValue = responses[field.label];
+          
+          // For checkbox fields, check if the value exists (can be true or false)
+          if (field.type === 'checkbox') {
+            if (fieldValue === undefined || fieldValue === null) {
+              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+            }
+          } else {
+            // For other fields, check if value exists and is not empty
+            const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+            if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+            }
           }
-        } else {
-          // For other fields, check if value exists and is not empty
-          if (!fieldValue && fieldValue !== 0 && fieldValue !== false) {
-            return res.status(400).json({ message: `Missing required field: ${field.label}` });
+        }
+        
+        // Validate sub-questions if they exist and should be visible
+        if (field.subQuestions && field.subQuestions.length > 0) {
+          const fieldValue = responses[field.label];
+          
+          // Check if sub-questions should be visible
+          const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+          
+          if (shouldShowSubQuestions) {
+            for (const subQuestion of field.subQuestions) {
+              if (subQuestion.required) {
+                const subKey = `${field.label}_${subQuestion.label}`;
+                const subValue = responses[subKey];
+                
+                if (subQuestion.type === 'checkbox') {
+                  if (subValue === undefined || subValue === null) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                } else {
+                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                }
+              }
+            }
           }
         }
       }
