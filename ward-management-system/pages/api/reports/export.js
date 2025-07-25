@@ -22,17 +22,18 @@ export default async function handler(req, res) {
   try {
     const { formType, weekNumber, year, coordinatorId, wardId } = req.query;
     
-    // Validate required parameters
-    if (!formType || !weekNumber || !year) {
-      return res.status(400).json({ message: 'formType, weekNumber, and year are required' });
-    }
+    // Build query - make parameters optional
+    const query = {};
     
-    // Build query
-    const query = {
-      formType,
-      weekNumber: parseInt(weekNumber),
-      year: parseInt(year),
-    };
+    if (formType) {
+      query.formType = formType;
+    }
+    if (weekNumber) {
+      query.weekNumber = parseInt(weekNumber);
+    }
+    if (year) {
+      query.year = parseInt(year);
+    }
     
     // Filter by district if user is coordinator
     if (session.user.role === 'coordinator') {
@@ -49,25 +50,34 @@ export default async function handler(req, res) {
       query.ward = wardId;
     }
     
-    // Get form template to get field information
-    const formTemplate = await FormTemplate.findOne({
-      formType,
-      weekNumber: parseInt(weekNumber),
-      year: parseInt(year),
-    });
-    
-    if (!formTemplate) {
-      return res.status(404).json({ message: 'Form template not found' });
-    }
-    
-    // Get responses
+    // Get responses first to determine what data we have
     const responses = await Response.find(query)
       .populate('respondent', 'name email')
       .populate('ward', 'name district')
+      .populate('formTemplate', 'title fields formType')
       .sort({ district: 1, submittedAt: 1 });
     
-    // Prepare data for Excel
-    const fields = formTemplate.fields.map(field => field.label);
+    if (responses.length === 0) {
+      return res.status(404).json({ message: 'No reports found matching the criteria' });
+    }
+    
+    // Get all unique fields from all responses
+    const allFields = new Set();
+    responses.forEach(response => {
+      if (response.formTemplate && response.formTemplate.fields) {
+        response.formTemplate.fields.forEach(field => {
+          allFields.add(field.label);
+        });
+      }
+      // Also add any response keys that might not be in the template
+      if (response.responses) {
+        Object.keys(response.responses).forEach(key => {
+          allFields.add(key);
+        });
+      }
+    });
+    
+    const fields = Array.from(allFields);
     
     const data = responses.map(response => {
       const row = {
@@ -84,7 +94,18 @@ export default async function handler(req, res) {
       
       // Add responses for each field
       fields.forEach(field => {
-        row[field] = response.responses.get(field) || '';
+        // Try to get the value from responses Map or object
+        let value = '';
+        if (response.responses) {
+          if (typeof response.responses.get === 'function') {
+            // It's a Map
+            value = response.responses.get(field) || '';
+          } else {
+            // It's a regular object
+            value = response.responses[field] || '';
+          }
+        }
+        row[field] = value;
       });
       
       return row;
@@ -104,11 +125,11 @@ export default async function handler(req, res) {
     await logActivity({
       userId: session.user.id,
       action: ACTIONS.REPORT_EXPORT,
-      description: `Exported ${formType} report for week ${weekNumber}, ${year} (${responses.length} records)`,
+      description: `Exported reports (${responses.length} records)${formType ? ` - ${formType}` : ''}${weekNumber ? ` - Week ${weekNumber}` : ''}${year ? ` - ${year}` : ''}`,
       metadata: { 
-        formType, 
-        weekNumber: parseInt(weekNumber), 
-        year: parseInt(year),
+        formType: formType || 'all', 
+        weekNumber: weekNumber ? parseInt(weekNumber) : 'all', 
+        year: year ? parseInt(year) : 'all',
         coordinatorId,
         wardId,
         recordCount: responses.length
@@ -119,8 +140,15 @@ export default async function handler(req, res) {
       userAgent: req.headers['user-agent']
     });
     
+    // Generate filename based on available filters
+    let filename = 'reports';
+    if (formType) filename += `-${formType}`;
+    if (weekNumber) filename += `-week${weekNumber}`;
+    if (year) filename += `-${year}`;
+    filename += `.xlsx`;
+    
     // Set headers for file download
-    res.setHeader('Content-Disposition', `attachment; filename="report-${formType}-week${weekNumber}-${year}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     
     // Send Excel file

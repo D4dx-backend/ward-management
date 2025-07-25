@@ -19,6 +19,9 @@ export default function SubmitWardReport() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated and is ward admin
@@ -133,76 +136,134 @@ export default function SubmitWardReport() {
     setSelectedWard(wardId);
   };
 
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    // Validate ward selection
+    if (!selectedWard) {
+      errors.ward = 'Please select a ward';
+      isValid = false;
+    }
+
+    // Validate required fields
+    for (let fieldIndex = 0; fieldIndex < selectedForm.fields.length; fieldIndex++) {
+      const field = selectedForm.fields[fieldIndex];
+      if (field.required) {
+        const fieldKey = `field_${fieldIndex}`;
+        const fieldValue = formData[fieldKey];
+        
+        // For checkbox fields, check if the value exists (can be true or false)
+        if (field.type === 'checkbox') {
+          if (fieldValue === undefined || fieldValue === null) {
+            errors[fieldKey] = `${field.label} is required`;
+            isValid = false;
+          }
+        } else {
+          // For other field types, check if the value is empty or just whitespace
+          const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+          if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+            errors[fieldKey] = `${field.label} is required`;
+            isValid = false;
+          }
+        }
+      }
+      
+      // Validate required sub-questions
+      if (field.subQuestions && field.subQuestions.length > 0) {
+        const fieldKey = `field_${fieldIndex}`;
+        const fieldValue = formData[fieldKey];
+        
+        // Check if sub-questions should be visible
+        const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+          (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+          
+        if (shouldShowSubQuestions) {
+          for (let subIndex = 0; subIndex < field.subQuestions.length; subIndex++) {
+            const subQuestion = field.subQuestions[subIndex];
+            if (subQuestion.required) {
+              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+              const subValue = formData[subKey];
+              
+
+              
+              if (subQuestion.type === 'checkbox') {
+                if (subValue === undefined || subValue === null) {
+                  errors[subKey] = `${subQuestion.label} is required`;
+                  isValid = false;
+                }
+              } else {
+                const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                  errors[subKey] = `${subQuestion.label} is required`;
+                  isValid = false;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    setValidationErrors(errors);
+    return isValid;
+  };
+
+  const handlePreview = () => {
+    if (validateForm()) {
+      setShowPreview(true);
+      setError('');
+    } else {
+      setError('Please fill in all required fields before previewing');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     setSuccess('');
 
     try {
-      // Validate ward selection
-      if (!selectedWard) {
-        throw new Error('Please select a ward');
-      }
-
-      // Validate required fields (FormRenderer uses field_0, field_1, etc.)
-      const missingFields = [];
+      // Convert form data from field_index format to field.label format for API
+      const apiResponses = {};
       
       selectedForm.fields.forEach((field, fieldIndex) => {
         const fieldKey = `field_${fieldIndex}`;
-        if (field.required && (!formData[fieldKey] && formData[fieldKey] !== 0 && formData[fieldKey] !== '0')) {
-          missingFields.push(field.label);
+        const fieldValue = formData[fieldKey];
+        
+        // Include all field values, even empty ones for proper validation
+        if (fieldValue !== undefined) {
+          apiResponses[field.label] = fieldValue;
         }
-
-        // Check sub-questions if they exist
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          const shouldShowSubQuestions = !field.showSubQuestionsWhen || 
-            (field.type === 'yesno' && formData[fieldKey] === field.showSubQuestionsWhen) ||
-            (field.type === 'select' && formData[fieldKey] === field.showSubQuestionsWhen);
-
-          if (shouldShowSubQuestions) {
-            field.subQuestions.forEach((subQuestion, subIndex) => {
-              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-              if (subQuestion.required && (!formData[subKey] && formData[subKey] !== 0 && formData[subKey] !== '0')) {
-                missingFields.push(`${field.label} - ${subQuestion.label}`);
-              }
-            });
-          }
-        }
-      });
-
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-      }
-
-      // Convert form data from field indexes to field labels for API
-      const responseData = {};
-      selectedForm.fields.forEach((field, fieldIndex) => {
-        const fieldKey = `field_${fieldIndex}`;
-        if (formData[fieldKey] !== undefined && formData[fieldKey] !== '') {
-          responseData[field.label] = formData[fieldKey];
-        }
-
+        
         // Handle sub-questions
         if (field.subQuestions && field.subQuestions.length > 0) {
           field.subQuestions.forEach((subQuestion, subIndex) => {
             const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            if (formData[subKey] !== undefined && formData[subKey] !== '') {
-              responseData[`${field.label} - ${subQuestion.label}`] = formData[subKey];
+            const subValue = formData[subKey];
+            
+            if (subValue !== undefined) {
+              // Use a combined key for sub-questions
+              apiResponses[`${field.label}_${subQuestion.label}`] = subValue;
             }
           });
         }
       });
-
-      console.log('Submitting ward report data:', responseData);
-
+      
       // Submit response
       await axios.post('/api/responses', {
         formTemplateId: selectedForm._id,
-        responses: responseData,
+        responses: apiResponses,
         wardId: selectedWard,
       });
-
+      
       setSuccess('Ward report submitted successfully');
       
       // Update the current form's submission status immediately
@@ -217,12 +278,11 @@ export default function SubmitWardReport() {
       setFormData({});
       setSelectedForm(null);
       setSelectedWard('');
-      
-      // Refresh the forms list to update submission status
-      await fetchData();
+      setShowPreview(false);
+      setValidationErrors({});
     } catch (error) {
-      console.error('Ward submit error:', error);
-      setError(error.response?.data?.message || error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'An error occurred while submitting the report';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -388,45 +448,190 @@ export default function SubmitWardReport() {
                 </select>
               </div>
               
-              <FormRenderer 
-                form={selectedForm}
-                formData={formData}
-                setFormData={submittedResponse ? () => {} : setFormData}
-                readOnly={!!submittedResponse}
-              />
-              
-              <div className="flex justify-between pt-6 border-t border-gray-200">
-                <Link href="/" className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors">
-                  {submittedResponse ? 'Back to Dashboard' : 'Cancel'}
-                </Link>
-                {!submittedResponse && (
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors flex items-center"
-                    onClick={handleSubmit}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Submitting...
-                      </>
-                    ) : (
-                      'Submit Report'
-                    )}
-                  </button>
-                )}
-                {submittedResponse && (
-                  <button
-                    disabled
-                    className="bg-gray-300 text-gray-500 py-2 px-4 rounded-lg cursor-not-allowed flex items-center"
-                  >
-                    ✓ Already Submitted
-                  </button>
-                )}
+              {!showPreview ? (
+                <>
+                  <FormRenderer
+                    form={selectedForm}
+                    formData={formData}
+                    setFormData={setFormData}
+                    errors={validationErrors}
+                  />
+                  
+                  <div className="flex justify-between mt-6">
+                    <div className="flex space-x-3">
+                      <Link href="/" className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600">
+                        Cancel
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData({});
+                          setError('');
+                          setSuccess('');
+                          setValidationErrors({});
+                        }}
+                        className="bg-yellow-500 text-white py-2 px-4 rounded hover:bg-yellow-600"
+                      >
+                        Clear Form
+                      </button>
+                    </div>
+                    <div className="flex space-x-3">
+                      <button
+                        type="button"
+                        onClick={handlePreview}
+                        className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
+                      >
+                        Preview Report
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-blue-300"
+                      >
+                        {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="text-lg font-medium text-blue-900 mb-2">Report Preview</h3>
+                    <p className="text-blue-700 text-sm">Please review your responses before submitting.</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium text-gray-900 mb-2">Ward Information</h4>
+                      <p className="text-sm text-gray-700">
+                        {userWards.find(w => w._id === selectedWard)?.name} ({userWards.find(w => w._id === selectedWard)?.district})
+                      </p>
+                    </div>
+                    
+                    {selectedForm.fields.map((field, fieldIndex) => {
+                      const fieldKey = `field_${fieldIndex}`;
+                      const fieldValue = formData[fieldKey];
+                      
+                      // Skip empty fields in preview
+                      if (!fieldValue && fieldValue !== 0 && fieldValue !== false) return null;
+                      
+                      return (
+                        <div key={fieldIndex} className="bg-white border border-gray-200 rounded-lg p-4">
+                          <h4 className="font-medium text-gray-900 mb-2">{field.label}</h4>
+                          <div className="text-sm text-gray-700">
+                            {field.type === 'yesno' ? (
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                fieldValue === 'Yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {fieldValue}
+                              </span>
+                            ) : field.type === 'checkbox' ? (
+                              <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                fieldValue ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {fieldValue ? 'Checked' : 'Not checked'}
+                              </span>
+                            ) : field.type === 'textarea' ? (
+                              <div className="whitespace-pre-wrap bg-gray-50 p-3 rounded border">
+                                {fieldValue}
+                              </div>
+                            ) : (
+                              <span>{fieldValue}</span>
+                            )}
+                          </div>
+                          
+                          {/* Show sub-questions in preview */}
+                          {field.subQuestions && field.subQuestions.length > 0 && (
+                            <div className="mt-3 ml-4 space-y-2 border-l-2 border-gray-200 pl-4">
+                              {field.subQuestions.map((subQuestion, subIndex) => {
+                                const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+                                const subValue = formData[subKey];
+                                
+                                // Check if sub-question should be visible
+                                const shouldShow = field.showSubQuestionsWhen ? 
+                                  (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+                                
+                                if (!shouldShow || (!subValue && subValue !== 0 && subValue !== false)) return null;
+                                
+                                return (
+                                  <div key={subIndex}>
+                                    <h5 className="text-sm font-medium text-gray-700">{subQuestion.label}</h5>
+                                    <div className="text-sm text-gray-600">
+                                      {subQuestion.type === 'yesno' ? (
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                          subValue === 'Yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                          {subValue}
+                                        </span>
+                                      ) : subQuestion.type === 'checkbox' ? (
+                                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                                          subValue ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                          {subValue ? 'Checked' : 'Not checked'}
+                                        </span>
+                                      ) : (
+                                        <span>{subValue}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="flex justify-between mt-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowPreview(false)}
+                      className="bg-gray-500 text-white py-2 px-4 rounded hover:bg-gray-600"
+                    >
+                      Back to Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmDialog(true)}
+                      disabled={isSubmitting}
+                      className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-blue-300"
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                    </button>
+                  </div>
+                </div>
+              )}   
+            </div>
+          </div>
+        )}
+        
+        {/* Confirmation Dialog */}
+        {showConfirmDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Submission</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Are you sure you want to submit this report? Once submitted, you cannot modify the responses.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirmDialog(false)}
+                  className="bg-gray-300 text-gray-700 py-2 px-4 rounded hover:bg-gray-400"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={(e) => {
+                    setShowConfirmDialog(false);
+                    handleSubmit(e);
+                  }}
+                  disabled={isSubmitting}
+                  className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Yes, Submit'}
+                </button>
               </div>
             </div>
           </div>

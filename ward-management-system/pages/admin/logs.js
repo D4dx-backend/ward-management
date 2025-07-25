@@ -1,25 +1,35 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
-import SearchInput from '../../components/SearchInput';
+import Button from '../../components/Button';
 
-export default function AdminLogs() {
+export default function ActivityLogs() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [logs, setLogs] = useState([]);
-  const [filteredLogs, setFilteredLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState({
     action: '',
-    userRole: '',
-    dateRange: '7', // Last 7 days
+    user: '',
+    district: '',
+    dateFrom: '',
+    dateTo: '',
+    page: 1,
+    limit: 50
   });
+  const [totalPages, setTotalPages] = useState(1);
+  const [isFiltering, setIsFiltering] = useState(false);
+  
+  // Refs for maintaining focus
+  const districtInputRef = useRef(null);
+  const dateFromInputRef = useRef(null);
+  const dateToInputRef = useRef(null);
+  const lastFocusedField = useRef(null);
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -32,119 +42,102 @@ export default function AdminLogs() {
     }
   }, [status, session, router]);
 
+  // Separate effect for filter changes with debouncing
   useEffect(() => {
-    // Filter logs based on search term and filters
-    let filtered = logs;
+    if (status === 'authenticated' && session.user.role === 'stateAdmin') {
+      setIsFiltering(true);
+      const timeoutId = setTimeout(() => {
+        fetchLogs();
+        setIsFiltering(false);
+      }, 500); // 500ms debounce
 
-    if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.user?.email.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      return () => {
+        clearTimeout(timeoutId);
+        setIsFiltering(false);
+      };
     }
+  }, [filter, status, session]);
 
-    if (filter.action) {
-      filtered = filtered.filter(log => log.action === filter.action);
+  // Effect to restore focus after filtering
+  useEffect(() => {
+    if (!isFiltering && lastFocusedField.current) {
+      const fieldRef = lastFocusedField.current;
+      if (fieldRef && fieldRef.current) {
+        // Small delay to ensure DOM is updated
+        setTimeout(() => {
+          fieldRef.current.focus();
+        }, 50);
+      }
     }
-
-    if (filter.userRole) {
-      filtered = filtered.filter(log => log.user?.role === filter.userRole);
-    }
-
-    setFilteredLogs(filtered);
-  }, [logs, searchTerm, filter]);
+  }, [isFiltering]);
 
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
-      
+
       // Build query string
       const queryParams = new URLSearchParams();
-      if (filter.dateRange) queryParams.append('days', filter.dateRange);
-      if (filter.action) queryParams.append('action', filter.action);
-      if (filter.userRole) queryParams.append('userRole', filter.userRole);
-      
-      const response = await axios.get(`/api/logs?${queryParams.toString()}`);
-      setLogs(response.data);
+      Object.keys(filter).forEach(key => {
+        if (filter[key]) {
+          queryParams.append(key, filter[key]);
+        }
+      });
+
+      const response = await axios.get(`/api/activity-logs?${queryParams.toString()}`);
+      const responseData = response.data;
+
+      // Handle the API response
+      const logsData = responseData.logs || [];
+      setLogs(logsData);
+      setTotalPages(responseData.totalPages || 1);
       setError('');
     } catch (error) {
-      // If logs API doesn't exist, create mock data for now
-      const mockLogs = [
-        {
-          _id: '1',
-          action: 'USER_LOGIN',
-          details: 'User logged in successfully',
-          user: { name: 'Admin User', email: 'admin@example.com', role: 'stateAdmin' },
-          timestamp: new Date().toISOString(),
-          ipAddress: '192.168.1.1'
-        },
-        {
-          _id: '2',
-          action: 'WARD_CREATED',
-          details: 'Created new ward: Sample Ward',
-          user: { name: 'Admin User', email: 'admin@example.com', role: 'stateAdmin' },
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          ipAddress: '192.168.1.1'
-        },
-        {
-          _id: '3',
-          action: 'USER_CREATED',
-          details: 'Created new coordinator: John Doe',
-          user: { name: 'Admin User', email: 'admin@example.com', role: 'stateAdmin' },
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          ipAddress: '192.168.1.1'
-        },
-        {
-          _id: '4',
-          action: 'FORM_CREATED',
-          details: 'Created new form: Weekly Report Form',
-          user: { name: 'Admin User', email: 'admin@example.com', role: 'stateAdmin' },
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          ipAddress: '192.168.1.1'
-        }
-      ];
-      setLogs(mockLogs);
-      setError('');
+      setError('Failed to fetch activity logs');
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilter({ ...filter, [name]: value });
-  };
-
   const getActionBadgeColor = (action) => {
-    switch (action) {
-      case 'USER_LOGIN':
-        return 'bg-green-100 text-green-800';
-      case 'USER_LOGOUT':
-        return 'bg-gray-100 text-gray-800';
-      case 'USER_CREATED':
-      case 'WARD_CREATED':
-      case 'FORM_CREATED':
-        return 'bg-blue-100 text-blue-800';
-      case 'USER_UPDATED':
-      case 'WARD_UPDATED':
-      case 'FORM_UPDATED':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'USER_DELETED':
-      case 'WARD_DELETED':
-      case 'FORM_DELETED':
-        return 'bg-red-100 text-red-800';
-      case 'REPORT_SUBMITTED':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const colors = {
+      LOGIN: 'bg-green-100 text-green-800',
+      LOGOUT: 'bg-gray-100 text-gray-800',
+      FORM_SUBMIT: 'bg-blue-100 text-blue-800',
+      FORM_CREATE: 'bg-purple-100 text-purple-800',
+      FORM_UPDATE: 'bg-yellow-100 text-yellow-800',
+      FORM_DELETE: 'bg-red-100 text-red-800',
+      USER_CREATE: 'bg-indigo-100 text-indigo-800',
+      USER_UPDATE: 'bg-orange-100 text-orange-800',
+      USER_DELETE: 'bg-red-100 text-red-800',
+      REPORT_VIEW: 'bg-cyan-100 text-cyan-800',
+      REPORT_EXPORT: 'bg-teal-100 text-teal-800',
+    };
+    return colors[action] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+  const formatDateTime = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  const handleFilterChange = (key, value, fieldRef = null) => {
+    // Store the currently focused field
+    if (fieldRef) {
+      lastFocusedField.current = fieldRef;
+    }
+    
+    setFilter(prev => ({
+      ...prev,
+      [key]: value,
+      page: 1 // Reset to first page when filtering
+    }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setFilter(prev => ({
+      ...prev,
+      page: newPage
+    }));
   };
 
   if (status === 'loading' || isLoading) {
@@ -158,13 +151,13 @@ export default function AdminLogs() {
   return (
     <Layout>
       <Head>
-        <title>System Logs - Ward Management System</title>
+        <title>Activity Logs - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Logs</h1>
-          <p className="mt-1 text-sm text-gray-600">Monitor system activities and user actions</p>
+          <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
+          <p className="mt-1 text-sm text-gray-600">View and monitor system activity</p>
         </div>
 
         {error && (
@@ -184,169 +177,176 @@ export default function AdminLogs() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <SearchInput
-                onSearch={setSearchTerm}
-                placeholder="Search logs..."
-                className="md:col-span-2"
-              />
-              
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Filter Logs</h2>
+              {isFiltering && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Filtering...
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
                 <select
-                  name="action"
                   value={filter.action}
-                  onChange={handleFilterChange}
+                  onChange={(e) => handleFilterChange('action', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Actions</option>
-                  <option value="USER_LOGIN">User Login</option>
-                  <option value="USER_LOGOUT">User Logout</option>
-                  <option value="USER_CREATED">User Created</option>
-                  <option value="USER_UPDATED">User Updated</option>
-                  <option value="USER_DELETED">User Deleted</option>
-                  <option value="WARD_CREATED">Ward Created</option>
-                  <option value="WARD_UPDATED">Ward Updated</option>
-                  <option value="WARD_DELETED">Ward Deleted</option>
-                  <option value="FORM_CREATED">Form Created</option>
-                  <option value="FORM_UPDATED">Form Updated</option>
-                  <option value="FORM_DELETED">Form Deleted</option>
-                  <option value="REPORT_SUBMITTED">Report Submitted</option>
+                  <option value="LOGIN">Login</option>
+                  <option value="LOGOUT">Logout</option>
+                  <option value="FORM_SUBMIT">Form Submit</option>
+                  <option value="FORM_CREATE">Form Create</option>
+                  <option value="FORM_UPDATE">Form Update</option>
+                  <option value="FORM_DELETE">Form Delete</option>
+                  <option value="USER_CREATE">User Create</option>
+                  <option value="USER_UPDATE">User Update</option>
+                  <option value="USER_DELETE">User Delete</option>
+                  <option value="REPORT_VIEW">Report View</option>
+                  <option value="REPORT_EXPORT">Report Export</option>
                 </select>
               </div>
-
               <div>
-                <select
-                  name="userRole"
-                  value={filter.userRole}
-                  onChange={handleFilterChange}
+                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                <input
+                  ref={districtInputRef}
+                  type="text"
+                  value={filter.district}
+                  onChange={(e) => handleFilterChange('district', e.target.value, districtInputRef)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter district"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  ref={dateFromInputRef}
+                  type="date"
+                  value={filter.dateFrom}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value, dateFromInputRef)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  ref={dateToInputRef}
+                  type="date"
+                  value={filter.dateTo}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value, dateToInputRef)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => setFilter({
+                    action: '',
+                    user: '',
+                    district: '',
+                    dateFrom: '',
+                    dateTo: '',
+                    page: 1,
+                    limit: 50
+                  })}
+                  variant="outline"
+                  className="w-full"
                 >
-                  <option value="">All Roles</option>
-                  <option value="stateAdmin">State Admin</option>
-                  <option value="coordinator">Coordinator</option>
-                  <option value="wardAdmin">Ward Admin</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <label className="text-sm font-medium text-gray-700">Time Range:</label>
-              <div className="flex space-x-2">
-                {[
-                  { value: '1', label: 'Last 24 hours' },
-                  { value: '7', label: 'Last 7 days' },
-                  { value: '30', label: 'Last 30 days' },
-                  { value: '90', label: 'Last 90 days' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setFilter({ ...filter, dateRange: option.value })}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      filter.dateRange === option.value
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+                  Clear Filters
+                </Button>
               </div>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    IP Address
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredLogs.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatTimestamp(log.timestamp)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeColor(log.action)}`}>
-                        {log.action.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-600">
-                              {log.user?.name?.charAt(0) || 'U'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {log.user?.name || 'Unknown User'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {log.user?.email || 'No email'}
-                          </div>
+
+          <div className="divide-y divide-gray-200">
+            {logs.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="text-gray-500">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm">No activity logs found</p>
+                </div>
+              </div>
+            ) : (
+              Array.isArray(logs) ? logs.map((log) => (
+                <div key={log._id} className="px-6 py-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600">
+                            {log.user?.name?.charAt(0) || log.userName?.charAt(0) || 'U'}
+                          </span>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {log.details}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.ipAddress || 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-                {filteredLogs.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="mt-2 text-sm">
-                          {searchTerm || filter.action || filter.userRole ? 'No logs found matching your criteria' : 'No logs available'}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-3 mb-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {log.user?.name || log.userName || 'Unknown User'}
+                          </p>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeColor(log.action)}`}>
+                            {log.action?.replace('_', ' ') || 'Unknown Action'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {log.description || 'No description available'}
                         </p>
+                        <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                          {log.district && (
+                            <span>District: {log.district}</span>
+                          )}
+                          {log.ward?.name && (
+                            <span>Ward: {log.ward.name}</span>
+                          )}
+                          {log.ipAddress && (
+                            <span>IP: {log.ipAddress}</span>
+                          )}
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex-shrink-0 text-sm text-gray-500">
+                      {formatDateTime(log.timestamp || log.loginTime || log.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              )) : null
+            )}
           </div>
-        </Card>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Page {filter.page} of {totalPages}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => handlePageChange(filter.page - 1)}
+                    disabled={filter.page <= 1}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={() => handlePageChange(filter.page + 1)}
+                    disabled={filter.page >= totalPages}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
-                <strong>Note:</strong> This is currently showing sample log data. To enable full logging functionality, 
-                implement the logging API endpoint at <code>/api/logs</code> and integrate logging throughout the application.
-              </p>
-            </div>
-          </div>
-        </div>
+          )}
+        </Card>
       </div>
     </Layout>
   );

@@ -137,10 +137,20 @@ export default function SubmitReport() {
       
       selectedForm.fields.forEach((field, fieldIndex) => {
         const fieldKey = `field_${fieldIndex}`;
+        const fieldValue = formData[fieldKey];
         
-        // Check main field
-        if (field.required && (!formData[fieldKey] && formData[fieldKey] !== 0 && formData[fieldKey] !== '0')) {
-          missingFields.push(field.label);
+        if (field.required) {
+          // For checkbox fields, check if the value exists (can be true or false)
+          if (field.type === 'checkbox') {
+            if (fieldValue === undefined || fieldValue === null) {
+              throw new Error(`Field "${field.label}" is required`);
+            }
+          } else {
+            // For other fields, check if value exists and is not empty
+            if (!fieldValue && fieldValue !== 0 && fieldValue !== false) {
+              throw new Error(`Field "${field.label}" is required`);
+            }
+          }
         }
 
         // Check sub-questions if they should be visible
@@ -152,8 +162,20 @@ export default function SubmitReport() {
           if (shouldShowSubQuestions) {
             field.subQuestions.forEach((subQuestion, subIndex) => {
               const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-              if (subQuestion.required && (!formData[subKey] && formData[subKey] !== 0 && formData[subKey] !== '0')) {
-                missingFields.push(`${field.label} - ${subQuestion.label}`);
+              const subValue = formData[subKey];
+              
+              if (subQuestion.required) {
+                // For checkbox sub-questions, check if the value exists
+                if (subQuestion.type === 'checkbox') {
+                  if (subValue === undefined || subValue === null) {
+                    throw new Error(`Sub-question "${subQuestion.label}" is required`);
+                  }
+                } else {
+                  // For other sub-question types
+                  if (!subValue && subValue !== 0 && subValue !== false) {
+                    throw new Error(`Sub-question "${subQuestion.label}" is required`);
+                  }
+                }
               }
             });
           }

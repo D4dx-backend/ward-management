@@ -202,7 +202,7 @@ export default function Home() {
 
         {/* Recent Activity and Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <RecentActivity logs={recentLogs} />
+          <RecentActivity logs={recentLogs} userRole={session.user.role} />
           <RecentReports reports={recentReports} userRole={session.user.role} />
         </div>
 

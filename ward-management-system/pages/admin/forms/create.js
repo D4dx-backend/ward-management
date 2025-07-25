@@ -460,6 +460,7 @@ export default function CreateForm() {
                           <option value="number">Number</option>
                           <option value="textarea">Text Area</option>
                           <option value="select">Select</option>
+                          <option value="checkbox">Checkbox</option>
                           <option value="yesno">Yes/No</option>
                           <option value="date">Date</option>
                         </select>
@@ -622,6 +623,7 @@ export default function CreateForm() {
                                     <option value="number">Number</option>
                                     <option value="textarea">Text Area</option>
                                     <option value="select">Select</option>
+                                    <option value="checkbox">Checkbox</option>
                                     <option value="yesno">Yes/No</option>
                                     <option value="date">Date</option>
                                   </select>

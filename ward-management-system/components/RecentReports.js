@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
-const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin', showCount = false }) => {
+const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin' }) => {
+  // Always show only the first 3 reports, full details available via "View all"
+  const displayReports = reports.slice(0, 3);
   const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const time = new Date(timestamp);
@@ -59,7 +61,7 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
             </div>
           </div>
         ) : (
-          reports.map((report) => (
+          displayReports.map((report) => (
             <div key={report._id} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">

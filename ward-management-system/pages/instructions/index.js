@@ -3,6 +3,8 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
 import SearchInput from '../../components/SearchInput';
+import Modal from '../../components/Modal';
+import Button from '../../components/Button';
 
 export default function Instructions() {
   const { data: session, status } = useSession();
@@ -11,6 +13,8 @@ export default function Instructions() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingInstruction, setViewingInstruction] = useState(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -40,9 +44,49 @@ export default function Instructions() {
     }
   };
 
+  const handleView = (instruction) => {
+    setViewingInstruction(instruction);
+    setShowViewModal(true);
+  };
+
+  const handleDownload = async (instructionId, fileName) => {
+    try {
+      const response = await fetch(`/api/instructions/download/${instructionId}`);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert('File not found. The attachment may have been removed or moved.');
+        } else {
+          alert('Failed to download file. Please try again.');
+        }
+        return;
+      }
+
+      // If it's a redirect response, handle it
+      if (response.redirected) {
+        window.open(response.url, '_blank');
+        return;
+      }
+
+      // For direct file downloads
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
   const filteredInstructions = instructions.filter(instruction => {
     const matchesSearch = instruction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         instruction.description.toLowerCase().includes(searchTerm.toLowerCase());
+      instruction.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = priorityFilter === 'all' || instruction.priority === priorityFilter;
     return matchesSearch && matchesPriority;
   });
@@ -108,9 +152,9 @@ export default function Instructions() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Instructions Management</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Important instructions from state administration
+            Manage instructions for coordinators and ward admins
           </p>
         </div>
 
@@ -133,8 +177,16 @@ export default function Instructions() {
         </div>
 
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-hidden">
+            <table className="w-full divide-y divide-gray-200 table-fixed">
+              <colgroup>
+                <col className="w-1/5" />
+                <col className="w-2/5" />
+                <col className="w-1/8" />
+                <col className="w-1/8" />
+                <col className="w-1/12" />
+                <col className="w-1/8" />
+              </colgroup>
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -147,71 +199,78 @@ export default function Instructions() {
                     Attachment
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Target Audience
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInstructions.map((instruction) => {
-                  const titleLines = formatTextWithLineBreaks(instruction.title, 8);
-                  const descriptionLines = formatTextWithLineBreaks(instruction.description, 8);
-                  
-                  return (
-                    <tr key={instruction._id} className="align-top">
-                      <td className="px-6 py-4 align-top">
-                        <div className="text-sm font-medium text-gray-900" title={instruction.title}>
-                          {titleLines.map((line, index) => (
-                            <div key={index} className="leading-relaxed">
-                              {line}
-                            </div>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 align-top">
-                        <div className="text-sm text-gray-900 max-w-xs" title={instruction.description}>
-                          {descriptionLines.slice(0, 3).map((line, index) => (
-                            <div key={index} className="leading-relaxed">
-                              {line}
-                            </div>
-                          ))}
-                          {descriptionLines.length > 3 && (
-                            <div className="text-gray-500">...</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-top">
+                {filteredInstructions.map((instruction) => (
+                  <tr key={instruction._id}>
+                    <td className="px-3 py-4">
+                      <div className="text-sm font-medium text-gray-900 truncate max-w-0">{instruction.title}</div>
+                    </td>
+                    <td className="px-3 py-4">
+                      <div className="text-sm text-gray-900 truncate max-w-0">
+                        {(() => {
+                          const desc = instruction.description || 'No description';
+                          if (desc.length > 40) {
+                            return desc.substring(0, 40) + '...';
+                          }
+                          return desc;
+                        })()}
+                      </div>
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-900">
+                      <div className="truncate max-w-0">
                         {instruction.fileUrl ? (
-                          <a 
-                            href={instruction.fileUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800"
-                            title={instruction.fileName || 'Download File'}
+                          <button
+                            onClick={() => handleDownload(instruction._id, instruction.fileName)}
+                            className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer truncate"
                           >
-                            {truncateText(instruction.fileName || 'Download File', 3)}
-                          </a>
+                            {instruction.fileName ?
+                              (instruction.fileName.length > 10 ?
+                                instruction.fileName.substring(0, 10) + '...' :
+                                instruction.fileName)
+                              : 'File'}
+                          </button>
                         ) : (
-                          'No file'
+                          <span className="text-gray-400">-</span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-top">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                          {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
-                        {formatDate(instruction.createdAt)}
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </td>
+                    <td className="px-3 py-4">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {instruction.targetAudience === 'all' ? 'All' :
+                          instruction.targetAudience === 'coordinators' ? 'Coordinators' :
+                            instruction.targetAudience === 'wardAdmins' ? 'Ward Admins' : 'All'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
+                        {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-4 text-sm text-gray-900">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleView(instruction)}
+                      >
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-          
+
           {filteredInstructions.length === 0 && (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -222,6 +281,67 @@ export default function Instructions() {
             </div>
           )}
         </div>
+
+        {/* View Instruction Modal */}
+        <Modal
+          isOpen={showViewModal}
+          title="Instruction Details"
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingInstruction(null);
+          }}
+        >
+          {viewingInstruction && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {viewingInstruction.title}
+                </h3>
+                <div className="flex items-center space-x-4 mb-4">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(viewingInstruction.priority)}`}>
+                    {viewingInstruction.priority.charAt(0).toUpperCase() + viewingInstruction.priority.slice(1)}
+                  </span>
+                  {viewingInstruction.targetAudience && (
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {viewingInstruction.targetAudience === 'coordinators' ? 'Coordinators' :
+                        viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">
+                    {viewingInstruction.description}
+                  </p>
+                </div>
+              </div>
+
+              {viewingInstruction.fileUrl && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Attachment</h4>
+                  <button
+                    onClick={() => handleDownload(viewingInstruction._id, viewingInstruction.fileName)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Download {viewingInstruction.fileName || 'File'}
+                  </button>
+                </div>
+              )}
+
+              {viewingInstruction.createdAt && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Created</h4>
+                  <p className="text-sm text-gray-700">
+                    {formatDate(viewingInstruction.createdAt)}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal>
       </div>
     </Layout>
   );

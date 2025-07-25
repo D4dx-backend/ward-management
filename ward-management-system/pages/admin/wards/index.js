@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
@@ -161,6 +162,11 @@ export default function AdminWards() {
     setError('');
 
     try {
+      // Validate form
+      if (!formData.name || !formData.wardNumber || !formData.panchayath || !formData.district || !formData.coordinatorId) {
+        throw new Error('Ward name, number, panchayath, district, and coordinator are required');
+      }
+
       // Update ward
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
 
@@ -175,7 +181,11 @@ export default function AdminWards() {
       resetForm();
       setShowEditModal(false);
       setEditingWard(null);
+
+      // Clear any existing errors
+      setError('');
     } catch (error) {
+      console.error('Error updating ward:', error);
       setError(error.response?.data?.message || error.message);
     }
   };
@@ -344,22 +354,26 @@ export default function AdminWards() {
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">No Ward Admin Assigned</option>
-            {wardAdmins
-              .filter(admin => {
-                // For editing, allow current ward admin to be selected
-                if (editingWard && admin._id === editingWard.wardAdmin?._id) {
-                  return true;
-                }
-                // Only show ward admins that are not already assigned to other wards
-                return !wards.some(ward => ward.wardAdmin?._id === admin._id);
-              })
-              .map((admin) => (
-                <option key={admin._id} value={admin._id}>
+            {wardAdmins.map((admin) => {
+              // Check if this admin is assigned to any ward
+              const assignedWard = wards.find(ward => ward.wardAdmin?._id === admin._id);
+              const isCurrentWardAdmin = editingWard && admin._id === editingWard.wardAdmin?._id;
+              const isAssignedToOtherWard = assignedWard && assignedWard._id !== editingWard?._id;
+
+              return (
+                <option
+                  key={admin._id}
+                  value={admin._id}
+                  disabled={isAssignedToOtherWard}
+                >
                   {admin.name} {admin.district ? `(${admin.district})` : ''}
-                  {wards.find(ward => ward.wardAdmin?._id === admin._id && ward._id !== editingWard?._id)
-                    ? ' - Already Assigned' : ''}
+                  {isAssignedToOtherWard ? ' - Already Assigned' : ''}
                 </option>
-              ))}
+              );
+            })}
+            {wardAdmins.length === 0 && (
+              <option disabled>Loading ward admins...</option>
+            )}
           </select>
           <p className="text-xs text-gray-500 mt-1">
             Each ward admin can only be assigned to one ward
@@ -486,26 +500,26 @@ export default function AdminWards() {
             />
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div>
+            <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                     Ward Details
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Coordinator
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Ward Admin
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Population
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
+                    Pop.
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Actions
                   </th>
                 </tr>
@@ -513,63 +527,77 @@ export default function AdminWards() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredWards.map((ward) => (
                   <tr key={ward._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{ward.name}</div>
-                        <div className="text-sm text-gray-500">Ward #{ward.wardNumber}</div>
+                        <Link href={`/admin/wards/reports/${ward._id}`}>
+                          <div className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate">
+                            {ward.name}
+                          </div>
+                        </Link>
+                        <div className="text-xs text-gray-500">Ward #{ward.wardNumber}</div>
+                        {ward.description && (
+                          <div className="text-xs text-gray-400 truncate mt-1" title={ward.description}>
+                            {ward.description}
+                          </div>
+                        )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm text-gray-900">{ward.panchayath}</div>
-                        <div className="text-sm text-gray-500">{ward.district}</div>
+                        <div className="text-sm text-gray-900 truncate">{ward.panchayath}</div>
+                        <div className="text-xs text-gray-500 truncate">{ward.district}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3">
                       {ward.coordinator ? (
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                        <div className="flex items-center min-w-0">
+                          <div className="flex-shrink-0 h-6 w-6">
+                            <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
                               <span className="text-xs font-medium text-blue-600">
                                 {ward.coordinator.name?.charAt(0) || 'C'}
                               </span>
                             </div>
                           </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
+                          <div className="ml-2 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
                               {ward.coordinator.name}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500">Not assigned</span>
+                        <span className="text-xs text-gray-500">Not assigned</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3">
                       {ward.wardAdmin ? (
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8">
-                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                        <div className="flex items-center min-w-0">
+                          <div className="flex-shrink-0 h-6 w-6">
+                            <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
                               <span className="text-xs font-medium text-green-600">
                                 {ward.wardAdmin.name?.charAt(0) || 'W'}
                               </span>
                             </div>
                           </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
+                          <div className="ml-2 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
                               {ward.wardAdmin.name}
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-sm text-gray-500">Not assigned</span>
+                        <span className="text-xs text-gray-500">Not assigned</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {ward.population ? ward.population.toLocaleString() : '-'}
+                    <td className="px-4 py-3 text-xs text-gray-900">
+                      {ward.population ? (ward.population > 1000 ? `${Math.round(ward.population / 1000)}k` : ward.population) : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end space-x-1">
+                        <Link href={`/admin/wards/reports/${ward._id}`}>
+                          <Button variant="outline" size="sm">
+                            Reports
+                          </Button>
+                        </Link>
                         <Button variant="outline" size="sm" onClick={() => handleEdit(ward)}>
                           Edit
                         </Button>
@@ -582,7 +610,7 @@ export default function AdminWards() {
                 ))}
                 {filteredWards.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="6" className="px-4 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />

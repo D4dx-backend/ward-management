@@ -7,13 +7,20 @@ import Ward from '../../../models/Ward';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
+  let session;
   
-  if (!session) {
-    return res.status(401).json({ message: 'Unauthorized' });
+  try {
+    session = await getServerSession(req, res, authOptions);
+    
+    if (!session) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    await connectToDatabase();
+  } catch (error) {
+    console.error('Initial setup error:', error);
+    return res.status(500).json({ message: 'Server initialization error', error: error.message });
   }
-  
-  await connectToDatabase();
   
   if (req.method === 'GET') {
     try {
@@ -52,45 +59,32 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 });
       
-      // Create user-friendly description for report viewing
-      let description = 'Viewed reports';
-      const filterParts = [];
-      
-      if (formType) {
-        const formTypeText = formType === 'coordinatorReport' ? 'coordinator reports' : 
-                           formType === 'wardReport' ? 'ward reports' : 'reports';
-        filterParts.push(formTypeText);
+      // Log the report view activity with better description
+      try {
+        let description = 'Viewed reports';
+        if (formType) {
+          description += ` (${formType.replace('Report', ' Reports')})`;
+        }
+        if (year) {
+          description += ` for ${year}`;
+        }
+        if (weekNumber) {
+          description += ` week ${weekNumber}`;
+        }
+        
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.REPORT_VIEW,
+          description,
+          metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
+          district: session.user.district || 'Unknown',
+          ward: session.user.ward || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log report view activity:', logError);
       }
-      
-      if (weekNumber && year) {
-        filterParts.push(`for week ${weekNumber}, ${year}`);
-      } else if (year) {
-        filterParts.push(`for year ${year}`);
-      }
-      
-      if (wardId) {
-        filterParts.push('for specific ward');
-      }
-      
-      if (coordinatorId) {
-        filterParts.push('for specific coordinator');
-      }
-      
-      if (filterParts.length > 0) {
-        description = `Viewed ${filterParts.join(' ')}`;
-      }
-
-      // Log the report view activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.REPORT_VIEW,
-        description: description,
-        metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
-        district: session.user.district,
-        ward: session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
       
       return res.status(200).json(responses);
     } catch (error) {
@@ -152,49 +146,76 @@ export default async function handler(req, res) {
           return res.status(404).json({ message: 'Ward not found' });
         }
         
-        if (ward.wardAdmin.toString() !== session.user.id) {
+        if (ward.wardAdmin && ward.wardAdmin.toString() !== session.user.id) {
           return res.status(403).json({ message: 'You are not authorized to submit reports for this ward' });
         }
       }
       
       // Validate responses against form fields
-      console.log('Response API - Form fields:', formTemplate.fields);
-      console.log('Response API - Received responses:', responses);
-      
-      const requiredFields = formTemplate.fields.filter(field => field.required).map(field => field.label);
-      console.log('Response API - Required fields:', requiredFields);
-      
-      for (const field of requiredFields) {
-        if (!responses[field] && responses[field] !== 0) {
-          console.log('Response API - Missing required field:', field);
-          return res.status(400).json({ message: `Missing required field: ${field}` });
+      for (const field of formTemplate.fields) {
+        if (field.required) {
+          const fieldValue = responses[field.label];
+          
+          // For checkbox fields, check if the value exists (can be true or false)
+          if (field.type === 'checkbox') {
+            if (fieldValue === undefined || fieldValue === null) {
+              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+            }
+          } else {
+            // For other fields, check if value exists and is not empty
+            const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+            if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+            }
+          }
+        }
+        
+        // Validate sub-questions if they exist and should be visible
+        if (field.subQuestions && field.subQuestions.length > 0) {
+          const fieldValue = responses[field.label];
+          
+          // Check if sub-questions should be visible
+          const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+          
+          if (shouldShowSubQuestions) {
+            for (const subQuestion of field.subQuestions) {
+              if (subQuestion.required) {
+                const subKey = `${field.label}_${subQuestion.label}`;
+                const subValue = responses[subKey];
+                
+                if (subQuestion.type === 'checkbox') {
+                  if (subValue === undefined || subValue === null) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                } else {
+                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                }
+              }
+            }
+          }
         }
       }
       
-      // Check if district is available
-      console.log('Response API - Session user district:', session.user.district);
-      console.log('Response API - Session user full object:', session.user);
+      // Validate ObjectIds
+      const mongoose = require('mongoose');
       
-      // Get district from session, ward, or use a default
-      let userDistrict = session.user.district;
-      
-      if (!userDistrict && formTemplate.formType === 'wardReport' && wardId) {
-        // For ward reports, get district from the ward
-        const ward = await Ward.findById(wardId);
-        if (ward && ward.district) {
-          userDistrict = ward.district;
-          console.log('Response API - Got district from ward:', userDistrict);
-        }
+      if (!mongoose.Types.ObjectId.isValid(formTemplateId)) {
+        return res.status(400).json({ message: 'Invalid form template ID' });
       }
       
-      if (!userDistrict) {
-        console.log('Response API - No district found, using default');
-        userDistrict = 'Default'; // Use a valid default district
+      if (!mongoose.Types.ObjectId.isValid(session.user.id)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
       }
       
-      console.log('Response API - Final district value:', userDistrict);
+      if (formTemplate.formType === 'wardReport' && wardId && !mongoose.Types.ObjectId.isValid(wardId)) {
+        return res.status(400).json({ message: 'Invalid ward ID' });
+      }
       
-      // Create new response - keep as object
+      // Create new response object
       const responseData = {
         formTemplate: formTemplateId,
         respondent: session.user.id,
@@ -202,23 +223,32 @@ export default async function handler(req, res) {
         responses: responses,
         weekNumber: formTemplate.weekNumber,
         year: formTemplate.year,
-        district: userDistrict,
+        district: session.user.district || 'Unknown',
       };
       
-      // Only add ward if it's a ward report and wardId is provided
+      // Add ward only for ward reports
       if (formTemplate.formType === 'wardReport' && wardId) {
         responseData.ward = wardId;
       }
       
-      console.log('Response API - Creating response with data:', responseData);
-      console.log('Response API - District value:', responseData.district, typeof responseData.district);
-      
-      // Create and save response directly without pre-validation
       const newResponse = new Response(responseData);
       
-      console.log('Response API - Saving response...');
-      await newResponse.save();
-      console.log('Response API - Response saved successfully:', newResponse._id);
+      // Validate the response object before saving
+      const validationError = newResponse.validateSync();
+      if (validationError) {
+        console.error('Validation error:', validationError);
+        return res.status(400).json({ 
+          message: 'Validation error', 
+          error: validationError.message,
+          details: Object.keys(validationError.errors).map(key => ({
+            field: key,
+            message: validationError.errors[key].message
+          }))
+        });
+      }
+      
+      // Save the response
+      const savedResponse = await newResponse.save();
       
       // Log the form submission activity (wrapped in try-catch to prevent failure)
       try {
@@ -227,14 +257,14 @@ export default async function handler(req, res) {
           action: ACTIONS.FORM_SUBMIT,
           description: `Submitted ${formTemplate.formType} for week ${formTemplate.weekNumber}, ${formTemplate.year}`,
           entityType: 'Response',
-          entityId: newResponse._id,
+          entityId: savedResponse._id,
           metadata: { 
             formType: formTemplate.formType, 
             weekNumber: formTemplate.weekNumber, 
             year: formTemplate.year,
             wardId: wardId || null
           },
-          district: userDistrict, // Use the same district we used for the response
+          district: session.user.district || 'Unknown',
           ward: wardId || null,
           ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
           userAgent: req.headers['user-agent']
@@ -244,41 +274,18 @@ export default async function handler(req, res) {
       }
       
       // Populate response details
-      const savedResponse = await Response.findById(newResponse._id)
+      const populatedResponse = await Response.findById(savedResponse._id)
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name email')
         .populate('ward', 'name district');
       
-      return res.status(201).json(savedResponse);
+      return res.status(201).json(populatedResponse);
     } catch (error) {
-      console.error('Response API - Full error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-        code: error.code
-      });
-      
-      // Handle specific MongoDB errors
-      if (error.name === 'ValidationError') {
-        const validationErrors = Object.values(error.errors).map(err => err.message);
-        return res.status(400).json({ 
-          message: 'Validation failed', 
-          error: validationErrors.join(', '),
-          details: validationErrors
-        });
-      }
-      
-      if (error.code === 11000) {
-        return res.status(400).json({ 
-          message: 'Duplicate entry', 
-          error: 'A response for this form may already exist'
-        });
-      }
-      
+      console.error('Error in POST /api/responses:', error);
       return res.status(500).json({ 
         message: 'Error creating response', 
         error: error.message,
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       });
     }
   }

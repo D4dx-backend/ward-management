@@ -90,21 +90,25 @@ export default function Reports() {
   };
 
   const exportToExcel = () => {
-    if (!filter.formType || !filter.weekNumber || !filter.year) {
-      setError('Please select form type, week number, and year to export');
+    // Check if there are any responses to export
+    if (responses.length === 0) {
+      setError('No reports available to export. Please adjust your filters or wait for reports to be submitted.');
       return;
     }
     
-    // Build query string
+    // Build query string with current filters
     const queryParams = new URLSearchParams();
-    queryParams.append('formType', filter.formType);
-    queryParams.append('weekNumber', filter.weekNumber);
-    queryParams.append('year', filter.year);
+    if (filter.formType) queryParams.append('formType', filter.formType);
+    if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
+    if (filter.year) queryParams.append('year', filter.year);
     if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
     if (filter.wardId) queryParams.append('wardId', filter.wardId);
     
     // Open export URL in new tab
     window.open(`/api/reports/export?${queryParams.toString()}`, '_blank');
+    
+    // Clear any previous errors
+    setError('');
   };
 
   // Get unique weeks from forms
@@ -133,12 +137,12 @@ export default function Reports() {
           <Button
             onClick={exportToExcel}
             variant="success"
-            disabled={!filter.formType || !filter.weekNumber || !filter.year}
+            disabled={responses.length === 0}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Export to Excel
+            Export to Excel ({responses.length} reports)
           </Button>
         </div>
 

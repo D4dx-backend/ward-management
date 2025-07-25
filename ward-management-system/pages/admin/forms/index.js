@@ -42,6 +42,29 @@ export default function Forms() {
     }
   }, [status, session, router, filter]);
 
+  // Refresh forms when the page becomes visible (user comes back from edit page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && status === 'authenticated') {
+        fetchForms();
+      }
+    };
+
+    const handleFocus = () => {
+      if (status === 'authenticated') {
+        fetchForms();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [status]);
+
 
 
   const fetchForms = async () => {

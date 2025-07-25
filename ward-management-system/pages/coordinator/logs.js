@@ -5,20 +5,22 @@ import Head from 'next/head';
 import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
-import SearchInput from '../../components/SearchInput';
+import Button from '../../components/Button';
 
-export default function CoordinatorLogs() {
+export default function CoordinatorActivityLogs() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [logs, setLogs] = useState([]);
-  const [filteredLogs, setFilteredLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState({
     action: '',
-    dateRange: '30', // Last 30 days
+    dateFrom: '',
+    dateTo: '',
+    page: 1,
+    limit: 50
   });
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     // Check if user is authenticated and is coordinator
@@ -29,122 +31,85 @@ export default function CoordinatorLogs() {
     } else if (status === 'authenticated') {
       fetchLogs();
     }
-  }, [status, session, router]);
-
-  useEffect(() => {
-    // Filter logs based on search term and filters
-    let filtered = logs;
-
-    if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.details.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.user?.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    if (filter.action) {
-      filtered = filtered.filter(log => log.action === filter.action);
-    }
-
-    setFilteredLogs(filtered);
-  }, [logs, searchTerm, filter]);
+  }, [status, session, router, filter]);
 
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
-      
-      // Mock data for coordinator and district logs
-      const mockLogs = [
-        {
-          _id: '1',
-          action: 'USER_LOGIN',
-          details: 'Logged into the system',
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          timestamp: new Date().toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          _id: '2',
-          action: 'REPORT_SUBMITTED',
-          details: 'Submitted weekly coordinator report for Week 29',
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          _id: '3',
-          action: 'WARD_UPDATED',
-          details: 'Updated ward information for Panchayath Ward 1',
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          _id: '4',
-          action: 'USER_CREATED',
-          details: 'Created new ward admin: Jane Smith',
-          user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          ipAddress: '192.168.1.100'
-        },
-        {
-          _id: '5',
-          action: 'REPORT_SUBMITTED',
-          details: 'Submitted ward progress report',
-          user: { name: 'Ward Admin 1', role: 'wardAdmin' },
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          ipAddress: '192.168.1.101'
-        },
-        {
-          _id: '6',
-          action: 'USER_LOGIN',
-          details: 'Ward admin logged in',
-          user: { name: 'Ward Admin 2', role: 'wardAdmin' },
-          timestamp: new Date(Date.now() - 259200000).toISOString(),
-          ipAddress: '192.168.1.102'
+
+      // Build query string
+      const queryParams = new URLSearchParams();
+      Object.keys(filter).forEach(key => {
+        if (filter[key]) {
+          queryParams.append(key, filter[key]);
         }
-      ];
-      
-      setLogs(mockLogs);
+      });
+
+      const response = await axios.get(`/api/activity-logs?${queryParams.toString()}`);
+      const responseData = response.data;
+
+      setLogs(responseData.logs || []);
+      setTotalPages(responseData.totalPages || 1);
       setError('');
     } catch (error) {
-      setError('Failed to fetch logs');
+      setError('Failed to fetch activity logs');
       console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilter({ ...filter, [name]: value });
-  };
-
   const getActionBadgeColor = (action) => {
-    switch (action) {
-      case 'USER_LOGIN':
-        return 'bg-green-100 text-green-800';
-      case 'USER_LOGOUT':
-        return 'bg-gray-100 text-gray-800';
-      case 'USER_CREATED':
-      case 'WARD_CREATED':
-      case 'WARD_ADMIN_ASSIGNED':
-        return 'bg-blue-100 text-blue-800';
-      case 'WARD_UPDATED':
-      case 'USER_UPDATED':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'REPORT_SUBMITTED':
-      case 'REPORT_REVIEWED':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+    const colors = {
+      LOGIN: 'bg-green-100 text-green-800',
+      LOGOUT: 'bg-gray-100 text-gray-800',
+      FORM_SUBMIT: 'bg-blue-100 text-blue-800',
+      FORM_CREATE: 'bg-purple-100 text-purple-800',
+      FORM_UPDATE: 'bg-yellow-100 text-yellow-800',
+      FORM_DELETE: 'bg-red-100 text-red-800',
+      USER_CREATE: 'bg-indigo-100 text-indigo-800',
+      USER_UPDATE: 'bg-orange-100 text-orange-800',
+      USER_DELETE: 'bg-red-100 text-red-800',
+      REPORT_VIEW: 'bg-cyan-100 text-cyan-800',
+      REPORT_EXPORT: 'bg-teal-100 text-teal-800',
+    };
+    return colors[action] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatTimestamp = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
+  const formatActionText = (action) => {
+    const actionTexts = {
+      LOGIN: 'Login',
+      LOGOUT: 'Logout',
+      FORM_SUBMIT: 'Form Submit',
+      FORM_CREATE: 'Form Create',
+      FORM_UPDATE: 'Form Update',
+      FORM_DELETE: 'Form Delete',
+      USER_CREATE: 'User Create',
+      USER_UPDATE: 'User Update',
+      USER_DELETE: 'User Delete',
+      REPORT_VIEW: 'Report View',
+      REPORT_EXPORT: 'Report Export',
+    };
+    return actionTexts[action] || action.replace('_', ' ');
+  };
+
+  const formatDateTime = (timestamp) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  const handleFilterChange = (key, value) => {
+    setFilter(prev => ({
+      ...prev,
+      [key]: value,
+      page: 1 // Reset to first page when filtering
+    }));
+  };
+
+  const handlePageChange = (newPage) => {
+    setFilter(prev => ({
+      ...prev,
+      page: newPage
+    }));
   };
 
   if (status === 'loading' || isLoading) {
@@ -158,13 +123,13 @@ export default function CoordinatorLogs() {
   return (
     <Layout>
       <Head>
-        <title>System Logs - Ward Management System</title>
+        <title>Activity Logs - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">System Logs</h1>
-          <p className="mt-1 text-sm text-gray-600">Monitor activities in your district</p>
+          <h1 className="text-2xl font-bold text-gray-900">Activity Logs</h1>
+          <p className="mt-1 text-sm text-gray-600">View district activity logs</p>
         </div>
 
         {error && (
@@ -184,133 +149,143 @@ export default function CoordinatorLogs() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <SearchInput
-                onSearch={setSearchTerm}
-                placeholder="Search logs..."
-                className="md:col-span-2"
-              />
-              
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Filter Logs</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
                 <select
-                  name="action"
                   value={filter.action}
-                  onChange={handleFilterChange}
+                  onChange={(e) => handleFilterChange('action', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Actions</option>
-                  <option value="USER_LOGIN">User Login</option>
-                  <option value="USER_CREATED">User Created</option>
-                  <option value="USER_UPDATED">User Updated</option>
-                  <option value="WARD_CREATED">Ward Created</option>
-                  <option value="WARD_UPDATED">Ward Updated</option>
-                  <option value="WARD_ADMIN_ASSIGNED">Ward Admin Assigned</option>
-                  <option value="REPORT_SUBMITTED">Report Submitted</option>
-                  <option value="REPORT_REVIEWED">Report Reviewed</option>
+                  <option value="LOGIN">Login</option>
+                  <option value="LOGOUT">Logout</option>
+                  <option value="FORM_SUBMIT">Form Submit</option>
+                  <option value="REPORT_VIEW">Report View</option>
+                  <option value="REPORT_EXPORT">Report Export</option>
                 </select>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <label className="text-sm font-medium text-gray-700">Time Range:</label>
-              <div className="flex space-x-2">
-                {[
-                  { value: '7', label: 'Last 7 days' },
-                  { value: '30', label: 'Last 30 days' },
-                  { value: '90', label: 'Last 90 days' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => setFilter({ ...filter, dateRange: option.value })}
-                    className={`px-3 py-1 text-sm rounded-md ${
-                      filter.dateRange === option.value
-                        ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                        : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                <input
+                  type="date"
+                  value={filter.dateFrom}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                <input
+                  type="date"
+                  value={filter.dateTo}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  onClick={() => setFilter({
+                    action: '',
+                    dateFrom: '',
+                    dateTo: '',
+                    page: 1,
+                    limit: 50
+                  })}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Clear Filters
+                </Button>
               </div>
             </div>
           </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Timestamp
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    IP Address
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredLogs.map((log) => (
-                  <tr key={log._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatTimestamp(log.timestamp)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeColor(log.action)}`}>
-                        {log.action.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-600">
-                              {log.user?.name?.charAt(0) || 'U'}
-                            </span>
-                          </div>
+
+          <div className="divide-y divide-gray-200">
+            {logs.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="text-gray-500">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm">No activity logs found</p>
+                </div>
+              </div>
+            ) : (
+              logs.map((log) => (
+                <div key={log._id} className="px-6 py-4 hover:bg-gray-50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-gray-600">
+                            {log.user?.name?.charAt(0) || 'U'}
+                          </span>
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-3 mb-1">
+                          <p className="text-sm font-medium text-gray-900">
                             {log.user?.name || 'Unknown User'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {log.user?.role || 'Unknown Role'}
-                          </div>
+                          </p>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getActionBadgeColor(log.action)}`}>
+                            {formatActionText(log.action)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {log.description || 'No description available'}
+                        </p>
+                        <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500">
+                          {log.district && (
+                            <span>District: {log.district}</span>
+                          )}
+                          {log.ward?.name && (
+                            <span>Ward: {log.ward.name}</span>
+                          )}
+                          {log.ipAddress && (
+                            <span>IP: {log.ipAddress}</span>
+                          )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {log.details}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.ipAddress || 'N/A'}
-                    </td>
-                  </tr>
-                ))}
-                {filteredLogs.length === 0 && (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="mt-2 text-sm">
-                          {searchTerm || filter.action ? 'No logs found matching your criteria' : 'No logs available'}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                    </div>
+                    <div className="flex-shrink-0 text-sm text-gray-500">
+                      {formatDateTime(log.timestamp)}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Page {filter.page} of {totalPages}
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    onClick={() => handlePageChange(filter.page - 1)}
+                    disabled={filter.page <= 1}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={() => handlePageChange(filter.page + 1)}
+                    disabled={filter.page >= totalPages}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
