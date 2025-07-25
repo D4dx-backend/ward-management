@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '../auth/[...nextauth]';
+import { getSession } from 'next-auth/react';
 import * as XLSX from 'xlsx';
 import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
@@ -7,7 +6,7 @@ import FormTemplate from '../../../models/FormTemplate';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
+  const session = await getSession({ req });
   
   // Only state admin and coordinators can export reports
   if (!session || (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator')) {
