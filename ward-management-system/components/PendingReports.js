@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-const PendingReports = ({ pendingReports = [], title = "Pending Reports", userRole = 'coordinator', showCount = false }) => {
+const PendingReports = ({ pendingReports = [], title = "Pending Reports", userRole = 'coordinator' }) => {
   const getViewAllLink = () => {
     switch (userRole) {
       case 'stateAdmin':
@@ -20,7 +20,7 @@ const PendingReports = ({ pendingReports = [], title = "Pending Reports", userRo
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-            {showCount && (
+            { (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                 {pendingReports.length}
               </span>

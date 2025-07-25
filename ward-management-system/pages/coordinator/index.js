@@ -152,7 +152,7 @@ export default function CoordinatorDashboard() {
             <CoordinatorWardsList 
               wards={coordinatorWards} 
               title="My Wards"
-              showCount={true}
+              
             />
           </div>
 
@@ -162,7 +162,7 @@ export default function CoordinatorDashboard() {
               reports={recentReports} 
               title="Reports Submitted"
               userRole="coordinator"
-              showCount={true}
+              
             />
           </div>
 
@@ -172,7 +172,7 @@ export default function CoordinatorDashboard() {
               pendingReports={pendingReportsList} 
               title="Pending Reports"
               userRole="coordinator"
-              showCount={true}
+              
             />
           </div>
         </div>
