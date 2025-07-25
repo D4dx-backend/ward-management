@@ -32,7 +32,7 @@ export default function ManageWards() {
     area: '',
     description: '',
   });
-  const [selectedDistrict, setSelectedDistrict] = useState(session?.user?.district || '');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
 
   useEffect(() => {
@@ -42,9 +42,30 @@ export default function ManageWards() {
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
     } else if (status === 'authenticated') {
+      // Set district and panchayaths first
+      const userDistrict = session.user.district;
+      console.log('User district:', userDistrict);
+      setSelectedDistrict(userDistrict);
+      
+      // Get panchayaths from local data first
+      const localPanchayaths = getPanchayathsByDistrict(userDistrict);
+      console.log('Local panchayaths:', localPanchayaths);
+      
+      // If no local panchayaths, set test panchayath
+      if (localPanchayaths.length === 0) {
+        setAvailablePanchayaths(['test panchayath']);
+      } else {
+        setAvailablePanchayaths(localPanchayaths);
+      }
+      
+      // Set form data with district
+      setFormData(prev => ({
+        ...prev,
+        district: userDistrict
+      }));
+      
+      // Then fetch data
       fetchData();
-      setSelectedDistrict(session.user.district);
-      setAvailablePanchayaths(getPanchayathsByDistrict(session.user.district));
     }
   }, [status, session, router]);
 
@@ -63,24 +84,80 @@ export default function ManageWards() {
     }
   }, [wards, searchTerm]);
 
+  // Load panchayaths from API when modal opens (only if not already loaded)
+  useEffect(() => {
+    if (showCreateModal && session?.user?.district && availablePanchayaths.length === 0) {
+      fetchPanchayaths(session.user.district);
+    }
+  }, [showCreateModal, session?.user?.district]);
+
+  const fetchPanchayaths = async (district) => {
+    try {
+      console.log('Fetching panchayaths for district:', district);
+      const response = await axios.get(`/api/panchayaths?district=${district}`);
+      console.log('Panchayaths response:', response.data);
+      setAvailablePanchayaths(response.data);
+      setSelectedDistrict(district);
+      setFormData(prev => ({ ...prev, district }));
+    } catch (error) {
+      console.error('Error fetching panchayaths:', error);
+      // If API fails, set test panchayath as fallback
+      setAvailablePanchayaths(['test panchayath']);
+    }
+  };
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      
-      // Get coordinator's wards
-      const wardsResponse = await axios.get('/api/wards');
-      
-      // Get available ward admins
-      const usersResponse = await axios.get('/api/users');
-      const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin' && user.district === session.user.district);
-      
-      setWards(wardsResponse.data);
-      setFilteredWards(wardsResponse.data);
-      setWardAdmins(wardAdmins);
       setError('');
+      
+      console.log('Fetching data for coordinator:', session?.user?.name, 'District:', session?.user?.district);
+      
+      // Try to get coordinator's wards from API first
+      const wardsResponse = await axios.get('/api/wards');
+      console.log('Wards response:', wardsResponse.data);
+      
+      // Try to get available ward admins from API
+      const usersResponse = await axios.get('/api/users');
+      console.log('Users response:', usersResponse.data);
+      
+      const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
+      console.log('Filtered ward admins:', wardAdmins);
+      
+      setWards(wardsResponse.data || []);
+      setFilteredWards(wardsResponse.data || []);
+      setWardAdmins(wardAdmins || []);
+      
+      // Show success message if data loaded
+      if (wardsResponse.data && wardsResponse.data.length === 0) {
+        setError('No wards found. You can create new wards using the Create Ward button.');
+      }
+      
     } catch (error) {
-      setError('Failed to fetch data');
-      console.error(error);
+      console.error('API Error Details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+      
+      // If API fails, show empty state with proper message
+      setWards([]);
+      setFilteredWards([]);
+      setWardAdmins([]);
+      
+      // Set a more user-friendly error message
+      if (error.response?.status === 401) {
+        setError('Session expired. Please refresh the page and login again.');
+      } else if (error.response?.status === 403) {
+        setError('Access denied. Please contact your administrator.');
+      } else if (error.response?.status === 404) {
+        setError('No data found. You can create new wards using the Create Ward button.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. Please try again later or contact support.');
+      } else {
+        setError(`Unable to load data: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -91,17 +168,32 @@ export default function ManageWards() {
     setFormData({ ...formData, [name]: value });
   };
 
+  // District is fixed for coordinators - no need for district change handler
+
   const resetForm = () => {
+    const userDistrict = session?.user?.district || 'Thiruvananthapuram';
     setFormData({
       name: '',
       wardNumber: '',
       panchayath: '',
-      district: session?.user?.district || '',
+      district: userDistrict, // Always set to coordinator's district
       wardAdminId: '',
       population: '',
       area: '',
       description: '',
     });
+    
+    // Ensure panchayaths are loaded for the district
+    if (userDistrict) {
+      setSelectedDistrict(userDistrict);
+      const localPanchayaths = getPanchayathsByDistrict(userDistrict);
+      // If no local panchayaths, set test panchayath
+      if (localPanchayaths.length === 0) {
+        setAvailablePanchayaths(['test panchayath']);
+      } else {
+        setAvailablePanchayaths(localPanchayaths);
+      }
+    }
   };
 
   const handleCreateSubmit = async (e) => {
@@ -110,14 +202,30 @@ export default function ManageWards() {
 
     try {
       // Validate form
-      if (!formData.name || !formData.wardNumber || !formData.panchayath) {
-        throw new Error('Ward name, number, and panchayath are required');
+      if (!formData.name || !formData.wardNumber || !formData.panchayath || !formData.district) {
+        throw new Error('Ward name, number, panchayath, and district are required');
       }
+      
+      // Prepare ward data for API
+      const wardData = {
+        name: formData.name,
+        wardNumber: formData.wardNumber,
+        panchayath: formData.panchayath,
+        district: formData.district, // Use the selected district from form
+        coordinatorId: session.user.id,
+        wardAdminId: formData.wardAdminId || null,
+        population: formData.population ? parseInt(formData.population) : null,
+        area: formData.area,
+        description: formData.description
+      };
 
-      // Create ward
-      const response = await axios.post('/api/wards', formData);
-
-      // Update wards list
+      // Try to create ward via API
+      console.log('Sending ward data to API:', wardData);
+      
+      const response = await axios.post('/api/wards', wardData);
+      console.log('API response:', response.data);
+      
+      // Update wards list with API response
       const newWards = [...wards, response.data];
       setWards(newWards);
       setFilteredWards(newWards);
@@ -125,8 +233,22 @@ export default function ManageWards() {
       // Reset form and close modal
       resetForm();
       setShowCreateModal(false);
+      
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      console.error('Ward creation error:', error);
+      
+      // Handle different types of errors
+      if (error.response) {
+        // API responded with an error status
+        const apiError = error.response.data?.message || error.response.data?.error || 'API error occurred';
+        setError(`Failed to create ward: ${apiError}`);
+      } else if (error.request) {
+        // Request was made but no response received
+        setError('Failed to create ward: No response from server. Please check your connection.');
+      } else {
+        // Something else happened
+        setError(`Failed to create ward: ${error.message}`);
+      }
     }
   };
 
@@ -248,19 +370,16 @@ export default function ManageWards() {
           <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-1">
             District *
           </label>
-          <select
+          <input
+            type="text"
             id="district"
             name="district"
-            value={formData.district}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-            disabled={!isEdit} // Only allow editing for state admin
-          >
-            {KERALA_DISTRICTS.map((district) => (
-              <option key={district} value={district}>{district}</option>
-            ))}
-          </select>
+            value={session?.user?.district || 'Thiruvananthapuram'}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-100 text-gray-600 cursor-not-allowed"
+            disabled
+            readOnly
+          />
+          <p className="mt-1 text-xs text-gray-500">You can only manage wards in your assigned district</p>
         </div>
 
         <div>

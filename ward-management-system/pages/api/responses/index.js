@@ -1,13 +1,13 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
 import Ward from '../../../models/Ward';
-import User from '../../../models/User';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
   
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -52,11 +52,39 @@ export default async function handler(req, res) {
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 });
       
+      // Create user-friendly description for report viewing
+      let description = 'Viewed reports';
+      const filterParts = [];
+      
+      if (formType) {
+        const formTypeText = formType === 'coordinatorReport' ? 'coordinator reports' : 
+                           formType === 'wardReport' ? 'ward reports' : 'reports';
+        filterParts.push(formTypeText);
+      }
+      
+      if (weekNumber && year) {
+        filterParts.push(`for week ${weekNumber}, ${year}`);
+      } else if (year) {
+        filterParts.push(`for year ${year}`);
+      }
+      
+      if (wardId) {
+        filterParts.push('for specific ward');
+      }
+      
+      if (coordinatorId) {
+        filterParts.push('for specific coordinator');
+      }
+      
+      if (filterParts.length > 0) {
+        description = `Viewed ${filterParts.join(' ')}`;
+      }
+
       // Log the report view activity
       await logActivity({
         userId: session.user.id,
         action: ACTIONS.REPORT_VIEW,
-        description: `Viewed reports with filters: ${JSON.stringify({ formType, weekNumber, year, wardId, coordinatorId })}`,
+        description: description,
         metadata: { filters: { formType, weekNumber, year, wardId, coordinatorId } },
         district: session.user.district,
         ward: session.user.ward,
@@ -72,19 +100,28 @@ export default async function handler(req, res) {
   
   if (req.method === 'POST') {
     try {
+      console.log('Response API - Request body:', req.body);
+      console.log('Response API - Session user:', session.user);
+      
       const { formTemplateId, responses, wardId } = req.body;
       
       // Validate required fields
       if (!formTemplateId || !responses) {
-        return res.status(400).json({ message: 'Missing required fields' });
+        console.log('Response API - Missing required fields:', { formTemplateId: !!formTemplateId, responses: !!responses });
+        return res.status(400).json({ message: 'Missing required fields: formTemplateId and responses are required' });
       }
+      
+      console.log('Response API - Looking for form template:', formTemplateId);
       
       // Get form template
       const formTemplate = await FormTemplate.findById(formTemplateId);
       
       if (!formTemplate) {
+        console.log('Response API - Form template not found:', formTemplateId);
         return res.status(404).json({ message: 'Form template not found' });
       }
+      
+      console.log('Response API - Found form template:', formTemplate.title);
       
       // Check if form is active
       if (!formTemplate.isActive) {
@@ -121,46 +158,90 @@ export default async function handler(req, res) {
       }
       
       // Validate responses against form fields
+      console.log('Response API - Form fields:', formTemplate.fields);
+      console.log('Response API - Received responses:', responses);
+      
       const requiredFields = formTemplate.fields.filter(field => field.required).map(field => field.label);
+      console.log('Response API - Required fields:', requiredFields);
       
       for (const field of requiredFields) {
         if (!responses[field] && responses[field] !== 0) {
+          console.log('Response API - Missing required field:', field);
           return res.status(400).json({ message: `Missing required field: ${field}` });
         }
       }
       
-      // Create new response
-      const newResponse = new Response({
+      // Check if district is available
+      console.log('Response API - Session user district:', session.user.district);
+      console.log('Response API - Session user full object:', session.user);
+      
+      // Get district from session, ward, or use a default
+      let userDistrict = session.user.district;
+      
+      if (!userDistrict && formTemplate.formType === 'wardReport' && wardId) {
+        // For ward reports, get district from the ward
+        const ward = await Ward.findById(wardId);
+        if (ward && ward.district) {
+          userDistrict = ward.district;
+          console.log('Response API - Got district from ward:', userDistrict);
+        }
+      }
+      
+      if (!userDistrict) {
+        console.log('Response API - No district found, using default');
+        userDistrict = 'Default'; // Use a valid default district
+      }
+      
+      console.log('Response API - Final district value:', userDistrict);
+      
+      // Create new response - keep as object
+      const responseData = {
         formTemplate: formTemplateId,
         respondent: session.user.id,
-        ward: formTemplate.formType === 'wardReport' ? wardId : undefined,
         formType: formTemplate.formType,
-        responses,
+        responses: responses,
         weekNumber: formTemplate.weekNumber,
         year: formTemplate.year,
-        district: session.user.district,
-      });
+        district: userDistrict,
+      };
       
+      // Only add ward if it's a ward report and wardId is provided
+      if (formTemplate.formType === 'wardReport' && wardId) {
+        responseData.ward = wardId;
+      }
+      
+      console.log('Response API - Creating response with data:', responseData);
+      console.log('Response API - District value:', responseData.district, typeof responseData.district);
+      
+      // Create and save response directly without pre-validation
+      const newResponse = new Response(responseData);
+      
+      console.log('Response API - Saving response...');
       await newResponse.save();
+      console.log('Response API - Response saved successfully:', newResponse._id);
       
-      // Log the form submission activity
-      await logActivity({
-        userId: session.user.id,
-        action: ACTIONS.FORM_SUBMIT,
-        description: `Submitted ${formTemplate.formType} for week ${formTemplate.weekNumber}, ${formTemplate.year}`,
-        entityType: 'Response',
-        entityId: newResponse._id,
-        metadata: { 
-          formType: formTemplate.formType, 
-          weekNumber: formTemplate.weekNumber, 
-          year: formTemplate.year,
-          wardId: wardId || null
-        },
-        district: session.user.district,
-        ward: wardId || session.user.ward,
-        ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-        userAgent: req.headers['user-agent']
-      });
+      // Log the form submission activity (wrapped in try-catch to prevent failure)
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.FORM_SUBMIT,
+          description: `Submitted ${formTemplate.formType} for week ${formTemplate.weekNumber}, ${formTemplate.year}`,
+          entityType: 'Response',
+          entityId: newResponse._id,
+          metadata: { 
+            formType: formTemplate.formType, 
+            weekNumber: formTemplate.weekNumber, 
+            year: formTemplate.year,
+            wardId: wardId || null
+          },
+          district: userDistrict, // Use the same district we used for the response
+          ward: wardId || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logError) {
+        console.error('Failed to log activity, but continuing:', logError);
+      }
       
       // Populate response details
       const savedResponse = await Response.findById(newResponse._id)
@@ -170,7 +251,35 @@ export default async function handler(req, res) {
       
       return res.status(201).json(savedResponse);
     } catch (error) {
-      return res.status(500).json({ message: 'Error creating response', error: error.message });
+      console.error('Response API - Full error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        code: error.code
+      });
+      
+      // Handle specific MongoDB errors
+      if (error.name === 'ValidationError') {
+        const validationErrors = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({ 
+          message: 'Validation failed', 
+          error: validationErrors.join(', '),
+          details: validationErrors
+        });
+      }
+      
+      if (error.code === 11000) {
+        return res.status(400).json({ 
+          message: 'Duplicate entry', 
+          error: 'A response for this form may already exist'
+        });
+      }
+      
+      return res.status(500).json({ 
+        message: 'Error creating response', 
+        error: error.message,
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
   }
   

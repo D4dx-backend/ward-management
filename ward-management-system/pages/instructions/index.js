@@ -64,6 +64,36 @@ export default function Instructions() {
     });
   };
 
+  const truncateTitle = (title, wordLimit = 5) => {
+    if (!title) return '';
+    const words = title.split(' ');
+    if (words.length <= wordLimit) {
+      return title;
+    }
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
+
+  const truncateText = (text, wordLimit = 8) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= wordLimit) {
+      return text;
+    }
+    return words.slice(0, wordLimit).join(' ') + '...';
+  };
+
+  const formatTextWithLineBreaks = (text, wordsPerLine = 8) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    const lines = [];
+    
+    for (let i = 0; i < words.length; i += wordsPerLine) {
+      lines.push(words.slice(i, i + wordsPerLine).join(' '));
+    }
+    
+    return lines;
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -125,40 +155,59 @@ export default function Instructions() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredInstructions.map((instruction) => (
-                  <tr key={instruction._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{instruction.title}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs">
-                        {instruction.description}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {instruction.fileUrl ? (
-                        <a 
-                          href={instruction.fileUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          {instruction.fileName || 'Download File'}
-                        </a>
-                      ) : (
-                        'No file'
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                        {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(instruction.createdAt)}
-                    </td>
-                  </tr>
-                ))}
+                {filteredInstructions.map((instruction) => {
+                  const titleLines = formatTextWithLineBreaks(instruction.title, 8);
+                  const descriptionLines = formatTextWithLineBreaks(instruction.description, 8);
+                  
+                  return (
+                    <tr key={instruction._id} className="align-top">
+                      <td className="px-6 py-4 align-top">
+                        <div className="text-sm font-medium text-gray-900" title={instruction.title}>
+                          {titleLines.map((line, index) => (
+                            <div key={index} className="leading-relaxed">
+                              {line}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 align-top">
+                        <div className="text-sm text-gray-900 max-w-xs" title={instruction.description}>
+                          {descriptionLines.slice(0, 3).map((line, index) => (
+                            <div key={index} className="leading-relaxed">
+                              {line}
+                            </div>
+                          ))}
+                          {descriptionLines.length > 3 && (
+                            <div className="text-gray-500">...</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 align-top">
+                        {instruction.fileUrl ? (
+                          <a 
+                            href={instruction.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800"
+                            title={instruction.fileName || 'Download File'}
+                          >
+                            {truncateText(instruction.fileName || 'Download File', 3)}
+                          </a>
+                        ) : (
+                          'No file'
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-top">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
+                          {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 align-top">
+                        {formatDate(instruction.createdAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

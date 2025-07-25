@@ -21,7 +21,7 @@ const DashboardLoginHistory = ({ logins = [], userRole = 'stateAdmin' }) => {
       case 'stateAdmin':
         return '/admin/logs';
       case 'coordinator':
-        return '/coordinator/logs';
+        return '/coordinator/login-history';
       default:
         return '/admin/logs';
     }

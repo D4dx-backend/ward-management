@@ -1,19 +1,27 @@
 import Link from 'next/link';
 
-const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
+const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = 'stateAdmin' }) => {
   const getActionBadgeColor = (action) => {
     const colors = {
-      LOGIN: 'bg-green-100 text-green-800',
-      LOGOUT: 'bg-gray-100 text-gray-800',
+      USER_LOGIN: 'bg-green-100 text-green-800',
+      USER_LOGOUT: 'bg-gray-100 text-gray-800',
+      REPORT_SUBMITTED: 'bg-blue-100 text-blue-800',
       FORM_SUBMIT: 'bg-blue-100 text-blue-800',
       FORM_CREATE: 'bg-purple-100 text-purple-800',
       FORM_UPDATE: 'bg-yellow-100 text-yellow-800',
       FORM_DELETE: 'bg-red-100 text-red-800',
+      USER_CREATED: 'bg-indigo-100 text-indigo-800',
       USER_CREATE: 'bg-indigo-100 text-indigo-800',
       USER_UPDATE: 'bg-orange-100 text-orange-800',
       USER_DELETE: 'bg-red-100 text-red-800',
+      WARD_CREATED: 'bg-blue-100 text-blue-800',
+      WARD_UPDATED: 'bg-yellow-100 text-yellow-800',
+      WARD_ADMIN_ASSIGNED: 'bg-purple-100 text-purple-800',
+      REPORT_REVIEWED: 'bg-cyan-100 text-cyan-800',
       REPORT_VIEW: 'bg-cyan-100 text-cyan-800',
       REPORT_EXPORT: 'bg-teal-100 text-teal-800',
+      LOGIN: 'bg-green-100 text-green-800',
+      LOGOUT: 'bg-gray-100 text-gray-800',
     };
     return colors[action] || 'bg-gray-100 text-gray-800';
   };
@@ -40,7 +48,7 @@ const RecentActivity = ({ logs = [], title = "Recent Activity" }) => {
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-          <Link href="/admin/logs" className="text-sm text-blue-600 hover:text-blue-800">
+          <Link href={userRole === 'coordinator' ? '/coordinator/activity' : '/admin/logs'} className="text-sm text-blue-600 hover:text-blue-800">
             View all
           </Link>
         </div>

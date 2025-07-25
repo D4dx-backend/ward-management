@@ -14,6 +14,7 @@ export default function SubmitReport() {
   const [activeForms, setActiveForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [formData, setFormData] = useState({});
+  const [submittedResponse, setSubmittedResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +36,7 @@ export default function SubmitReport() {
       setIsLoading(true);
       
       // Get active coordinator report forms that are currently available
-      const response = await axios.get('/api/forms', {
+      const formsResponse = await axios.get('/api/forms', {
         params: {
           formType: 'coordinatorReport',
           isActive: true,
@@ -43,7 +44,23 @@ export default function SubmitReport() {
         }
       });
       
-      setActiveForms(response.data);
+      // Get existing responses to check submission status
+      const responsesResponse = await axios.get('/api/responses', {
+        params: {
+          formType: 'coordinatorReport'
+        }
+      });
+      
+      // Mark forms as submitted if user has already submitted them
+      const formsWithStatus = formsResponse.data.map(form => {
+        const hasSubmitted = responsesResponse.data.some(response => 
+          response.formTemplate === form._id && 
+          response.respondent === session.user.id
+        );
+        return { ...form, isSubmitted: hasSubmitted };
+      });
+      
+      setActiveForms(formsWithStatus);
       setError('');
     } catch (error) {
       setError('Failed to fetch active forms');
@@ -53,10 +70,57 @@ export default function SubmitReport() {
     }
   };
 
-  const handleFormSelect = (formId) => {
+  const handleFormSelect = async (formId) => {
     const form = activeForms.find(f => f._id === formId);
     setSelectedForm(form);
     setFormData({});
+    setSubmittedResponse(null);
+    
+    // Check if user has already submitted this form
+    try {
+      const response = await axios.get('/api/responses', {
+        params: {
+          formType: 'coordinatorReport',
+          weekNumber: form.weekNumber,
+          year: form.year
+        }
+      });
+      
+      // Check if current user has already submitted this specific form
+      const existingSubmission = response.data.find(r => 
+        r.formTemplate === formId && 
+        r.respondent === session.user.id
+      );
+      
+      if (existingSubmission) {
+        setSubmittedResponse(existingSubmission);
+        // Pre-populate form with submitted data
+        const submittedData = {};
+        if (existingSubmission.responses) {
+          // Convert submitted responses back to form field format
+          form.fields.forEach((field, fieldIndex) => {
+            const fieldKey = `field_${fieldIndex}`;
+            if (existingSubmission.responses[field.label]) {
+              submittedData[fieldKey] = existingSubmission.responses[field.label];
+            }
+            
+            // Handle sub-questions
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+                const submittedKey = `${field.label} - ${subQuestion.label}`;
+                if (existingSubmission.responses[submittedKey]) {
+                  submittedData[subKey] = existingSubmission.responses[submittedKey];
+                }
+              });
+            }
+          });
+        }
+        setFormData(submittedData);
+      }
+    } catch (error) {
+      console.error('Error checking existing submissions:', error);
+    }
   };
 
 
@@ -69,13 +133,17 @@ export default function SubmitReport() {
 
     try {
       // Validate required fields including sub-questions
-      const validateField = (field, fieldIndex) => {
+      const missingFields = [];
+      
+      selectedForm.fields.forEach((field, fieldIndex) => {
         const fieldKey = `field_${fieldIndex}`;
-        if (field.required && (!formData[fieldKey] && formData[fieldKey] !== 0)) {
-          throw new Error(`Field "${field.label}" is required`);
+        
+        // Check main field
+        if (field.required && (!formData[fieldKey] && formData[fieldKey] !== 0 && formData[fieldKey] !== '0')) {
+          missingFields.push(field.label);
         }
 
-        // Validate sub-questions if they should be visible
+        // Check sub-questions if they should be visible
         if (field.subQuestions && field.subQuestions.length > 0) {
           const shouldShowSubQuestions = !field.showSubQuestionsWhen || 
             (field.type === 'yesno' && formData[fieldKey] === field.showSubQuestionsWhen) ||
@@ -84,26 +152,63 @@ export default function SubmitReport() {
           if (shouldShowSubQuestions) {
             field.subQuestions.forEach((subQuestion, subIndex) => {
               const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-              if (subQuestion.required && (!formData[subKey] && formData[subKey] !== 0)) {
-                throw new Error(`Sub-question "${subQuestion.label}" is required`);
+              if (subQuestion.required && (!formData[subKey] && formData[subKey] !== 0 && formData[subKey] !== '0')) {
+                missingFields.push(`${field.label} - ${subQuestion.label}`);
               }
             });
           }
         }
-      };
+      });
 
-      selectedForm.fields.forEach(validateField);
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Convert form data from field indexes to field labels for API
+      const responseData = {};
+      selectedForm.fields.forEach((field, fieldIndex) => {
+        const fieldKey = `field_${fieldIndex}`;
+        if (formData[fieldKey] !== undefined && formData[fieldKey] !== '') {
+          responseData[field.label] = formData[fieldKey];
+        }
+
+        // Handle sub-questions
+        if (field.subQuestions && field.subQuestions.length > 0) {
+          field.subQuestions.forEach((subQuestion, subIndex) => {
+            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+            if (formData[subKey] !== undefined && formData[subKey] !== '') {
+              responseData[`${field.label} - ${subQuestion.label}`] = formData[subKey];
+            }
+          });
+        }
+      });
+
+      console.log('Submitting response data:', responseData);
 
       // Submit response
       await axios.post('/api/responses', {
         formTemplateId: selectedForm._id,
-        responses: formData,
+        responses: responseData,
       });
 
       setSuccess('Report submitted successfully');
+      
+      // Update the current form's submission status immediately
+      setActiveForms(prevForms => 
+        prevForms.map(form => 
+          form._id === selectedForm._id 
+            ? { ...form, isSubmitted: true }
+            : form
+        )
+      );
+      
       setFormData({});
       setSelectedForm(null);
+      
+      // Refresh the forms list to update submission status
+      await fetchActiveForms();
     } catch (error) {
+      console.error('Submit error:', error);
       setError(error.response?.data?.message || error.message);
     } finally {
       setIsSubmitting(false);
@@ -177,18 +282,45 @@ export default function SubmitReport() {
               {activeForms.map((form) => (
                 <div
                   key={form._id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:border-blue-300 cursor-pointer transition-colors"
-                  onClick={() => handleFormSelect(form._id)}
+                  className={`border rounded-lg p-4 transition-colors ${
+                    form.isSubmitted 
+                      ? 'border-green-200 bg-green-50 cursor-default' 
+                      : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300 cursor-pointer'
+                  }`}
+                  onClick={() => !form.isSubmitted && handleFormSelect(form._id)}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{form.title}</h3>
-                      <p className="text-sm text-gray-500">Week {form.weekNumber}, {form.year}</p>
-                      {form.description && <p className="mt-2 text-gray-700 text-sm">{form.description}</p>}
+                    <div className="flex-1">
+                      <div className="flex items-center">
+                        <h3 className={`font-medium ${form.isSubmitted ? 'text-green-800' : 'text-gray-900'}`}>
+                          {form.title}
+                        </h3>
+                        {form.isSubmitted && (
+                          <div className="ml-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
+                      <p className={`text-sm ${form.isSubmitted ? 'text-green-600' : 'text-gray-500'}`}>
+                        Week {form.weekNumber}, {form.year}
+                        {form.isSubmitted && ' - Submitted'}
+                      </p>
+                      {form.description && (
+                        <p className={`mt-2 text-sm ${form.isSubmitted ? 'text-green-700' : 'text-gray-700'}`}>
+                          {form.description}
+                        </p>
+                      )}
                     </div>
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    {!form.isSubmitted && (
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                    {form.isSubmitted && (
+                      <span className="text-sm text-green-600 font-medium">View Only</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -201,6 +333,16 @@ export default function SubmitReport() {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">{selectedForm.title}</h2>
                   <p className="text-sm text-gray-600">Week {selectedForm.weekNumber}, {selectedForm.year}</p>
+                  {submittedResponse && (
+                    <div className="mt-2 flex items-center">
+                      <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="text-sm text-green-600 font-medium">
+                        Report submitted on {new Date(submittedResponse.submittedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="outline"
@@ -213,13 +355,32 @@ export default function SubmitReport() {
               {selectedForm.description && (
                 <p className="mt-4 text-gray-700">{selectedForm.description}</p>
               )}
+              
+              {submittedResponse && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-green-800">Report Already Submitted</h3>
+                      <p className="text-sm text-green-700 mt-1">
+                        You have already submitted this weekly report. The form below shows your submitted responses and is read-only.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div className="p-6 space-y-6">
               <FormRenderer 
                 form={selectedForm}
                 formData={formData}
-                setFormData={setFormData}
+                setFormData={submittedResponse ? () => {} : setFormData}
+                readOnly={!!submittedResponse}
               />
               
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
@@ -228,26 +389,38 @@ export default function SubmitReport() {
                   variant="outline"
                   onClick={() => router.push('/')}
                 >
-                  Cancel
+                  {submittedResponse ? 'Back to Dashboard' : 'Cancel'}
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Submitting...
-                    </div>
-                  ) : (
-                    'Submit Report'
-                  )}
-                </Button>
+                {!submittedResponse && (
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    onClick={handleSubmit}
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Submitting...
+                      </div>
+                    ) : (
+                      'Submit Report'
+                    )}
+                  </Button>
+                )}
+                {submittedResponse && (
+                  <Button
+                    variant="outline"
+                    disabled
+                    className="opacity-50 cursor-not-allowed"
+                  >
+                    ✓ Already Submitted
+                  </Button>
+                )}
               </div>
-            </form>
+            </div>
           </Card>
         )}
       </div>
