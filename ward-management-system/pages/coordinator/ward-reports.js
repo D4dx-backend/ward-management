@@ -24,7 +24,6 @@ export default function CoordinatorWardReports() {
   });
 
   useEffect(() => {
-    // Check if user is authenticated and is coordinator
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
@@ -35,7 +34,6 @@ export default function CoordinatorWardReports() {
   }, [status, session, router]);
 
   useEffect(() => {
-    // Filter reports based on search term and filters
     let filtered = wardReports;
 
     if (searchTerm) {
@@ -69,7 +67,6 @@ export default function CoordinatorWardReports() {
     setIsLoading(true);
     
     try {
-      // Fetch actual ward reports for coordinator's wards
       const response = await axios.get('/api/responses', {
         params: {
           formType: 'wardReport',
@@ -83,7 +80,6 @@ export default function CoordinatorWardReports() {
       console.error('Error fetching ward reports:', fetchError);
       setError('Failed to fetch ward reports');
       
-      // Fallback to mock data for development
       const mockWardReports = [
         {
           _id: '1',
@@ -132,42 +128,6 @@ export default function CoordinatorWardReports() {
           ward: { _id: 'ward3', name: 'Panchayath Ward 3', district: session?.user?.district || 'Thiruvananthapuram' },
           submittedAt: null,
           responses: null
-        },
-        {
-          _id: '4',
-          title: 'Weekly Ward Progress Report - Week 28',
-          type: 'wardReport',
-          weekNumber: 28,
-          year: 2024,
-          status: 'submitted',
-          submittedBy: { name: 'Ward Admin 1', role: 'wardAdmin' },
-          ward: { _id: 'ward1', name: 'Panchayath Ward 1', district: session?.user?.district || 'Thiruvananthapuram' },
-          submittedAt: new Date(Date.now() - 604800000).toISOString(),
-          responses: { 
-            infrastructure: 'Good', 
-            healthServices: 'Good', 
-            education: 'Fair',
-            waterSupply: 'Fair',
-            wasteManagement: 'Good'
-          }
-        },
-        {
-          _id: '5',
-          title: 'Weekly Ward Progress Report - Week 28',
-          type: 'wardReport',
-          weekNumber: 28,
-          year: 2024,
-          status: 'submitted',
-          submittedBy: { name: 'Ward Admin 2', role: 'wardAdmin' },
-          ward: { _id: 'ward2', name: 'Panchayath Ward 2', district: session?.user?.district || 'Thiruvananthapuram' },
-          submittedAt: new Date(Date.now() - 691200000).toISOString(),
-          responses: { 
-            infrastructure: 'Excellent', 
-            healthServices: 'Good', 
-            education: 'Good',
-            waterSupply: 'Good',
-            wasteManagement: 'Fair'
-          }
         }
       ];
       
@@ -202,7 +162,6 @@ export default function CoordinatorWardReports() {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  // Get unique wards for filter dropdown
   const uniqueWards = [...new Map(wardReports.map(report => [report.ward._id, report.ward])).values()];
 
   if (status === 'loading' || isLoading) {
