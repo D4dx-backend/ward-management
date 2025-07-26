@@ -174,9 +174,6 @@ export default function CoordinatorWardReports() {
       
       setWardReports(mockWardReports);
       setError('');
-    } catch (error) {
-      setError('Failed to fetch ward reports');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
