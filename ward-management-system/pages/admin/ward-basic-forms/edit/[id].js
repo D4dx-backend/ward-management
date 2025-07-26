@@ -205,6 +205,7 @@ export default function EditWardBasicForm() {
               <DynamicFormBuilder
                 fields={formData.fields}
                 onChange={handleFieldsChange}
+                formType="wardReport"
               />
             </div>
           </Card>

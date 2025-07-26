@@ -7,6 +7,7 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import DynamicFormRenderer from '../../components/DynamicFormRenderer';
+import ClusterDataCollector from '../../components/ClusterDataCollector';
 
 export default function WardBasicData() {
   const { data: session, status } = useSession();
@@ -29,6 +30,7 @@ export default function WardBasicData() {
     data: '',
     dataType: 'text',
   });
+  const [clusterData, setClusterData] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -45,16 +47,22 @@ export default function WardBasicData() {
       setIsLoading(true);
       
       // Get active form
-      const formsResponse = await axios.get('/api/ward-basic-forms');
-      const activeForms = formsResponse.data.filter(form => form.isActive);
-      
-      if (activeForms.length === 0) {
-        setError('No active ward basic data form available');
+      try {
+        const formsResponse = await axios.get('/api/ward-basic-forms');
+        const activeForms = formsResponse.data.filter(form => form.isActive);
+        
+        if (activeForms.length === 0) {
+          setError('No active ward advance data form available. Please contact your administrator.');
+          return;
+        }
+        
+        const form = activeForms[0]; // Get the first active form
+        setActiveForm(form);
+      } catch (formError) {
+        console.error('Error fetching form:', formError);
+        setError('Unable to load ward advance data form. Please try again later.');
         return;
       }
-      
-      const form = activeForms[0]; // Get the first active form
-      setActiveForm(form);
 
       // Get user's ward
       let userWard = null;
@@ -94,15 +102,17 @@ export default function WardBasicData() {
         const existing = dataResponse.data[0];
         setExistingData(existing);
         setFormData(existing.data || {});
+        setClusterData(existing.clusterData || {});
       } else {
         // Initialize with default values
         const defaultData = {};
         form.fields.forEach(field => {
-          if (field.defaultValue !== undefined && field.defaultValue !== '') {
+          if (field.defaultValue !== undefined && field.defaultValue !== '' && !field.applicableToClusters) {
             defaultData[field.id] = field.defaultValue;
           }
         });
         setFormData(defaultData);
+        setClusterData({});
       }
 
       // Get dynamic data for this ward
@@ -123,6 +133,11 @@ export default function WardBasicData() {
     setErrors({}); // Clear errors when user makes changes
   };
 
+  const handleClusterDataChange = (data) => {
+    setClusterData(data);
+    setErrors({}); // Clear errors when user makes changes
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -139,6 +154,7 @@ export default function WardBasicData() {
         wardId: ward._id,
         formId: activeForm._id,
         data: formData,
+        clusterData: clusterData,
       });
 
       setExistingData(response.data);
@@ -294,13 +310,33 @@ export default function WardBasicData() {
               </div>
 
               <form onSubmit={handleSubmit}>
-                <DynamicFormRenderer
-                  fields={activeForm.fields}
-                  data={formData}
-                  onChange={handleFormDataChange}
-                  errors={errors}
-                  disabled={isSubmitting}
-                />
+                {/* Regular Questions */}
+                {activeForm.fields.filter(field => !field.applicableToClusters).length > 0 && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Ward Information</h3>
+                    <DynamicFormRenderer
+                      fields={activeForm.fields.filter(field => !field.applicableToClusters)}
+                      data={formData}
+                      onChange={handleFormDataChange}
+                      errors={errors}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
+
+                {/* Cluster Questions */}
+                {activeForm.fields.filter(field => field.applicableToClusters).length > 0 && ward && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Cluster-wise Information</h3>
+                    <ClusterDataCollector
+                      wardId={ward._id}
+                      questions={activeForm.fields.filter(field => field.applicableToClusters)}
+                      formType="wardReport"
+                      onDataChange={handleClusterDataChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                )}
 
                 <div className="mt-8 pt-6 border-t border-gray-200">
                   <div className="flex justify-end">

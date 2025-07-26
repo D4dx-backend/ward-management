@@ -27,7 +27,8 @@ export default function EditForm() {
         required: false,
         options: [],
         subQuestions: [],
-        showSubQuestionsWhen: ''
+        showSubQuestionsWhen: '',
+        applicableToClusters: false
       }
     ]
   });

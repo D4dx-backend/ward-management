@@ -9,7 +9,6 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import DynamicFormBuilder from '../../components/DynamicFormBuilder';
 import DynamicFormRenderer from '../../components/DynamicFormRenderer';
-import DeleteModal from '../../components/DeleteModal';
 
 export default function WardBasicForms() {
   const { data: session, status } = useSession();
@@ -19,12 +18,10 @@ export default function WardBasicForms() {
   const [error, setError] = useState('');
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewForm, setPreviewForm] = useState(null);
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    formId: null,
-    formTitle: '',
-    isDeleting: false
-  });
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -50,50 +47,20 @@ export default function WardBasicForms() {
     }
   };
 
-
-
-
-
   const handlePreview = (form) => {
     setPreviewForm(form);
     setShowPreviewModal(true);
   };
 
-  const openDeleteModal = (form) => {
-    setDeleteModal({
-      isOpen: true,
-      formId: form._id,
-      formTitle: form.title,
-      isDeleting: false
-    });
+  // Pagination logic
+  const totalPages = Math.ceil(forms.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedForms = forms.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
   };
-
-  const closeDeleteModal = () => {
-    if (!deleteModal.isDeleting) {
-      setDeleteModal({
-        isOpen: false,
-        formId: null,
-        formTitle: '',
-        isDeleting: false
-      });
-    }
-  };
-
-  const confirmDelete = async () => {
-    setDeleteModal(prev => ({ ...prev, isDeleting: true }));
-
-    try {
-      await axios.delete(`/api/ward-basic-forms/${deleteModal.formId}`);
-      setForms(forms.filter(form => form._id !== deleteModal.formId));
-      closeDeleteModal();
-    } catch (error) {
-      setError('Failed to delete form');
-      console.error(error);
-      setDeleteModal(prev => ({ ...prev, isDeleting: false }));
-    }
-  };
-
-
 
   if (status === 'loading' || isLoading) {
     return (
@@ -116,6 +83,9 @@ export default function WardBasicForms() {
             <p className="mt-1 text-sm text-gray-600">
               Manage the form for collecting ward advance information
             </p>
+            <div className="mt-2 text-sm text-gray-500">
+              Showing {paginatedForms.length} of {forms.length} forms
+            </div>
           </div>
           {forms.length === 0 && (
             <Button onClick={() => router.push('/admin/ward-basic-forms/create')}>
@@ -165,7 +135,7 @@ export default function WardBasicForms() {
         ) : (
           <Card>
             <div className="p-6">
-              {forms.map((form) => (
+              {paginatedForms.map((form) => (
                 <div key={form._id} className="border border-gray-200 rounded-lg p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -219,24 +189,68 @@ export default function WardBasicForms() {
                         </svg>
                         Edit Form
                       </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => openDeleteModal(form)}
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        Delete
-                      </Button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Previous
+                    </button>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-2 text-sm font-medium rounded-md ${
+                            currentPage === pageNum
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
         )}
-
-
 
         {/* Preview Modal */}
         <Modal
@@ -260,18 +274,6 @@ export default function WardBasicForms() {
             </div>
           )}
         </Modal>
-
-        {/* Delete Modal */}
-        <DeleteModal
-          isOpen={deleteModal.isOpen}
-          onClose={closeDeleteModal}
-          onConfirm={confirmDelete}
-          title="Delete Form"
-          message="Are you sure you want to delete this form? This action cannot be undone and will remove all associated data."
-          itemName={deleteModal.formTitle}
-          confirmText="Delete Form"
-          isLoading={deleteModal.isDeleting}
-        />
       </div>
     </Layout>
   );

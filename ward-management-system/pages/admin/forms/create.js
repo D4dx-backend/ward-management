@@ -12,6 +12,9 @@ export default function CreateForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [recurringQuestions, setRecurringQuestions] = useState([]);
+  const [selectedQuestions, setSelectedQuestions] = useState([]);
   
   // Helper function to calculate week number from date
   const getWeekNumber = (date) => {
@@ -40,7 +43,8 @@ export default function CreateForm() {
         required: false, 
         options: [],
         subQuestions: [],
-        showSubQuestionsWhen: '' // For conditional sub-questions
+        showSubQuestionsWhen: '', // For conditional sub-questions
+        applicableToClusters: false // For cluster-based data collection
       }
     ]
   });
@@ -114,9 +118,56 @@ export default function CreateForm() {
         required: false, 
         options: [],
         subQuestions: [],
-        showSubQuestionsWhen: ''
+        showSubQuestionsWhen: '',
+        applicableToClusters: false
       }]
     });
+  };
+
+  const handleImportQuestions = () => {
+    axios.get(`/api/recurring-questions?formType=${formData.formType}&isActive=true`)
+      .then(response => {
+        setRecurringQuestions(response.data);
+        setSelectedQuestions([]);
+        setShowImportModal(true);
+      })
+      .catch(error => {
+        console.error('Error fetching recurring questions:', error);
+        setError('Failed to fetch recurring questions');
+      });
+  };
+
+  const handleQuestionSelection = (questionId) => {
+    setSelectedQuestions(prev => 
+      prev.includes(questionId) 
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    );
+  };
+
+  const handleImportSelectedQuestions = () => {
+    const questionsToImport = recurringQuestions.filter(q => selectedQuestions.includes(q._id));
+    const newFields = questionsToImport.map((question) => ({
+      label: question.question,
+      type: question.fieldType,
+      required: question.validation?.required || false,
+      options: question.options || [],
+      subQuestions: [],
+      showSubQuestionsWhen: '',
+      applicableToClusters: question.applicableToClusters || false,
+      isRecurring: question.isRecurring,
+      recurringCondition: question.recurringCondition,
+      expectedValue: question.expectedValue,
+      maxAttempts: question.maxAttempts,
+      recurringQuestionId: question._id,
+    }));
+
+    setFormData({
+      ...formData,
+      fields: [...formData.fields, ...newFields]
+    });
+    setShowImportModal(false);
+    setSelectedQuestions([]);
   };
 
   const addSubQuestion = (fieldIndex) => {
@@ -402,32 +453,52 @@ export default function CreateForm() {
             <div className="border-t border-gray-200 pt-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-semibold text-gray-900">Form Questions</h2>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={addField}
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Add Question
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleImportQuestions}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                    </svg>
+                    Import Questions
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addField}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Question
+                  </Button>
+                </div>
               </div>
 
               <div className="space-y-6">
                 {formData.fields.map((field, index) => (
-                  <Card key={index} className="border-l-4 border-l-blue-500">
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-md font-medium text-gray-900">Question {index + 1}</h3>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        onClick={() => removeField(index)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
+                  <div key={index}>
+                    <Card className="border-l-4 border-l-blue-500">
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-md font-medium text-gray-900">Question {index + 1}</h3>
+                          {field.applicableToClusters && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              🏘️ Clusters
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() => removeField(index)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
@@ -467,7 +538,7 @@ export default function CreateForm() {
                       </div>
                     </div>
 
-                    <div className="mb-4">
+                    <div className="mb-4 space-y-3">
                       <label className="flex items-center">
                         <input
                           type="checkbox"
@@ -478,6 +549,20 @@ export default function CreateForm() {
                         />
                         <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
                       </label>
+                      
+                      <label className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="applicableToClusters"
+                          checked={field.applicableToClusters}
+                          onChange={(e) => handleFieldChange(index, e)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Applicable to Clusters (show as loop for ward clusters data collection)</span>
+                      </label>
+                      <p className="text-xs text-gray-500 ml-6">
+                        When enabled, this question will be asked for each cluster in the ward
+                      </p>
                     </div>
 
                     {(field.type === 'select' || field.type === 'multiselect') && (
@@ -691,7 +776,24 @@ export default function CreateForm() {
                         </div>
                       </div>
                     )}
-                  </Card>
+                    </Card>
+                    
+                    {/* Add Question button after each field */}
+                    <div className="flex justify-center mt-2 mb-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addField}
+                        className="text-green-600 border-green-300 hover:bg-green-50"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Question
+                      </Button>
+                    </div>
+                  </div>
                 ))}
 
                 {formData.fields.length === 0 && (

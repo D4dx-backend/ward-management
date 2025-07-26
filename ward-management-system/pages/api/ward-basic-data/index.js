@@ -64,7 +64,7 @@ async function handleGet(req, res, session) {
 
 async function handlePost(req, res, session) {
   try {
-    const { wardId, formId, data } = req.body;
+    const { wardId, formId, data, clusterData } = req.body;
 
     if (!wardId || !formId || !data) {
       return res.status(400).json({ message: 'Ward ID, form ID, and data are required' });
@@ -112,6 +112,7 @@ async function handlePost(req, res, session) {
     if (existingData) {
       // Update existing data
       existingData.data = data;
+      existingData.clusterData = clusterData || {};
       existingData.submittedBy = session.user.id;
       existingData.status = 'submitted';
       existingData.reviewedBy = undefined;
@@ -132,6 +133,7 @@ async function handlePost(req, res, session) {
         ward: wardId,
         form: formId,
         data,
+        clusterData: clusterData || {},
         submittedBy: session.user.id,
       });
 
