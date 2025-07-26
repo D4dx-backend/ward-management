@@ -24,6 +24,7 @@ const Layout = ({ children }) => {
       { name: 'Activity Logs', href: '/admin/logs', icon: '📋' },
       { name: 'Instructions', href: '/admin/instructions', icon: '📋' },
       { name: 'Documents', href: '/admin/documents', icon: '📄' },
+      { name: 'Reset Password', href: '/reset-password', icon: '🔐' },
     ],
     coordinator: [
       { name: 'Dashboard', href: '/', icon: '📊' },
@@ -34,6 +35,7 @@ const Layout = ({ children }) => {
       { name: 'Submit Report', href: '/coordinator/reports/submit', icon: '📝' },
       { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📈' },
       { name: 'Activity Logs', href: '/coordinator/logs', icon: '📋' },
+      { name: 'Reset PIN', href: '/reset-password', icon: '🔐' },
     ],
     wardAdmin: [
       { name: 'Dashboard', href: '/', icon: '📊' },
@@ -42,6 +44,7 @@ const Layout = ({ children }) => {
       { name: 'Clusters', href: '/admin/clusters', icon: '🏢' },
       { name: 'Submit Report', href: '/ward/reports/submit', icon: '📝' },
       { name: 'My Reports', href: '/ward/reports', icon: '📈' },
+      { name: 'Reset PIN', href: '/reset-password', icon: '🔐' },
     ],
   };
 

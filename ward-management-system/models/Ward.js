@@ -62,4 +62,10 @@ WardSchema.pre('save', function(next) {
 // Create compound index for unique ward per panchayath
 WardSchema.index({ wardNumber: 1, panchayath: 1, district: 1 }, { unique: true });
 
+// Create unique index for wardAdmin to ensure one ward admin per ward only
+WardSchema.index({ wardAdmin: 1 }, { 
+  unique: true, 
+  sparse: true // Allow multiple null values (wards without ward admin)
+});
+
 export default mongoose.models.Ward || mongoose.model('Ward', WardSchema);

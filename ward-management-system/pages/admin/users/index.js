@@ -307,8 +307,9 @@ export default function Users() {
       setError('');
       
       // Create detailed feedback message
-      let message = 'Password reset successfully!\n\n';
-      message += `New Password: ${response.data.newPassword}\n`;
+      const credentialType = response.data.isPIN ? 'PIN' : 'Password';
+      let message = `${credentialType} reset successfully!\n\n`;
+      message += `New ${credentialType}: ${response.data.newPassword}\n`;
       message += `User Mobile: ${response.data.userMobileNumber}\n\n`;
       
       if (response.data.whatsappSent) {

@@ -87,6 +87,19 @@ export default async function handler(req, res) {
           if (!wardAdminUser || wardAdminUser.role !== 'wardAdmin') {
             return res.status(400).json({ message: 'Invalid ward admin ID' });
           }
+          
+          // Check if this ward admin is already assigned to another ward (excluding current ward)
+          const existingAssignment = await Ward.findOne({ 
+            wardAdmin: wardAdminId,
+            _id: { $ne: id } // Exclude current ward from check
+          });
+          
+          if (existingAssignment) {
+            return res.status(400).json({ 
+              message: `Ward admin ${wardAdminUser.name} is already assigned to ward "${existingAssignment.name}". Each ward admin can only be assigned to one ward.` 
+            });
+          }
+          
           ward.wardAdmin = wardAdminId;
         } else {
           // Remove ward admin if empty string is provided
