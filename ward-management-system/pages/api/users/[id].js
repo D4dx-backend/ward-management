@@ -32,24 +32,28 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'User not found' });
       }
 
-      // Get district information from ward assignments if not in user profile
-      if (!user.district && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
+      const userObj = user.toObject();
+
+      // Get ward information for ward admins and coordinators
+      if (user.role === 'coordinator' || user.role === 'wardAdmin') {
         const Ward = require('../../../models/Ward').default;
         const ward = await Ward.findOne({
           $or: [
             { coordinator: user._id },
             { wardAdmin: user._id }
           ]
-        }).select('district');
+        }).select('name wardNumber panchayath district');
         
         if (ward) {
-          const userObj = user.toObject();
-          userObj.district = ward.district;
-          return res.status(200).json(userObj);
+          userObj.ward = ward;
+          // Also set district if not already set
+          if (!userObj.district) {
+            userObj.district = ward.district;
+          }
         }
       }
 
-      return res.status(200).json(user);
+      return res.status(200).json(userObj);
     } catch (error) {
       return res.status(500).json({ message: 'Error fetching user', error: error.message });
     }

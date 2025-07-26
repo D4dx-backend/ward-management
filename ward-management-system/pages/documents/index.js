@@ -35,7 +35,10 @@ export default function Documents() {
       const response = await fetch('/api/documents');
       if (response.ok) {
         const data = await response.json();
+        console.log('Documents API response:', data);
         setDocuments(data.documents || []);
+      } else {
+        console.error('Documents API error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching documents:', error);

@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
 async function handleGet(req, res, session) {
   try {
-    const { formType, isActive } = req.query;
+    const { formType, isActive, isSittingWard } = req.query;
     
     let query = {};
     
@@ -36,6 +36,21 @@ async function handleGet(req, res, session) {
     }
     
     if (isActive !== undefined) query.isActive = isActive === 'true';
+    
+    // Filter by sitting ward applicability
+    if (isSittingWard !== undefined) {
+      const sittingWardFilter = isSittingWard === 'true';
+      if (sittingWardFilter) {
+        // For sitting wards, include both regular questions AND sitting ward specific questions
+        // No additional filter needed - all questions are applicable
+      } else {
+        // For regular wards, exclude sitting ward specific questions
+        query.$or = [
+          { applicableToSittingWards: { $ne: true } },
+          { applicableToSittingWards: { $exists: false } }
+        ];
+      }
+    }
 
     const questions = await RecurringQuestion.find(query)
       .populate('createdBy', 'name email')
@@ -70,6 +85,7 @@ async function handlePost(req, res, session) {
       recurringMessage,
       applicableToForms,
       applicableToClusters,
+      applicableToSittingWards,
       validation,
       priority
     } = req.body;
@@ -99,6 +115,7 @@ async function handlePost(req, res, session) {
       recurringMessage: recurringMessage || 'Please provide the required answer to continue.',
       applicableToForms: applicableToForms || ['both'],
       applicableToClusters: applicableToClusters || false,
+      applicableToSittingWards: applicableToSittingWards || false,
       validation: validation || {},
       priority: priority || 0,
       createdBy: session.user.id,

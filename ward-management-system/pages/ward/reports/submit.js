@@ -22,6 +22,7 @@ export default function SubmitWardReport() {
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [previewClicked, setPreviewClicked] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated and is ward admin
@@ -57,17 +58,39 @@ export default function SubmitWardReport() {
         }
       });
       
-      // Mark forms as submitted if user has already submitted them
-      const formsWithStatus = formsResponse.data.map(form => {
-        const hasSubmitted = responsesResponse.data.some(response => 
-          response.formTemplate === form._id && 
+      // RESTRICTION: Only allow one form submission per ward admin
+      // Check if ward admin has already submitted any form
+      const hasSubmittedAnyForm = responsesResponse.data.some(response => 
+        response.respondent === session.user.id
+      );
+      
+      // If ward admin has already submitted a form, show only that form for viewing
+      if (hasSubmittedAnyForm) {
+        const submittedForm = responsesResponse.data.find(response => 
           response.respondent === session.user.id
         );
-        return { ...form, isSubmitted: hasSubmitted };
-      });
-      
-      setActiveForms(formsWithStatus);
+        
+        const originalForm = formsResponse.data.find(form => 
+          form._id === submittedForm.formTemplate
+        );
+        
+        if (originalForm) {
+          setActiveForms([{ ...originalForm, isSubmitted: true, submittedResponse: submittedForm }]);
+        } else {
+          setActiveForms([]);
+        }
+      } else {
+        // If no form submitted yet, show only the first available form
+        const availableForms = formsResponse.data.slice(0, 1); // Only first form
+        setActiveForms(availableForms.map(form => ({ ...form, isSubmitted: false })));
+      }
       setUserWards(wardsResponse.data);
+      
+      // Auto-select ward for ward admin
+      if (wardsResponse.data.length > 0) {
+        setSelectedWard(wardsResponse.data[0]._id);
+      }
+      
       setError('');
     } catch (error) {
       setError('Failed to fetch data');
@@ -213,6 +236,7 @@ export default function SubmitWardReport() {
   const handlePreview = () => {
     if (validateForm()) {
       setShowPreview(true);
+      setPreviewClicked(true);
       setError('');
     } else {
       setError('Please fill in all required fields before previewing');
@@ -302,7 +326,19 @@ export default function SubmitWardReport() {
       </Head>
 
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Submit Ward Report</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Submit Ward Report</h1>
+          <div className="flex space-x-3">
+            <Link href="/">
+              <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Home
+              </button>
+            </Link>
+          </div>
+        </div>
 
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -429,28 +465,37 @@ export default function SubmitWardReport() {
             )}
             
             <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Ward <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={selectedWard}
-                  onChange={submittedResponse ? () => {} : (e) => handleWardSelect(e.target.value)}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${submittedResponse ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                  required
-                  disabled={!!submittedResponse}
-                >
-                  <option value="">Select a ward</option>
-                  {userWards.map((ward) => (
-                    <option key={ward._id} value={ward._id}>
-                      {ward.name} ({ward.district})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {userWards.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-medium text-blue-800">Ward Information</h4>
+                      <p className="text-sm text-blue-700">
+                        Submitting report for: <strong>{userWards[0]?.name} ({userWards[0]?.district})</strong>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {!showPreview ? (
                 <>
+                  <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-medium text-gray-900">{selectedForm.title}</h3>
+                    <button
+                      type="button"
+                      onClick={() => router.push('/')}
+                      className="text-gray-400 hover:text-gray-600"
+                      title="Close Form"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                   <FormRenderer
                     form={selectedForm}
                     formData={formData}
@@ -484,13 +529,15 @@ export default function SubmitWardReport() {
                       >
                         Preview Report
                       </button>
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-blue-300"
-                      >
-                        {isSubmitting ? 'Submitting...' : 'Submit Report'}
-                      </button>
+                      {previewClicked && (
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:bg-blue-300"
+                        >
+                          {isSubmitting ? 'Submitting...' : 'Submit Report'}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>

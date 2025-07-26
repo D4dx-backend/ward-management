@@ -49,10 +49,17 @@ export default function WardBasicData() {
       // Get active form
       try {
         const formsResponse = await axios.get('/api/ward-basic-forms');
+        console.log('Forms response:', formsResponse.data);
+        
+        if (!formsResponse.data || formsResponse.data.length === 0) {
+          setError('No ward advance data forms found. Please contact your administrator to create a form.');
+          return;
+        }
+        
         const activeForms = formsResponse.data.filter(form => form.isActive);
         
         if (activeForms.length === 0) {
-          setError('No active ward advance data form available. Please contact your administrator.');
+          setError('No active ward advance data form available. Please contact your administrator to activate a form.');
           return;
         }
         
@@ -60,7 +67,7 @@ export default function WardBasicData() {
         setActiveForm(form);
       } catch (formError) {
         console.error('Error fetching form:', formError);
-        setError('Unable to load ward advance data form. Please try again later.');
+        setError(`Failed to load form data: ${formError.response?.data?.message || formError.message}`);
         return;
       }
 
@@ -97,7 +104,21 @@ export default function WardBasicData() {
       setWard(userWard);
 
       // Get existing data for this ward and form
-      const dataResponse = await axios.get(`/api/ward-basic-data?wardId=${userWard._id}&formId=${form._id}`);
+      try {
+        const dataResponse = await axios.get(`/api/ward-basic-data?wardId=${userWard._id}&formId=${form._id}`);
+        console.log('Ward basic data response:', dataResponse.data);
+        
+        if (dataResponse.data) {
+          setExistingData(dataResponse.data);
+          if (dataResponse.data.data) {
+            setFormData(dataResponse.data.data);
+          }
+        }
+      } catch (dataError) {
+        console.error('Error fetching existing data:', dataError);
+        // This is not a critical error - user can still fill the form
+        console.log('No existing data found, starting with empty form');
+      }
       if (dataResponse.data.length > 0) {
         const existing = dataResponse.data[0];
         setExistingData(existing);

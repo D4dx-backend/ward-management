@@ -35,6 +35,10 @@ const WardSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  isSittingWard: {
+    type: Boolean,
+    default: false,
+  },
   isActive: {
     type: Boolean,
     default: true,

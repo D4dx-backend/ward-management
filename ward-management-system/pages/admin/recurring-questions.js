@@ -18,7 +18,7 @@ const FIELD_TYPES = [
   { value: 'date', label: 'Date Picker' },
   { value: 'yesno', label: 'Yes/No' },
   { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Phone Number' },
+  { value: 'phone', label: 'Phone Number (10 digits)' },
 ];
 
 const RECURRING_CONDITIONS = [
@@ -55,6 +55,7 @@ export default function RecurringQuestions() {
     recurringMessage: 'Please provide the required answer to continue.',
     applicableToForms: ['both'],
     applicableToClusters: false,
+    applicableToSittingWards: false,
     priority: 0,
   });
   const [deleteModal, setDeleteModal] = useState({
@@ -104,6 +105,7 @@ export default function RecurringQuestions() {
       recurringMessage: 'Please provide the required answer to continue.',
       applicableToForms: ['both'],
       applicableToClusters: false,
+      applicableToSittingWards: false,
       priority: 0,
     });
   };
@@ -179,6 +181,7 @@ export default function RecurringQuestions() {
       recurringMessage: question.recurringMessage || 'Please provide the required answer to continue.',
       applicableToForms: question.applicableToForms || ['both'],
       applicableToClusters: question.applicableToClusters || false,
+      applicableToSittingWards: question.applicableToSittingWards || false,
       priority: question.priority || 0,
     });
     setShowEditModal(true);
@@ -315,6 +318,9 @@ export default function RecurringQuestions() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{question.question}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Field ID: <code className="bg-gray-100 px-1 rounded">{question.fieldId}</code>
+                        </div>
                         {question.options && question.options.length > 0 && (
                           <div className="text-xs text-gray-600 mt-1">
                             Options: {question.options.join(', ')}
@@ -329,6 +335,11 @@ export default function RecurringQuestions() {
                           {question.applicableToClusters && (
                             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               🏘️ Clusters
+                            </span>
+                          )}
+                          {question.applicableToSittingWards && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              🪑 Sitting Ward
                             </span>
                           )}
                         </div>
@@ -522,23 +533,44 @@ export default function RecurringQuestions() {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="applicableToClusters"
-                  name="applicableToClusters"
-                  checked={formData.applicableToClusters}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="applicableToClusters" className="ml-2 block text-sm text-gray-900">
-                  Applicable to Clusters (show as loop for ward clusters data collection)
-                </label>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="applicableToClusters"
+                    name="applicableToClusters"
+                    checked={formData.applicableToClusters}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="applicableToClusters" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Clusters (show as loop for ward clusters data collection)
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will be asked for each cluster in the ward
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                When enabled, this question will be asked for each cluster in the ward
-              </p>
+              
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="applicableToSittingWards"
+                    name="applicableToSittingWards"
+                    checked={formData.applicableToSittingWards}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="applicableToSittingWards" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Sitting Wards only
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will only appear in forms for sitting wards
+                </p>
+              </div>
             </div>
 
             {['select', 'multiselect'].includes(formData.fieldType) && (
@@ -753,23 +785,44 @@ export default function RecurringQuestions() {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="edit-applicableToClusters"
-                  name="applicableToClusters"
-                  checked={formData.applicableToClusters}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="edit-applicableToClusters" className="ml-2 block text-sm text-gray-900">
-                  Applicable to Clusters (show as loop for ward clusters data collection)
-                </label>
+            <div className="space-y-3">
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="edit-applicableToClusters"
+                    name="applicableToClusters"
+                    checked={formData.applicableToClusters}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="edit-applicableToClusters" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Clusters (show as loop for ward clusters data collection)
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will be asked for each cluster in the ward
+                </p>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                When enabled, this question will be asked for each cluster in the ward
-              </p>
+              
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="edit-applicableToSittingWards"
+                    name="applicableToSittingWards"
+                    checked={formData.applicableToSittingWards}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="edit-applicableToSittingWards" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Sitting Wards only
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will only appear in forms for sitting wards
+                </p>
+              </div>
             </div>
 
             {['select', 'multiselect'].includes(formData.fieldType) && (

@@ -35,7 +35,10 @@ export default function Instructions() {
       const response = await fetch('/api/instructions');
       if (response.ok) {
         const data = await response.json();
+        console.log('Instructions API response:', data);
         setInstructions(data.instructions || []);
+      } else {
+        console.error('Instructions API error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching instructions:', error);

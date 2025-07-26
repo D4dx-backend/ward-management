@@ -15,7 +15,7 @@ async function debugForms() {
     // Check forms
     const forms = await FormTemplate.find({}).sort({ createdAt: -1 });
     console.log(`\nFound ${forms.length} forms:`);
-    
+
     forms.forEach((form, index) => {
       console.log(`${index + 1}. ${form.title} (ID: ${form._id})`);
       console.log(`   Type: ${form.formType}`);
@@ -30,7 +30,7 @@ async function debugForms() {
     // Check responses
     const responses = await Response.find({}).populate('formTemplate', 'title');
     console.log(`Found ${responses.length} responses:`);
-    
+
     responses.forEach((response, index) => {
       console.log(`${index + 1}. Form: ${response.formTemplate?.title || 'Unknown'} (Form ID: ${response.formTemplate})`);
       console.log(`   Response ID: ${response._id}`);

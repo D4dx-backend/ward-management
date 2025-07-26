@@ -10,6 +10,7 @@ import Button from '../../../components/Button';
 import Modal from '../../../components/Modal';
 import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
+import ClusterTableManager from '../../../components/ClusterTableManager';
 
 export default function Clusters() {
   const { data: session, status } = useSession();
@@ -21,6 +22,7 @@ export default function Clusters() {
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBulkCreateModal, setShowBulkCreateModal] = useState(false);
   const [editingCluster, setEditingCluster] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWard, setSelectedWard] = useState('');
@@ -30,8 +32,7 @@ export default function Clusters() {
     wardId: '',
     coordinator: {
       name: '',
-      mobileNumber: '',
-      email: ''
+      mobileNumber: ''
     },
     isActive: true
   });
@@ -129,8 +130,7 @@ export default function Clusters() {
       wardId: '',
       coordinator: {
         name: '',
-        mobileNumber: '',
-        email: ''
+        mobileNumber: ''
       },
       isActive: true
     });
@@ -196,7 +196,7 @@ export default function Clusters() {
       coordinator: {
         name: cluster.coordinator.name,
         mobileNumber: cluster.coordinator.mobileNumber || '',
-        email: cluster.coordinator.email || ''
+        // email field removed
       },
       isActive: cluster.isActive
     });
@@ -239,6 +239,35 @@ export default function Clusters() {
     }
   };
 
+  const handleBulkSave = async (clustersData) => {
+    try {
+      setError('');
+      
+      // Add wardId to each cluster
+      const clustersWithWard = clustersData.map(cluster => ({
+        ...cluster,
+        wardId: selectedWard || formData.wardId
+      }));
+
+      // Create all clusters
+      const promises = clustersWithWard.map(cluster => 
+        axios.post('/api/clusters', cluster)
+      );
+
+      const responses = await Promise.all(promises);
+      const newClusters = responses.map(response => response.data);
+      
+      // Update the clusters list
+      setClusters([...clusters, ...newClusters]);
+      setShowBulkCreateModal(false);
+      
+      // Show success message
+      setError('');
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to create clusters');
+    }
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -271,13 +300,14 @@ export default function Clusters() {
             Cluster Number *
           </label>
           <input
-            type="text"
+            type="number"
             id="clusterNumber"
             name="clusterNumber"
             value={formData.clusterNumber}
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter cluster number"
+            min="1"
             required
           />
         </div>
@@ -356,20 +386,7 @@ export default function Clusters() {
             />
           </div>
 
-          <div className="md:col-span-2">
-            <label htmlFor="coordinator.email" className="block text-sm font-medium text-gray-700 mb-1">
-              Email (Optional)
-            </label>
-            <input
-              type="email"
-              id="coordinator.email"
-              name="coordinator.email"
-              value={formData.coordinator.email}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter email address"
-            />
-          </div>
+
         </div>
       </div>
 
@@ -442,12 +459,20 @@ export default function Clusters() {
               </Link>
             )}
             {['stateAdmin', 'wardAdmin'].includes(session?.user?.role) && (
-              <Button onClick={() => setShowCreateModal(true)}>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create Cluster
-              </Button>
+              <div className="flex space-x-2">
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Create Cluster
+                </Button>
+                <Button variant="outline" onClick={() => setShowBulkCreateModal(true)}>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Bulk Create
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -536,9 +561,7 @@ export default function Clusters() {
                       {cluster.coordinator.mobileNumber && (
                         <div className="text-sm text-gray-500">{cluster.coordinator.mobileNumber}</div>
                       )}
-                      {cluster.coordinator.email && (
-                        <div className="text-sm text-gray-500">{cluster.coordinator.email}</div>
-                      )}
+
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -679,6 +702,60 @@ export default function Clusters() {
           confirmText="Delete Cluster"
           isLoading={deleteModal.isDeleting}
         />
+
+        {/* Bulk Create Clusters Modal */}
+        <Modal
+          isOpen={showBulkCreateModal}
+          onClose={() => setShowBulkCreateModal(false)}
+          title="Bulk Create Clusters"
+          size="full"
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm">
+                    Use this form to create multiple clusters at once. Fill in the table below and click "Save All Clusters" when done.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Ward Selection for Bulk Create */}
+            {!selectedWard && (
+              <div>
+                <label htmlFor="bulkWardSelect" className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Ward *
+                </label>
+                <select
+                  id="bulkWardSelect"
+                  value={formData.wardId}
+                  onChange={(e) => setFormData({ ...formData, wardId: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                >
+                  <option value="">Select a ward</option>
+                  {wards.map((ward) => (
+                    <option key={ward._id} value={ward._id}>
+                      {ward.name} - {ward.panchayath}, {ward.district}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <ClusterTableManager
+              wardId={selectedWard || formData.wardId}
+              onSave={handleBulkSave}
+              initialClusters={[]}
+            />
+          </div>
+        </Modal>
       </div>
     </Layout>
   );

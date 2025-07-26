@@ -70,7 +70,21 @@ export default function CoordinatorWardReports() {
     try {
       setIsLoading(true);
       
-      // Mock data for ward reports in coordinator's district
+      // Fetch actual ward reports for coordinator's wards
+      const response = await axios.get('/api/responses', {
+        params: {
+          formType: 'wardReport',
+          coordinatorOnly: true
+        }
+      });
+      
+      setWardReports(response.data || []);
+      setError('');
+    } catch (error) {
+      console.error('Error fetching ward reports:', error);
+      setError('Failed to fetch ward reports');
+      
+      // Fallback to mock data for development
       const mockWardReports = [
         {
           _id: '1',

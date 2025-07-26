@@ -69,6 +69,7 @@ async function handlePut(req, res, session, id) {
       recurringMessage,
       applicableToForms,
       applicableToClusters,
+      applicableToSittingWards,
       validation,
       priority,
       isActive
@@ -89,6 +90,7 @@ async function handlePut(req, res, session, id) {
     if (recurringMessage !== undefined) updateData.recurringMessage = recurringMessage;
     if (applicableToForms !== undefined) updateData.applicableToForms = applicableToForms;
     if (applicableToClusters !== undefined) updateData.applicableToClusters = applicableToClusters;
+    if (applicableToSittingWards !== undefined) updateData.applicableToSittingWards = applicableToSittingWards;
     if (validation !== undefined) updateData.validation = validation;
     if (priority !== undefined) updateData.priority = priority;
     if (isActive !== undefined) updateData.isActive = isActive;

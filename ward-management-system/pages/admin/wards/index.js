@@ -33,6 +33,7 @@ export default function AdminWards() {
     district: '',
     coordinatorId: '',
     wardAdminId: '',
+    isSittingWard: false,
   });
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
@@ -163,6 +164,7 @@ export default function AdminWards() {
       district: '',
       coordinatorId: '',
       wardAdminId: '',
+      isSittingWard: false,
     });
     setSelectedDistrict('');
     setAvailablePanchayaths([]);
@@ -236,8 +238,10 @@ export default function AdminWards() {
       district: ward.district,
       coordinatorId: ward.coordinator?._id || '',
       wardAdminId: ward.wardAdmin?._id || '',
+      isSittingWard: ward.isSittingWard || false,
     });
     setSelectedDistrict(ward.district);
+    setAvailablePanchayaths(getPanchayathsByDistrict(ward.district));
     setShowEditModal(true);
   };
 
@@ -410,6 +414,22 @@ export default function AdminWards() {
             Each ward admin can only be assigned to one ward
           </p>
         </div>
+        
+        <div>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="isSittingWard"
+              checked={formData.isSittingWard}
+              onChange={handleInputChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">Sitting Ward</span>
+          </label>
+          <p className="text-xs text-gray-500 mt-1">
+            Mark this ward as a sitting ward for specialized question handling
+          </p>
+        </div>
       </div>
 
 
@@ -572,6 +592,11 @@ export default function AdminWards() {
                         <Link href={`/admin/wards/reports/${ward._id}`}>
                           <div className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate">
                             {ward.name}
+                            {ward.isSittingWard && (
+                              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                🪑 Sitting
+                              </span>
+                            )}
                           </div>
                         </Link>
                         <div className="text-xs text-gray-500">Ward #{ward.wardNumber}</div>

@@ -59,7 +59,8 @@ export default async function handler(req, res) {
         wardAdminId, 
         population, 
         area, 
-        description 
+        description,
+        isSittingWard
       } = req.body;
       
       // Update all provided fields
@@ -70,6 +71,7 @@ export default async function handler(req, res) {
       if (population !== undefined) ward.population = population ? parseInt(population) : null;
       if (area !== undefined) ward.area = area || null;
       if (description !== undefined) ward.description = description || null;
+      if (isSittingWard !== undefined) ward.isSittingWard = isSittingWard;
       
       // Update coordinator if provided
       if (coordinatorId) {
