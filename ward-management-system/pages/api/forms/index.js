@@ -116,8 +116,8 @@ export default async function handler(req, res) {
           return res.status(400).json({ message: 'Each field must have a label and type' });
         }
         
-        if (field.type === 'select' && (!field.options || !Array.isArray(field.options) || field.options.length === 0)) {
-          return res.status(400).json({ message: 'Select fields must have options' });
+        if ((field.type === 'select' || field.type === 'multiselect') && (!field.options || !Array.isArray(field.options) || field.options.length === 0)) {
+          return res.status(400).json({ message: 'Select and multiselect fields must have options' });
         }
 
         // Validate sub-questions if they exist
@@ -127,8 +127,8 @@ export default async function handler(req, res) {
               return res.status(400).json({ message: 'Each sub-question must have a label and type' });
             }
             
-            if (subQuestion.type === 'select' && (!subQuestion.options || !Array.isArray(subQuestion.options) || subQuestion.options.length === 0)) {
-              return res.status(400).json({ message: 'Select sub-questions must have options' });
+            if ((subQuestion.type === 'select' || subQuestion.type === 'multiselect') && (!subQuestion.options || !Array.isArray(subQuestion.options) || subQuestion.options.length === 0)) {
+              return res.status(400).json({ message: 'Select and multiselect sub-questions must have options' });
             }
           }
         }

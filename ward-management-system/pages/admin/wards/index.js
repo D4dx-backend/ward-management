@@ -9,6 +9,7 @@ import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Modal from '../../../components/Modal';
 import SearchInput from '../../../components/SearchInput';
+import SearchableSelect from '../../../components/SearchableSelect';
 import DeleteModal from '../../../components/DeleteModal';
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
 
@@ -322,59 +323,56 @@ export default function AdminWards() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label htmlFor="coordinatorId" className="block text-sm font-medium text-gray-700 mb-1">
-            Coordinator *
-          </label>
-          <select
+          <SearchableSelect
             id="coordinatorId"
             name="coordinatorId"
+            label="Coordinator"
             value={formData.coordinatorId}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            options={coordinators}
+            placeholder="Select Coordinator"
             required
-          >
-            <option value="">Select Coordinator</option>
-            {coordinators.map((coordinator) => (
-              <option key={coordinator._id} value={coordinator._id}>
-                {coordinator.name} {coordinator.district ? `(${coordinator.district})` : ''}
-              </option>
-            ))}
-          </select>
+            getOptionLabel={(coordinator) => `${coordinator.name}${coordinator.district ? ` (${coordinator.district})` : ''}`}
+            getOptionValue={(coordinator) => coordinator._id}
+            noOptionsMessage="No coordinators found"
+          />
         </div>
 
         <div>
-          <label htmlFor="wardAdminId" className="block text-sm font-medium text-gray-700 mb-1">
-            Ward Admin
-          </label>
-          <select
+          <SearchableSelect
             id="wardAdminId"
             name="wardAdminId"
+            label="Ward Admin"
             value={formData.wardAdminId}
             onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">No Ward Admin Assigned</option>
-            {wardAdmins.map((admin) => {
+            options={wardAdmins.map((admin) => {
               // Check if this admin is assigned to any ward
               const assignedWard = wards.find(ward => ward.wardAdmin?._id === admin._id);
               const isCurrentWardAdmin = editingWard && admin._id === editingWard.wardAdmin?._id;
               const isAssignedToOtherWard = assignedWard && assignedWard._id !== editingWard?._id;
 
-              return (
-                <option
-                  key={admin._id}
-                  value={admin._id}
-                  disabled={isAssignedToOtherWard}
-                >
-                  {admin.name} {admin.district ? `(${admin.district})` : ''}
-                  {isAssignedToOtherWard ? ' - Already Assigned' : ''}
-                </option>
-              );
+              return {
+                ...admin,
+                isDisabled: isAssignedToOtherWard,
+                displaySuffix: isAssignedToOtherWard ? ' - Already Assigned' : ''
+              };
             })}
-            {wardAdmins.length === 0 && (
-              <option disabled>Loading ward admins...</option>
+            placeholder="No Ward Admin Assigned"
+            getOptionLabel={(admin) => `${admin.name}${admin.district ? ` (${admin.district})` : ''}${admin.displaySuffix || ''}`}
+            getOptionValue={(admin) => admin._id}
+            renderOption={(admin, isSelected) => (
+              <div className={admin.isDisabled ? 'opacity-50 cursor-not-allowed' : ''}>
+                <div className="font-medium">{admin.name}</div>
+                {admin.district && (
+                  <div className="text-sm text-gray-500">({admin.district})</div>
+                )}
+                {admin.displaySuffix && (
+                  <div className="text-xs text-red-500">{admin.displaySuffix}</div>
+                )}
+              </div>
             )}
-          </select>
+            noOptionsMessage={wardAdmins.length === 0 ? "Loading ward admins..." : "No ward admins found"}
+          />
           <p className="text-xs text-gray-500 mt-1">
             Each ward admin can only be assigned to one ward
           </p>
@@ -504,7 +502,7 @@ export default function AdminWards() {
             <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
                     Ward Details
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
@@ -515,6 +513,9 @@ export default function AdminWards() {
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Ward Admin
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/8">
+                    Advance Data
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
                     Pop.
@@ -588,6 +589,25 @@ export default function AdminWards() {
                         <span className="text-xs text-gray-500">Not assigned</span>
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      {ward.basicData?.hasBasicData ? (
+                        <div className="flex items-center">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            ward.basicData.status === 'approved' 
+                              ? 'bg-green-100 text-green-800'
+                              : ward.basicData.status === 'rejected'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {ward.basicData.status === 'approved' ? '✓ Approved' : 
+                             ward.basicData.status === 'rejected' ? '✗ Rejected' : 
+                             '● Submitted'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">Not submitted</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-900">
                       {ward.population ? (ward.population > 1000 ? `${Math.round(ward.population / 1000)}k` : ward.population) : '-'}
                     </td>
@@ -601,6 +621,7 @@ export default function AdminWards() {
                             Clusters
                           </Button>
                         </Link>
+
                         <Link href={`/admin/wards/reports/${ward._id}`}>
                           <Button variant="outline" size="sm">
                             Reports

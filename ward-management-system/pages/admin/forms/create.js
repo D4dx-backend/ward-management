@@ -247,8 +247,8 @@ export default function CreateForm() {
           throw new Error('All fields must have a label and type');
         }
 
-        if (field.type === 'select' && (!field.options || field.options.length === 0)) {
-          throw new Error('Select fields must have at least one option');
+        if ((field.type === 'select' || field.type === 'multiselect') && (!field.options || field.options.length === 0)) {
+          throw new Error('Select and multiselect fields must have at least one option');
         }
       }
 
@@ -401,7 +401,7 @@ export default function CreateForm() {
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-semibold text-gray-900">Form Fields</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Form Questions</h2>
                 <Button
                   type="button"
                   variant="outline"
@@ -410,7 +410,7 @@ export default function CreateForm() {
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
-                  Add Field
+                  Add Question
                 </Button>
               </div>
 
@@ -418,7 +418,7 @@ export default function CreateForm() {
                 {formData.fields.map((field, index) => (
                   <Card key={index} className="border-l-4 border-l-blue-500">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-md font-medium text-gray-900">Field {index + 1}</h3>
+                      <h3 className="text-md font-medium text-gray-900">Question {index + 1}</h3>
                       <Button
                         type="button"
                         variant="danger"
@@ -432,7 +432,7 @@ export default function CreateForm() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Field Label *
+                          Question Label *
                         </label>
                         <input
                           type="text"
@@ -440,14 +440,14 @@ export default function CreateForm() {
                           value={field.label}
                           onChange={(e) => handleFieldChange(index, e)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter field label"
+                          placeholder="Enter question text"
                           required
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Field Type *
+                          Question Type *
                         </label>
                         <select
                           name="type"
@@ -459,8 +459,8 @@ export default function CreateForm() {
                           <option value="text">Text</option>
                           <option value="number">Number</option>
                           <option value="textarea">Text Area</option>
-                          <option value="select">Select</option>
-                          <option value="checkbox">Checkbox</option>
+                          <option value="select">Single Select</option>
+                          <option value="multiselect">Multi Select</option>
                           <option value="yesno">Yes/No</option>
                           <option value="date">Date</option>
                         </select>
@@ -476,11 +476,11 @@ export default function CreateForm() {
                           onChange={(e) => handleFieldChange(index, e)}
                           className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm font-medium text-gray-700">Required Field</span>
+                        <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
                       </label>
                     </div>
 
-                    {field.type === 'select' && (
+                    {(field.type === 'select' || field.type === 'multiselect') && (
                       <div className="mt-4">
                         <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-medium text-gray-700">
@@ -521,12 +521,12 @@ export default function CreateForm() {
                       </div>
                     )}
 
-                    {/* Sub-questions section */}
-                    {(field.type === 'yesno' || field.type === 'select') && (
+                    {/* Follow-up questions section */}
+                    {(field.type === 'yesno' || field.type === 'select' || field.type === 'multiselect') && (
                       <div className="mt-4 border-t border-gray-200 pt-4">
                         <div className="flex justify-between items-center mb-3">
                           <label className="block text-sm font-medium text-gray-700">
-                            Sub-questions (Optional)
+                            Follow-up Questions (Optional)
                           </label>
                           <Button
                             type="button"
@@ -534,14 +534,17 @@ export default function CreateForm() {
                             size="sm"
                             onClick={() => addSubQuestion(index)}
                           >
-                            Add Sub-question
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Follow-up Question
                           </Button>
                         </div>
 
                         {field.type === 'yesno' && field.subQuestions.length > 0 && (
                           <div className="mb-3">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Show sub-questions when:
+                              Show follow-up questions when:
                             </label>
                             <select
                               name="showSubQuestionsWhen"
@@ -556,10 +559,10 @@ export default function CreateForm() {
                           </div>
                         )}
 
-                        {field.type === 'select' && field.subQuestions.length > 0 && (
+                        {(field.type === 'select' || field.type === 'multiselect') && field.subQuestions.length > 0 && (
                           <div className="mb-3">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Show sub-questions when option selected:
+                              Show follow-up questions when option selected:
                             </label>
                             <select
                               name="showSubQuestionsWhen"
@@ -581,7 +584,7 @@ export default function CreateForm() {
                           {field.subQuestions.map((subQuestion, subIndex) => (
                             <div key={subIndex} className="bg-gray-50 p-4 rounded-lg border">
                               <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-sm font-medium text-gray-900">Sub-question {subIndex + 1}</h4>
+                                <h4 className="text-sm font-medium text-gray-900">Follow-up Question {subIndex + 1}</h4>
                                 <Button
                                   type="button"
                                   variant="danger"
@@ -595,7 +598,7 @@ export default function CreateForm() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Sub-question Label *
+                                    Question Label *
                                   </label>
                                   <input
                                     type="text"
@@ -603,14 +606,14 @@ export default function CreateForm() {
                                     value={subQuestion.label}
                                     onChange={(e) => handleSubQuestionChange(index, subIndex, e)}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Enter sub-question label"
+                                    placeholder="Enter follow-up question text"
                                     required
                                   />
                                 </div>
 
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Sub-question Type *
+                                    Question Type *
                                   </label>
                                   <select
                                     name="type"
@@ -622,8 +625,8 @@ export default function CreateForm() {
                                     <option value="text">Text</option>
                                     <option value="number">Number</option>
                                     <option value="textarea">Text Area</option>
-                                    <option value="select">Select</option>
-                                    <option value="checkbox">Checkbox</option>
+                                    <option value="select">Single Select</option>
+                                    <option value="multiselect">Multi Select</option>
                                     <option value="yesno">Yes/No</option>
                                     <option value="date">Date</option>
                                   </select>
@@ -639,15 +642,15 @@ export default function CreateForm() {
                                     onChange={(e) => handleSubQuestionChange(index, subIndex, e)}
                                     className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                   />
-                                  <span className="ml-2 text-sm font-medium text-gray-700">Required Sub-question</span>
+                                  <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
                                 </label>
                               </div>
 
-                              {subQuestion.type === 'select' && (
+                              {(subQuestion.type === 'select' || subQuestion.type === 'multiselect') && (
                                 <div>
                                   <div className="flex justify-between items-center mb-2">
                                     <label className="block text-sm font-medium text-gray-700">
-                                      Sub-question Options *
+                                      Question Options *
                                     </label>
                                     <Button
                                       type="button"

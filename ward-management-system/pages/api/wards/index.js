@@ -3,6 +3,8 @@ import { authOptions } from '../auth/[...nextauth]';
 import connectToDatabase from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
 import User from '../../../models/User';
+import WardBasicData from '../../../models/WardBasicData';
+import WardBasicForm from '../../../models/WardBasicForm';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -43,8 +45,35 @@ export default async function handler(req, res) {
           .populate('coordinator', 'name email')
           .populate('wardAdmin', 'name email');
       }
+
+      // Get active ward basic form
+      const activeForm = await WardBasicForm.findOne({ isActive: true });
       
-      return res.status(200).json(wards);
+      // Get basic data for all wards if there's an active form
+      let basicDataMap = {};
+      if (activeForm) {
+        const basicDataList = await WardBasicData.find({ 
+          form: activeForm._id,
+          ward: { $in: wards.map(w => w._id) }
+        }).populate('submittedBy', 'name');
+        
+        basicDataList.forEach(data => {
+          basicDataMap[data.ward.toString()] = {
+            hasBasicData: true,
+            status: data.status,
+            submittedAt: data.submittedAt,
+            submittedBy: data.submittedBy
+          };
+        });
+      }
+
+      // Add basic data info to wards
+      const wardsWithBasicData = wards.map(ward => ({
+        ...ward.toObject(),
+        basicData: basicDataMap[ward._id.toString()] || { hasBasicData: false }
+      }));
+      
+      return res.status(200).json(wardsWithBasicData);
     } catch (error) {
       return res.status(500).json({ message: 'Error fetching wards', error: error.message });
     }

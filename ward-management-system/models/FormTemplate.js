@@ -7,7 +7,7 @@ const SubQuestionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno', 'checkbox'],
+    enum: ['text', 'number', 'select', 'multiselect', 'textarea', 'date', 'yesno'],
     required: true,
   },
   required: {
@@ -29,7 +29,7 @@ const FieldSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'number', 'select', 'textarea', 'date', 'yesno', 'checkbox'],
+    enum: ['text', 'number', 'select', 'multiselect', 'textarea', 'date', 'yesno'],
     required: true,
   },
   required: {

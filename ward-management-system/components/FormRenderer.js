@@ -79,6 +79,10 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
       return showWhen === currentValue || field.showSubQuestionsWhen === value;
     } else if (field.type === 'select') {
       return field.showSubQuestionsWhen === value;
+    } else if (field.type === 'multiselect') {
+      // For multiselect, show sub-questions if the specified option is selected
+      const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+      return selectedValues.includes(field.showSubQuestionsWhen);
     }
     
     return true;
@@ -149,6 +153,36 @@ export default function FormRenderer({ form, formData, setFormData, errors = {} 
               </option>
             ))}
           </select>
+        );
+
+      case 'multiselect':
+        const selectedValues = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        return (
+          <div className="space-y-2">
+            <div className="text-sm text-gray-600 mb-2">Select multiple options:</div>
+            {field.options.map((option, optionIndex) => (
+              <label key={optionIndex} className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedValues.includes(option)}
+                  onChange={(e) => {
+                    let newValues;
+                    if (e.target.checked) {
+                      newValues = [...selectedValues, option];
+                    } else {
+                      newValues = selectedValues.filter(val => val !== option);
+                    }
+                    handleFieldChange(fieldIndex, newValues, field);
+                  }}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">{option}</span>
+              </label>
+            ))}
+            {field.required && selectedValues.length === 0 && (
+              <div className="text-red-500 text-sm">Please select at least one option</div>
+            )}
+          </div>
         );
 
       case 'yesno':
