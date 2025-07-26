@@ -24,6 +24,11 @@ export function generateSecurePassword() {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
+// Generate 4-digit PIN for coordinators and ward admins
+export function generate4DigitPIN() {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 // Format phone number to E.164 format
 export function formatPhoneNumber(phone) {
   if (!phone) return null;
@@ -121,21 +126,24 @@ export async function sendWhatsAppMessage({ recipient, message, type = 'text' })
 
 // Send welcome message with login credentials
 export async function sendWelcomeMessage({ name, email, password, role, mobileNumber }) {
+  const isPIN = role !== 'stateAdmin';
+  const credentialType = isPIN ? 'PIN' : 'Password';
+  
   const message = `🎉 Welcome to Ward Management System!
 
 👤 *Account Created Successfully*
 
 *Your Login Details:*
 📧 Email: ${email}
-🔐 Password: ${password}
+🔐 ${credentialType}: ${password}
 👥 Role: ${role}
 
 🌐 *Login URL:* ${process.env.NEXTAUTH_URL}/auth/signin
 
 ⚠️ *Important Security Notes:*
-• Please change your password after first login
-• Keep your credentials secure
-• Do not share your password with anyone
+• Keep your ${credentialType.toLowerCase()} secure
+• Do not share your ${credentialType.toLowerCase()} with anyone
+${isPIN ? '• Use this 4-digit PIN to login' : '• Please change your password after first login'}
 
 Need help? Contact your system administrator.
 
@@ -149,23 +157,24 @@ Ward Management Team`;
 }
 
 // Send password reset message
-export async function sendPasswordResetMessage({ name, email, newPassword, mobileNumber }) {
-  const message = `🔐 Password Reset - Ward Management System
+export async function sendPasswordResetMessage({ name, email, newPassword, mobileNumber, isPIN = false }) {
+  const credentialType = isPIN ? 'PIN' : 'Password';
+  const message = `🔐 ${credentialType} Reset - Ward Management System
 
 Hi ${name},
 
-Your password has been reset successfully.
+Your ${credentialType.toLowerCase()} has been reset successfully.
 
 *New Login Details:*
 📧 Email: ${email}
-🔐 New Password: ${newPassword}
+🔐 New ${credentialType}: ${newPassword}
 
 🌐 *Login URL:* ${process.env.NEXTAUTH_URL}/auth/signin
 
 ⚠️ *Security Reminder:*
-• Please change this password after login
-• Use a strong, unique password
-• Keep your credentials secure
+• Keep your ${credentialType.toLowerCase()} secure
+• Do not share your ${credentialType.toLowerCase()} with anyone
+${isPIN ? '• Use this 4-digit PIN to login' : '• Please change this password after login'}
 
 If you didn't request this reset, contact your administrator immediately.
 
