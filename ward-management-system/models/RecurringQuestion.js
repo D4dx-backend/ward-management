@@ -1,6 +1,14 @@
 import mongoose from 'mongoose';
 
 const RecurringQuestionSchema = new mongoose.Schema({
+  fieldId: {
+    type: String,
+    unique: true,
+    required: true,
+    default: function() {
+      return 'field_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+    }
+  },
   question: {
     type: String,
     required: true,
@@ -53,17 +61,31 @@ const RecurringQuestionSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Sitting ward applicability
+  applicableToSittingWards: {
+    type: Boolean,
+    default: false,
+  },
   // Validation
   validation: {
     required: {
       type: Boolean,
       default: false,
     },
-    minLength: Number,
-    maxLength: Number,
     min: Number,
     max: Number,
     pattern: String,
+    // Phone validation: exactly 10 digits
+    phoneDigits: {
+      type: Number,
+      default: 10,
+      validate: {
+        validator: function(v) {
+          return this.fieldType !== 'phone' || v === 10;
+        },
+        message: 'Phone number must be exactly 10 digits'
+      }
+    }
   },
   // Metadata
   isActive: {

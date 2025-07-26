@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   
   if (req.method === 'GET') {
     try {
-      const { formType, weekNumber, year, wardId, coordinatorId } = req.query;
+      const { formType, weekNumber, year, wardId, coordinatorId, coordinatorOnly } = req.query;
       
       // Build query
       const query = {};
@@ -37,8 +37,15 @@ export default async function handler(req, res) {
       
       // Filter based on user role
       if (session.user.role === 'coordinator') {
-        // Coordinators can only see their district's responses
-        query.district = session.user.district;
+        if (coordinatorOnly === 'true') {
+          // Get only responses from wards under this coordinator
+          const coordinatorWards = await Ward.find({ coordinator: session.user.id });
+          const wardIds = coordinatorWards.map(ward => ward._id);
+          query.ward = { $in: wardIds };
+        } else {
+          // Coordinators can only see their district's responses
+          query.district = session.user.district;
+        }
       } else if (session.user.role === 'wardAdmin') {
         // Ward admins can only see their own responses
         const userWards = await Ward.find({ wardAdmin: session.user.id });

@@ -301,14 +301,30 @@ export default function Home() {
             </div>
           </Card>
 
-          {/* Recent Activity and Reports */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <RecentActivity logs={recentLogs} />
-            <RecentReports reports={recentReports} userRole={session.user.role} />
+          {/* Only show pending reports for coordinators */}
+          <div className="grid grid-cols-1 gap-8">
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Reports</h2>
+              {pendingReportsList && pendingReportsList.length > 0 ? (
+                <div className="space-y-3">
+                  {pendingReportsList.map((report, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100"
+                         onClick={() => window.location.href = `/coordinator/wards/${report.wardId}`}>
+                      <div>
+                        <p className="font-medium text-gray-900">{report.wardName}</p>
+                        <p className="text-sm text-gray-600">{report.formTitle}</p>
+                      </div>
+                      <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                        Pending
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center py-4">No pending reports</p>
+              )}
+            </Card>
           </div>
-
-          {/* Login History */}
-          <DashboardLoginHistory logins={recentLogins} userRole={session.user.role} />
         </div>
       </>
     );
@@ -335,7 +351,14 @@ export default function Home() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Admin Dashboard</h1>
             <div className="mt-1 flex items-center justify-between">
-              <p className="text-sm text-gray-600">Welcome back, {session.user.name}</p>
+              <div>
+                <p className="text-sm text-gray-600">Welcome back, {session.user.name}</p>
+                {userInfo?.ward && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ward: {userInfo.ward.name} (#{userInfo.ward.wardNumber}) - {userInfo.ward.panchayath}, {userInfo.ward.district}
+                  </p>
+                )}
+              </div>
               {userInfo?.lastLogin && (
                 <p className="text-sm text-gray-500">
                   Last login: {new Date(userInfo.lastLogin).toLocaleString()}
@@ -360,45 +383,28 @@ export default function Home() {
             />
           </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                onClick={() => window.location.href = '/ward/reports/submit'}
-                className="justify-start h-auto p-4"
-                variant={hasSubmittedThisWeek ? "outline" : "default"}
-              >
-                <div className="text-left">
-                  <div className="font-medium">
-                    {hasSubmittedThisWeek ? "✓ Ward Report Submitted" : "Submit Ward Report"}
-                  </div>
-                  <div className={`text-sm ${hasSubmittedThisWeek ? "text-gray-500" : "opacity-90"}`}>
-                    {hasSubmittedThisWeek ? "Report submitted this week" : "Submit weekly ward progress"}
+          {/* Only show pending reports for ward admins */}
+          <div className="grid grid-cols-1 gap-8">
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Reports</h2>
+              {!hasSubmittedThisWeek ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100"
+                       onClick={() => window.location.href = '/ward/reports/submit'}>
+                    <div>
+                      <p className="font-medium text-gray-900">Weekly Ward Report</p>
+                      <p className="text-sm text-gray-600">Submit your weekly ward progress report</p>
+                    </div>
+                    <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                      Pending
+                    </span>
                   </div>
                 </div>
-              </Button>
-              <Button
-                onClick={() => window.location.href = '/ward/reports'}
-                variant="outline"
-                className="justify-start h-auto p-4"
-              >
-                <div className="text-left">
-                  <div className="font-medium">View My Reports</div>
-                  <div className="text-sm text-gray-500">Check previous submissions</div>
-                </div>
-              </Button>
-            </div>
-          </Card>
-
-          {/* Recent Activity and Reports */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <RecentActivity logs={recentLogs} />
-            <RecentReports reports={recentReports} userRole={session.user.role} />
+              ) : (
+                <p className="text-gray-500 text-center py-4">No pending reports</p>
+              )}
+            </Card>
           </div>
-
-          {/* Login History */}
-          <DashboardLoginHistory logins={recentLogins} userRole={session.user.role} />
         </div>
       </>
     );

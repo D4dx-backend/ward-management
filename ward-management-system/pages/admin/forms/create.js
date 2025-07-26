@@ -15,6 +15,7 @@ export default function CreateForm() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [recurringQuestions, setRecurringQuestions] = useState([]);
   const [selectedQuestions, setSelectedQuestions] = useState([]);
+  const [importType, setImportType] = useState('regular'); // 'regular' or 'sittingWard'
   
   // Helper function to calculate week number from date
   const getWeekNumber = (date) => {
@@ -30,6 +31,7 @@ export default function CreateForm() {
     description: '',
     formType: 'coordinatorReport',
     isActive: true,
+    isSittingWardForm: false,
     enableDateTime: new Date().toISOString().slice(0, 16), // Format for datetime-local input
     closeDateTime: (() => {
       const date = new Date();
@@ -45,6 +47,17 @@ export default function CreateForm() {
         subQuestions: [],
         showSubQuestionsWhen: '', // For conditional sub-questions
         applicableToClusters: false // For cluster-based data collection
+      }
+    ],
+    sittingWardFields: [
+      { 
+        label: '', 
+        type: 'text', 
+        required: false, 
+        options: [],
+        subQuestions: [],
+        showSubQuestionsWhen: '',
+        applicableToClusters: false
       }
     ]
   });
@@ -62,10 +75,21 @@ export default function CreateForm() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
+    const newValue = type === 'checkbox' ? checked : value;
+    
+    // Reset sitting ward form when form type changes
+    if (name === 'formType' && value !== 'wardReport') {
+      setFormData({
+        ...formData,
+        [name]: newValue,
+        isSittingWardForm: false
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: newValue
+      });
+    }
   };
 
   const handleFieldChange = (index, e) => {
@@ -125,10 +149,16 @@ export default function CreateForm() {
   };
 
   const handleImportQuestions = () => {
-    axios.get(`/api/recurring-questions?formType=${formData.formType}&isActive=true`)
+    let apiUrl = `/api/recurring-questions?formType=${formData.formType}&isActive=true`;
+    if (formData.isSittingWardForm) {
+      apiUrl += '&isSittingWard=true';
+    }
+    
+    axios.get(apiUrl)
       .then(response => {
         setRecurringQuestions(response.data);
         setSelectedQuestions([]);
+        setImportType('regular');
         setShowImportModal(true);
       })
       .catch(error => {
@@ -162,10 +192,18 @@ export default function CreateForm() {
       recurringQuestionId: question._id,
     }));
 
-    setFormData({
-      ...formData,
-      fields: [...formData.fields, ...newFields]
-    });
+    if (importType === 'sittingWard') {
+      setFormData({
+        ...formData,
+        sittingWardFields: [...formData.sittingWardFields, ...newFields]
+      });
+    } else {
+      setFormData({
+        ...formData,
+        fields: [...formData.fields, ...newFields]
+      });
+    }
+    
     setShowImportModal(false);
     setSelectedQuestions([]);
   };
@@ -262,6 +300,54 @@ export default function CreateForm() {
     setFormData({ ...formData, fields: updatedFields });
   };
 
+  // Sitting Ward Field Functions
+  const addSittingWardField = () => {
+    setFormData({
+      ...formData,
+      sittingWardFields: [...formData.sittingWardFields, { 
+        label: '', 
+        type: 'text', 
+        required: false, 
+        options: [],
+        subQuestions: [],
+        showSubQuestionsWhen: '',
+        applicableToClusters: false
+      }]
+    });
+  };
+
+  const handleSittingWardFieldChange = (index, e) => {
+    const { name, value, type, checked } = e.target;
+    const updatedFields = [...formData.sittingWardFields];
+    updatedFields[index] = {
+      ...updatedFields[index],
+      [name]: type === 'checkbox' ? checked : value
+    };
+    setFormData({ ...formData, sittingWardFields: updatedFields });
+  };
+
+  const removeSittingWardField = (index) => {
+    const updatedFields = [...formData.sittingWardFields];
+    updatedFields.splice(index, 1);
+    setFormData({ ...formData, sittingWardFields: updatedFields });
+  };
+
+  const handleImportSittingWardQuestions = () => {
+    axios.get(`/api/recurring-questions?formType=${formData.formType}&isActive=true&isSittingWard=true`)
+      .then(response => {
+        // Filter to only sitting ward specific questions
+        const sittingWardQuestions = response.data.filter(q => q.applicableToSittingWards);
+        setRecurringQuestions(sittingWardQuestions);
+        setSelectedQuestions([]);
+        setImportType('sittingWard');
+        setShowImportModal(true);
+      })
+      .catch(error => {
+        console.error('Error fetching sitting ward questions:', error);
+        setError('Failed to fetch sitting ward questions');
+      });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -300,6 +386,19 @@ export default function CreateForm() {
 
         if ((field.type === 'select' || field.type === 'multiselect') && (!field.options || field.options.length === 0)) {
           throw new Error('Select and multiselect fields must have at least one option');
+        }
+      }
+
+      // Validate sitting ward fields if enabled
+      if (formData.isSittingWardForm) {
+        for (const field of formData.sittingWardFields) {
+          if (!field.label || !field.type) {
+            throw new Error('All sitting ward fields must have a label and type');
+          }
+
+          if ((field.type === 'select' || field.type === 'multiselect') && (!field.options || field.options.length === 0)) {
+            throw new Error('Sitting ward select and multiselect fields must have at least one option');
+          }
         }
       }
 
@@ -396,7 +495,7 @@ export default function CreateForm() {
               />
             </div>
 
-            <div className="flex items-center">
+            <div className="space-y-3">
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -407,6 +506,24 @@ export default function CreateForm() {
                 />
                 <span className="ml-2 text-sm font-medium text-gray-700">Active Form</span>
               </label>
+              
+              {formData.formType === 'wardReport' && (
+                <>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="isSittingWardForm"
+                      checked={formData.isSittingWardForm}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm font-medium text-gray-700">Sitting Ward Form</span>
+                  </label>
+                  <p className="text-xs text-gray-500 ml-6">
+                    Enable this for forms specifically designed for sitting wards
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -806,6 +923,200 @@ export default function CreateForm() {
                 )}
               </div>
             </div>
+
+            {/* Sitting Ward Questions Section */}
+            {formData.isSittingWardForm && (
+              <div className="border-t border-gray-200 pt-6 mt-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Sitting Ward Specific Questions</h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      These questions will only appear for sitting wards in addition to the regular questions above
+                    </p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleImportSittingWardQuestions}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      Import Sitting Ward Questions
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addSittingWardField}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Sitting Ward Question
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {formData.sittingWardFields.map((field, index) => (
+                    <div key={index}>
+                      <Card className="border-l-4 border-l-purple-500">
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="flex items-center space-x-2">
+                            <h3 className="text-md font-medium text-gray-900">Sitting Ward Question {index + 1}</h3>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              🪑 Sitting Ward Only
+                            </span>
+                            {field.applicableToClusters && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                🏘️ Clusters
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            onClick={() => removeSittingWardField(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Question Label *
+                            </label>
+                            <input
+                              type="text"
+                              name="label"
+                              value={field.label}
+                              onChange={(e) => handleSittingWardFieldChange(index, e)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              placeholder="Enter question text"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Question Type *
+                            </label>
+                            <select
+                              name="type"
+                              value={field.type}
+                              onChange={(e) => handleSittingWardFieldChange(index, e)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              required
+                            >
+                              <option value="text">Text</option>
+                              <option value="number">Number</option>
+                              <option value="textarea">Text Area</option>
+                              <option value="select">Single Select</option>
+                              <option value="multiselect">Multi Select</option>
+                              <option value="yesno">Yes/No</option>
+                              <option value="date">Date</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mb-4 space-y-3">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              name="required"
+                              checked={field.required}
+                              onChange={(e) => handleSittingWardFieldChange(index, e)}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
+                          </label>
+                          
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              name="applicableToClusters"
+                              checked={field.applicableToClusters}
+                              onChange={(e) => handleSittingWardFieldChange(index, e)}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                            <span className="ml-2 text-sm font-medium text-gray-700">Applicable to Clusters</span>
+                          </label>
+                        </div>
+
+                        {(field.type === 'select' || field.type === 'multiselect') && (
+                          <div className="mt-4">
+                            <div className="flex justify-between items-center mb-3">
+                              <label className="block text-sm font-medium text-gray-700">
+                                Options *
+                              </label>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const updatedFields = [...formData.sittingWardFields];
+                                  updatedFields[index] = {
+                                    ...updatedFields[index],
+                                    options: [...updatedFields[index].options, '']
+                                  };
+                                  setFormData({ ...formData, sittingWardFields: updatedFields });
+                                }}
+                              >
+                                Add Option
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              {field.options.map((option, optionIndex) => (
+                                <div key={optionIndex} className="flex items-center space-x-2">
+                                  <input
+                                    type="text"
+                                    value={option}
+                                    onChange={(e) => {
+                                      const updatedFields = [...formData.sittingWardFields];
+                                      const options = [...updatedFields[index].options];
+                                      options[optionIndex] = e.target.value;
+                                      updatedFields[index] = {
+                                        ...updatedFields[index],
+                                        options
+                                      };
+                                      setFormData({ ...formData, sittingWardFields: updatedFields });
+                                    }}
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder={`Option ${optionIndex + 1}`}
+                                    required
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => {
+                                      const updatedFields = [...formData.sittingWardFields];
+                                      const options = [...updatedFields[index].options];
+                                      options.splice(optionIndex, 1);
+                                      updatedFields[index] = {
+                                        ...updatedFields[index],
+                                        options
+                                      };
+                                      setFormData({ ...formData, sittingWardFields: updatedFields });
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <Button

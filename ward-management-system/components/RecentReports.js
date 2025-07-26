@@ -62,43 +62,45 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
           </div>
         ) : (
           displayReports.map((report) => (
-            <div key={report._id} className="px-6 py-4 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+            <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate || report.form?._id}?responseId=${report._id}`}>
+              <div className="px-6 py-4 hover:bg-gray-50 cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {report.form?.title || 'Unknown Form'}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {report.form?.title || 'Unknown Form'}
+                        </p>
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          Submitted
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        by {report.user?.name || 'Unknown User'}
+                        {report.user?.role && (
+                          <span className="text-gray-400"> ({report.user.role.replace('Admin', ' Admin')})</span>
+                        )}
                       </p>
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Submitted
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      by {report.user?.name || 'Unknown User'}
-                      {report.user?.role && (
-                        <span className="text-gray-400"> ({report.user.role.replace('Admin', ' Admin')})</span>
+                      {report.ward && (
+                        <p className="text-xs text-gray-400">
+                          {report.ward.name}, {report.ward.district}
+                        </p>
                       )}
-                    </p>
-                    {report.ward && (
-                      <p className="text-xs text-gray-400">
-                        {report.ward.name}, {report.ward.district}
-                      </p>
-                    )}
+                    </div>
                   </div>
-                </div>
-                <div className="flex-shrink-0 text-sm text-gray-500">
-                  {formatTimeAgo(report.submittedAt)}
+                  <div className="flex-shrink-0 text-sm text-gray-500">
+                    {formatTimeAgo(report.submittedAt)}
+                  </div>
                 </div>
               </div>
-            </div>
+            </Link>
           ))
         )}
       </div>

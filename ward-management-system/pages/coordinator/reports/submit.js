@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
@@ -19,6 +20,8 @@ export default function SubmitReport() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewClicked, setPreviewClicked] = useState(false);
 
   useEffect(() => {
     // Check if user is authenticated and is coordinator
@@ -51,16 +54,33 @@ export default function SubmitReport() {
         }
       });
       
-      // Mark forms as submitted if user has already submitted them
-      const formsWithStatus = formsResponse.data.map(form => {
-        const hasSubmitted = responsesResponse.data.some(response => 
-          response.formTemplate === form._id && 
+      // RESTRICTION: Only allow one form submission per coordinator
+      // Check if coordinator has already submitted any form
+      const hasSubmittedAnyForm = responsesResponse.data.some(response => 
+        response.respondent === session.user.id
+      );
+      
+      // If coordinator has already submitted a form, show only that form for viewing
+      if (hasSubmittedAnyForm) {
+        const submittedForm = responsesResponse.data.find(response => 
           response.respondent === session.user.id
         );
-        return { ...form, isSubmitted: hasSubmitted };
-      });
+        
+        const originalForm = formsResponse.data.find(form => 
+          form._id === submittedForm.formTemplate
+        );
+        
+        if (originalForm) {
+          setActiveForms([{ ...originalForm, isSubmitted: true, submittedResponse: submittedForm }]);
+        } else {
+          setActiveForms([]);
+        }
+      } else {
+        // If no form submitted yet, show only the first available form
+        const availableForms = formsResponse.data.slice(0, 1); // Only first form
+        setActiveForms(availableForms.map(form => ({ ...form, isSubmitted: false })));
+      }
       
-      setActiveForms(formsWithStatus);
       setError('');
     } catch (error) {
       setError('Failed to fetch active forms');
@@ -251,9 +271,21 @@ export default function SubmitReport() {
       </Head>
 
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Submit Weekly Report</h1>
-          <p className="mt-1 text-sm text-gray-600">Submit your coordinator weekly report</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Submit Weekly Report</h1>
+            <p className="mt-1 text-sm text-gray-600">Submit your coordinator weekly report</p>
+          </div>
+          <div className="flex space-x-3">
+            <Link href="/">
+              <Button variant="outline">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Home
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {error && (
@@ -399,6 +431,19 @@ export default function SubmitReport() {
             </div>
             
             <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900">{selectedForm.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => router.push('/')}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Close Form"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
               <FormRenderer 
                 form={selectedForm}
                 formData={formData}
@@ -415,23 +460,37 @@ export default function SubmitReport() {
                   {submittedResponse ? 'Back to Dashboard' : 'Cancel'}
                 </Button>
                 {!submittedResponse && (
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    onClick={handleSubmit}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Submitting...
-                      </div>
-                    ) : (
-                      'Submit Report'
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowPreview(true);
+                        setPreviewClicked(true);
+                      }}
+                    >
+                      Preview Report
+                    </Button>
+                    {previewClicked && (
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        onClick={handleSubmit}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Submitting...
+                          </div>
+                        ) : (
+                          'Submit Report'
+                        )}
+                      </Button>
                     )}
-                  </Button>
+                  </>
                 )}
                 {submittedResponse && (
                   <Button

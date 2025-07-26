@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       console.log('Ward creation request body:', req.body);
       console.log('Session user:', session.user);
       
-      const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, population, area, description } = req.body;
+      const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, population, area, description, isSittingWard } = req.body;
       
       // Validate required fields
       if (!name || !wardNumber || !panchayath || !district) {
@@ -166,6 +166,7 @@ export default async function handler(req, res) {
         population: population ? parseInt(population) : undefined,
         area,
         description,
+        isSittingWard: isSittingWard || false,
         createdBy: session.user.id,
       });
       
