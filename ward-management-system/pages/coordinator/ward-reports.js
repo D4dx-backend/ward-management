@@ -170,7 +170,7 @@ export default function CoordinatorWardReports() {
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
       </div>
     );
-  }
+  };
 
   return (
     <Layout>
