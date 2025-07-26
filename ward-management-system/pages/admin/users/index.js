@@ -30,6 +30,7 @@ export default function Users() {
     pinCode: '',
     role: 'coordinator',
     district: '',
+    sendWhatsApp: true,
   });
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -39,6 +40,12 @@ export default function Users() {
   });
   const [showWardsModal, setShowWardsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [resetPasswordModal, setResetPasswordModal] = useState({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    isResetting: false
+  });
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -131,6 +138,7 @@ export default function Users() {
       pinCode: '',
       role: 'coordinator',
       district: '',
+      sendWhatsApp: true,
     });
   };
 
@@ -268,6 +276,61 @@ export default function Users() {
     setShowWardsModal(true);
   };
 
+  const openResetPasswordModal = (user) => {
+    setResetPasswordModal({
+      isOpen: true,
+      userId: user._id,
+      userName: user.name,
+      isResetting: false
+    });
+  };
+
+  const closeResetPasswordModal = () => {
+    if (!resetPasswordModal.isResetting) {
+      setResetPasswordModal({
+        isOpen: false,
+        userId: null,
+        userName: '',
+        isResetting: false
+      });
+    }
+  };
+
+  const confirmResetPassword = async () => {
+    setResetPasswordModal(prev => ({ ...prev, isResetting: true }));
+
+    try {
+      const response = await axios.post('/api/users/reset-password', {
+        userId: resetPasswordModal.userId
+      });
+      
+      setError('');
+      
+      // Create detailed feedback message
+      let message = 'Password reset successfully!\n\n';
+      message += `New Password: ${response.data.newPassword}\n`;
+      message += `User Mobile: ${response.data.userMobileNumber}\n\n`;
+      
+      if (response.data.whatsappSent) {
+        message += '✅ WhatsApp notification sent successfully!';
+      } else {
+        message += '❌ WhatsApp notification failed to send.\n';
+        if (response.data.whatsappError) {
+          message += `Error: ${response.data.whatsappError}`;
+        }
+        if (response.data.userMobileNumber === 'Not provided') {
+          message += '\nReason: User has no mobile number on file.';
+        }
+      }
+      
+      alert(message);
+      closeResetPasswordModal();
+    } catch (error) {
+      setError('Failed to reset password: ' + (error.response?.data?.message || error.message));
+      setResetPasswordModal(prev => ({ ...prev, isResetting: false }));
+    }
+  };
+
   if (status === 'loading' || isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -395,7 +458,23 @@ export default function Users() {
         </div>
       )}
 
-      {/* No additional fields needed for coordinators and ward admins */}
+      {/* WhatsApp Notification Option */}
+      {!isEdit && formData.mobileNumber && (
+        <div className="flex items-center space-x-2 p-4 bg-green-50 rounded-lg">
+          <input
+            type="checkbox"
+            id="sendWhatsApp"
+            name="sendWhatsApp"
+            checked={formData.sendWhatsApp}
+            onChange={(e) => setFormData({ ...formData, sendWhatsApp: e.target.checked })}
+            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+          />
+          <label htmlFor="sendWhatsApp" className="text-sm text-gray-700">
+            <span className="font-medium">Send WhatsApp notification</span>
+            <p className="text-xs text-gray-500">Send login credentials via WhatsApp to the provided mobile number</p>
+          </label>
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
         <Button
@@ -568,6 +647,17 @@ export default function Users() {
                           Edit
                         </Button>
                         <Button
+                          variant="warning"
+                          size="sm"
+                          onClick={() => openResetPasswordModal(user)}
+                          title="Reset user password and send via WhatsApp"
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 01-2 2m2-2h-6m6 0H9.5a2.5 2.5 0 000 5H11" />
+                          </svg>
+                          Reset
+                        </Button>
+                        <Button
                           variant="danger"
                           size="sm"
                           onClick={() => openDeleteModal(user)}
@@ -644,6 +734,18 @@ export default function Users() {
             setSelectedUser(null);
           }}
           user={selectedUser}
+        />
+
+        {/* Reset Password Modal */}
+        <DeleteModal
+          isOpen={resetPasswordModal.isOpen}
+          onClose={closeResetPasswordModal}
+          onConfirm={confirmResetPassword}
+          title="Reset Password"
+          message="Are you sure you want to reset the password for this user? A new password will be generated and sent via WhatsApp if available."
+          itemName={resetPasswordModal.userName}
+          confirmText="Reset Password"
+          isLoading={resetPasswordModal.isResetting}
         />
       </div>
     </Layout>
