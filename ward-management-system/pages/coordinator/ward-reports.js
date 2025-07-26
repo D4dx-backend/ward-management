@@ -76,8 +76,8 @@ export default function CoordinatorWardReports() {
       
       setWardReports(response.data || []);
       setError('');
-    } catch (fetchError) {
-      console.error('Error fetching ward reports:', fetchError);
+    } catch (error) {
+      console.error('Error fetching ward reports:', error);
       setError('Failed to fetch ward reports');
       
       const mockWardReports = [
