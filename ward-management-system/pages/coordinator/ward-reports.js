@@ -67,9 +67,9 @@ export default function CoordinatorWardReports() {
   }, [wardReports, searchTerm, filter]);
 
   const fetchWardReports = async () => {
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      
       // Fetch actual ward reports for coordinator's wards
       const response = await axios.get('/api/responses', {
         params: {
