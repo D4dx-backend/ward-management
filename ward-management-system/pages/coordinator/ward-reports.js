@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
-import Link from 'next/link';
 import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
@@ -80,8 +79,8 @@ export default function CoordinatorWardReports() {
       
       setWardReports(response.data || []);
       setError('');
-    } catch (error) {
-      console.error('Error fetching ward reports:', error);
+    } catch (fetchError) {
+      console.error('Error fetching ward reports:', fetchError);
       setError('Failed to fetch ward reports');
       
       // Fallback to mock data for development
