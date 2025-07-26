@@ -33,12 +33,17 @@ export default function AdminWards() {
     district: '',
     coordinatorId: '',
     wardAdminId: '',
-    population: '',
-    area: '',
-    description: '',
   });
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
+  
+  // Pagination and filters
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [filterPanchayath, setFilterPanchayath] = useState('');
+  const [filterCoordinator, setFilterCoordinator] = useState('');
+  
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     wardId: null,
@@ -58,9 +63,12 @@ export default function AdminWards() {
   }, [status, session, router]);
 
   useEffect(() => {
-    // Filter wards based on search term
+    // Filter wards based on search term and filters
+    let filtered = wards;
+
+    // Apply search filter
     if (searchTerm) {
-      const filtered = wards.filter(ward =>
+      filtered = filtered.filter(ward =>
         ward.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ward.wardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ward.panchayath.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -68,11 +76,42 @@ export default function AdminWards() {
         ward.coordinator?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         ward.wardAdmin?.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredWards(filtered);
-    } else {
-      setFilteredWards(wards);
     }
-  }, [wards, searchTerm]);
+
+    // Apply district filter
+    if (filterDistrict) {
+      filtered = filtered.filter(ward => ward.district === filterDistrict);
+    }
+
+    // Apply panchayath filter
+    if (filterPanchayath) {
+      filtered = filtered.filter(ward => ward.panchayath === filterPanchayath);
+    }
+
+    // Apply coordinator filter
+    if (filterCoordinator) {
+      filtered = filtered.filter(ward => ward.coordinator?._id === filterCoordinator);
+    }
+
+    setFilteredWards(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator]);
+
+  // Get unique districts, panchayaths, and coordinators for filters
+  const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();
+  const uniquePanchayaths = [...new Set(wards.map(ward => ward.panchayath))].sort();
+  const uniqueCoordinators = [...new Set(wards.filter(ward => ward.coordinator).map(ward => ward.coordinator))]
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredWards.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedWards = filteredWards.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   useEffect(() => {
     // Update available panchayaths when district changes
@@ -124,9 +163,6 @@ export default function AdminWards() {
       district: '',
       coordinatorId: '',
       wardAdminId: '',
-      population: '',
-      area: '',
-      description: '',
     });
     setSelectedDistrict('');
     setAvailablePanchayaths([]);
@@ -200,9 +236,6 @@ export default function AdminWards() {
       district: ward.district,
       coordinatorId: ward.coordinator?._id || '',
       wardAdminId: ward.wardAdmin?._id || '',
-      population: ward.population || '',
-      area: ward.area || '',
-      description: ward.description || '',
     });
     setSelectedDistrict(ward.district);
     setShowEditModal(true);
@@ -379,52 +412,7 @@ export default function AdminWards() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="population" className="block text-sm font-medium text-gray-700 mb-1">
-            Population
-          </label>
-          <input
-            type="number"
-            id="population"
-            name="population"
-            value={formData.population}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter population"
-          />
-        </div>
 
-        <div>
-          <label htmlFor="area" className="block text-sm font-medium text-gray-700 mb-1">
-            Area (sq km)
-          </label>
-          <input
-            type="text"
-            id="area"
-            name="area"
-            value={formData.area}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter area in sq km"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          id="description"
-          name="description"
-          value={formData.description}
-          onChange={handleInputChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          rows="3"
-          placeholder="Enter ward description"
-        />
-      </div>
 
       <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
         <Button
@@ -491,11 +479,65 @@ export default function AdminWards() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <SearchInput
-              onSearch={setSearchTerm}
-              placeholder="Search wards by name, number, panchayath, district, or staff..."
-              className="max-w-md"
-            />
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              <SearchInput
+                onSearch={setSearchTerm}
+                placeholder="Search wards by name, number, panchayath, district, or staff..."
+                className="max-w-md"
+              />
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <select
+                  value={filterDistrict}
+                  onChange={(e) => setFilterDistrict(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Districts</option>
+                  {uniqueDistricts.map(district => (
+                    <option key={district} value={district}>{district}</option>
+                  ))}
+                </select>
+                
+                <select
+                  value={filterPanchayath}
+                  onChange={(e) => setFilterPanchayath(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Panchayaths</option>
+                  {uniquePanchayaths.map(panchayath => (
+                    <option key={panchayath} value={panchayath}>{panchayath}</option>
+                  ))}
+                </select>
+                
+                <select
+                  value={filterCoordinator}
+                  onChange={(e) => setFilterCoordinator(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Coordinators</option>
+                  {uniqueCoordinators.map(coordinator => (
+                    <option key={coordinator._id} value={coordinator._id}>{coordinator.name}</option>
+                  ))}
+                </select>
+                
+                {(filterDistrict || filterPanchayath || filterCoordinator) && (
+                  <button
+                    onClick={() => {
+                      setFilterDistrict('');
+                      setFilterPanchayath('');
+                      setFilterCoordinator('');
+                    }}
+                    className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-4 text-sm text-gray-600">
+              Showing {paginatedWards.length} of {filteredWards.length} wards
+            </div>
           </div>
 
           <div>
@@ -517,16 +559,13 @@ export default function AdminWards() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/8">
                     Advance Data
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/12">
-                    Pop.
-                  </th>
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredWards.map((ward) => (
+                {paginatedWards.map((ward) => (
                   <tr key={ward._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div>
@@ -536,11 +575,6 @@ export default function AdminWards() {
                           </div>
                         </Link>
                         <div className="text-xs text-gray-500">Ward #{ward.wardNumber}</div>
-                        {ward.description && (
-                          <div className="text-xs text-gray-400 truncate mt-1" title={ward.description}>
-                            {ward.description}
-                          </div>
-                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -608,9 +642,7 @@ export default function AdminWards() {
                         <span className="text-xs text-gray-400">Not submitted</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-900">
-                      {ward.population ? (ward.population > 1000 ? `${Math.round(ward.population / 1000)}k` : ward.population) : '-'}
-                    </td>
+
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end space-x-1">
                         <Link href={`/admin/clusters?wardId=${ward._id}`}>
@@ -645,7 +677,9 @@ export default function AdminWards() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {searchTerm ? 'No wards found matching your search' : 'No wards found'}
+                          {(searchTerm || filterDistrict || filterPanchayath || filterCoordinator) 
+                            ? 'No wards found matching your search or filters' 
+                            : 'No wards found'}
                         </p>
                       </div>
                     </td>
@@ -654,6 +688,62 @@ export default function AdminWards() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Create Ward Modal */}

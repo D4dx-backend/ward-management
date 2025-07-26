@@ -15,6 +15,10 @@ const WardBasicDataSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     required: true,
   },
+  clusterData: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
