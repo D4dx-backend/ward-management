@@ -157,7 +157,8 @@ export default function SubmitReport() {
         if (field.subQuestions && field.subQuestions.length > 0) {
           const shouldShowSubQuestions = !field.showSubQuestionsWhen || 
             (field.type === 'yesno' && formData[fieldKey] === field.showSubQuestionsWhen) ||
-            (field.type === 'select' && formData[fieldKey] === field.showSubQuestionsWhen);
+            (field.type === 'select' && formData[fieldKey] === field.showSubQuestionsWhen) ||
+            (field.type === 'multiselect' && Array.isArray(formData[fieldKey]) && formData[fieldKey].includes(field.showSubQuestionsWhen));
 
           if (shouldShowSubQuestions) {
             field.subQuestions.forEach((subQuestion, subIndex) => {

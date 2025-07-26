@@ -176,6 +176,7 @@ export default function SubmitWardReport() {
         
         // Check if sub-questions should be visible
         const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+          (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
           (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
           
         if (shouldShowSubQuestions) {
@@ -549,6 +550,7 @@ export default function SubmitWardReport() {
                                 
                                 // Check if sub-question should be visible
                                 const shouldShow = field.showSubQuestionsWhen ? 
+                                  (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
                                   (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
                                 
                                 if (!shouldShow || (!subValue && subValue !== 0 && subValue !== false)) return null;
