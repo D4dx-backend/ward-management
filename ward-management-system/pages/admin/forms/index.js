@@ -268,6 +268,9 @@ export default function Forms() {
                     Availability
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Responses
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -308,6 +311,29 @@ export default function Forms() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm">
+                        <div className="font-medium text-gray-900 mb-1">
+                          {form.responseCount || 0} / {form.expectedCount || 0}
+                        </div>
+                        {form.expectedCount > 0 && (
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${Math.min(((form.responseCount || 0) / form.expectedCount) * 100, 100)}%` 
+                              }}
+                            ></div>
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-500">
+                          {form.expectedCount > 0 
+                            ? `${Math.round(((form.responseCount || 0) / form.expectedCount) * 100)}% complete`
+                            : 'No target set'
+                          }
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => toggleFormStatus(form._id, form.isActive)}
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
@@ -344,7 +370,7 @@ export default function Forms() {
                 ))}
                 {forms.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

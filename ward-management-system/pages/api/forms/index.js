@@ -2,6 +2,9 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import connectToDatabase from '../../../lib/mongodb';
 import FormTemplate from '../../../models/FormTemplate';
+import Response from '../../../models/Response';
+import Ward from '../../../models/Ward';
+import User from '../../../models/User';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
@@ -36,7 +39,29 @@ export default async function handler(req, res) {
       // Get forms
       const forms = await FormTemplate.find(query).sort({ createdAt: -1 });
       
-      return res.status(200).json(forms);
+      // Get response counts and expected counts for each form
+      const formsWithCounts = await Promise.all(forms.map(async (form) => {
+        // Get response count for this form
+        const responseCount = await Response.countDocuments({ formTemplate: form._id });
+        
+        // Calculate expected count based on form type
+        let expectedCount = 0;
+        if (form.formType === 'coordinatorReport') {
+          // Count coordinators (users with role 'coordinator')
+          expectedCount = await User.countDocuments({ role: 'coordinator' });
+        } else if (form.formType === 'wardReport') {
+          // Count wards
+          expectedCount = await Ward.countDocuments({});
+        }
+        
+        return {
+          ...form.toObject(),
+          responseCount,
+          expectedCount
+        };
+      }));
+      
+      return res.status(200).json(formsWithCounts);
     } catch (error) {
       console.error('Forms API GET Error:', error);
       return res.status(500).json({ message: 'Error fetching forms', error: error.message });
