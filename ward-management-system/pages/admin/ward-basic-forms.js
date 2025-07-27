@@ -79,22 +79,35 @@ export default function WardBasicForms() {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Advance Data</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Ward Advance Data Forms</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage the form for collecting ward advance information
+              Manage forms for collecting ward advance information
             </p>
             <div className="mt-2 text-sm text-gray-500">
-              Showing {paginatedForms.length} of {forms.length} forms
+              {forms.length > 0 ? `Showing ${paginatedForms.length} of ${forms.length} forms` : 'No forms created yet'}
             </div>
           </div>
-          {forms.length === 0 && (
-            <Button onClick={() => router.push('/admin/ward-basic-forms/create')}>
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={fetchForms}
+              disabled={isLoading}
+              className="flex items-center"
+            >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Create Form
+              {isLoading ? 'Refreshing...' : 'Refresh'}
             </Button>
-          )}
+            {forms.length === 0 && (
+              <Button onClick={() => router.push('/admin/ward-basic-forms/create')}>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Form
+              </Button>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -134,45 +147,61 @@ export default function WardBasicForms() {
           </Card>
         ) : (
           <Card>
-            <div className="p-6">
-              {paginatedForms.map((form) => (
-                <div key={form._id} className="border border-gray-200 rounded-lg p-6">
+            <div className="p-6 space-y-6">
+              {paginatedForms.map((form, index) => (
+                <div key={form._id} className={`border border-gray-200 rounded-lg p-6 ${index > 0 ? 'border-t-0 rounded-t-none' : ''}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-2">
                         <h2 className="text-xl font-semibold text-gray-900">{form.title}</h2>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Active
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          form.isActive 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {form.isActive ? 'Active' : 'Inactive'}
                         </span>
                         <span className="text-sm text-gray-500">v{form.version}</span>
                       </div>
                       {form.description && (
                         <p className="text-gray-600 mb-4">{form.description}</p>
                       )}
-                      <div className="flex items-center space-x-6 text-sm text-gray-500">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-500">
                         <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
                           {form.fields.length} fields
                         </span>
                         <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
-                          Created by {form.createdBy?.name}
+                          Created by {form.createdBy?.name || 'Unknown'}
                         </span>
                         <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a4 4 0 118 0v4m-4 8a2 2 0 100-4 2 2 0 000 4zm0 0v4a2 2 0 002 2h6a2 2 0 002-2v-4a2 2 0 00-2-2H6a2 2 0 00-2 2z" />
                           </svg>
                           {new Date(form.createdAt).toLocaleDateString()}
                         </span>
                       </div>
+                      {form.updatedAt && form.updatedAt !== form.createdAt && (
+                        <div className="mt-2 text-sm text-gray-500">
+                          <span className="flex items-center">
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Last updated: {new Date(form.updatedAt).toLocaleDateString()}
+                            {form.updatedBy && ` by ${form.updatedBy.name}`}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center space-x-3">
                       <Button
                         variant="outline"
+                        size="sm"
                         onClick={() => handlePreview(form)}
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -182,6 +211,7 @@ export default function WardBasicForms() {
                         Preview
                       </Button>
                       <Button
+                        size="sm"
                         onClick={() => router.push(`/admin/ward-basic-forms/edit/${form._id}`)}
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,6 +280,30 @@ export default function WardBasicForms() {
               </div>
             )}
           </Card>
+        )}
+
+        {/* Info Section */}
+        {forms.length > 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-blue-800">Ward Advance Data Form Management</h3>
+                <div className="mt-2 text-sm text-blue-700">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><strong>Create:</strong> Add new forms when none exist</li>
+                    <li><strong>Edit:</strong> Modify existing forms by adding, updating, or removing fields</li>
+                    <li><strong>Preview:</strong> View how the form will appear to ward users</li>
+                    <li><strong>Version Control:</strong> Each edit creates a new version automatically</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Preview Modal */}

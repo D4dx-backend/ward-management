@@ -35,7 +35,8 @@ const Layout = ({ children }) => {
     coordinator: [
       { name: 'Dashboard', href: '/', icon: '📊' },
       { name: 'Report Forms', href: '/coordinator/reports/submit', icon: '📝' },
-      { name: 'My Reports', href: '/coordinator/ward-reports', icon: '📈' },
+      { name: 'My Reports', href: '/coordinator/reports', icon: '📈' },
+      { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
       { name: 'Ward Status', href: '/coordinator/ward-status', icon: '🔍' },
       { name: 'Ward Visits', href: '/coordinator/ward-visits', icon: '🚶' },
       { name: 'Instructions', href: '/instructions', icon: '📋' },
@@ -51,7 +52,7 @@ const Layout = ({ children }) => {
       { name: 'Instructions', href: '/instructions', icon: '📋' },
       { name: 'Documents', href: '/documents', icon: '📄' },
       { name: 'Ward Profile', href: '/ward/basic-data', icon: '📋' },
-      { name: 'Clusters', href: '/admin/clusters', icon: '🏢' },
+      { name: 'View Clusters', href: '/admin/clusters', icon: '🏢' },
       { name: 'Reset PIN', href: '/reset-password', icon: '🔐' },
     ],
   };

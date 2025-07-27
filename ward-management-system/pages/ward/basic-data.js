@@ -48,26 +48,48 @@ export default function WardBasicData() {
       
       // Get active form
       try {
+        console.log('Fetching ward basic forms...');
         const formsResponse = await axios.get('/api/ward-basic-forms');
         console.log('Forms response:', formsResponse.data);
         
         if (!formsResponse.data || formsResponse.data.length === 0) {
-          setError('No ward advance data forms found. Please contact your administrator to create a form.');
+          setError('No ward basic data forms found. Please contact your administrator to create a form.');
           return;
         }
         
         const activeForms = formsResponse.data.filter(form => form.isActive);
         
         if (activeForms.length === 0) {
-          setError('No active ward advance data form available. Please contact your administrator to activate a form.');
+          setError('No active ward basic data form available. Please contact your administrator to activate a form.');
           return;
         }
         
         const form = activeForms[0]; // Get the first active form
         setActiveForm(form);
+        console.log('Active form set:', form);
       } catch (formError) {
         console.error('Error fetching form:', formError);
-        setError(`Failed to load form data: ${formError.response?.data?.message || formError.message}`);
+        console.error('Error details:', {
+          status: formError.response?.status,
+          statusText: formError.response?.statusText,
+          data: formError.response?.data,
+          message: formError.message
+        });
+        
+        let errorMessage = 'Failed to load form data';
+        if (formError.response?.status === 401) {
+          errorMessage = 'Authentication required. Please sign in again.';
+        } else if (formError.response?.status === 403) {
+          errorMessage = 'Access denied. You do not have permission to access this form.';
+        } else if (formError.response?.status === 500) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else if (formError.code === 'ECONNREFUSED') {
+          errorMessage = 'Cannot connect to server. Please ensure the application is running.';
+        } else {
+          errorMessage = `Failed to load form data: ${formError.response?.data?.message || formError.message}`;
+        }
+        
+        setError(errorMessage);
         return;
       }
 
@@ -105,26 +127,40 @@ export default function WardBasicData() {
 
       // Get existing data for this ward and form
       try {
+        console.log(`Fetching existing data for ward ${userWard._id} and form ${form._id}...`);
         const dataResponse = await axios.get(`/api/ward-basic-data?wardId=${userWard._id}&formId=${form._id}`);
         console.log('Ward basic data response:', dataResponse.data);
         
-        if (dataResponse.data) {
-          setExistingData(dataResponse.data);
-          if (dataResponse.data.data) {
-            setFormData(dataResponse.data.data);
-          }
+        if (dataResponse.data && dataResponse.data.length > 0) {
+          const existing = dataResponse.data[0];
+          setExistingData(existing);
+          setFormData(existing.data || {});
+          setClusterData(existing.clusterData || {});
+          console.log('Loaded existing data successfully');
+        } else {
+          console.log('No existing data found, initializing with defaults');
+          // Initialize with default values
+          const defaultData = {};
+          form.fields.forEach(field => {
+            if (field.defaultValue !== undefined && field.defaultValue !== '' && !field.applicableToClusters) {
+              defaultData[field.id] = field.defaultValue;
+            }
+          });
+          setFormData(defaultData);
+          setClusterData({});
         }
       } catch (dataError) {
         console.error('Error fetching existing data:', dataError);
+        console.error('Data error details:', {
+          status: dataError.response?.status,
+          statusText: dataError.response?.statusText,
+          data: dataError.response?.data,
+          message: dataError.message
+        });
+        
         // This is not a critical error - user can still fill the form
-        console.log('No existing data found, starting with empty form');
-      }
-      if (dataResponse.data.length > 0) {
-        const existing = dataResponse.data[0];
-        setExistingData(existing);
-        setFormData(existing.data || {});
-        setClusterData(existing.clusterData || {});
-      } else {
+        console.log('Continuing with empty form due to data fetch error');
+        
         // Initialize with default values
         const defaultData = {};
         form.fields.forEach(field => {
@@ -137,8 +173,16 @@ export default function WardBasicData() {
       }
 
       // Get dynamic data for this ward
-      const dynamicResponse = await axios.get(`/api/ward-dynamic-data?wardId=${userWard._id}`);
-      setDynamicData(dynamicResponse.data);
+      try {
+        console.log(`Fetching dynamic data for ward ${userWard._id}...`);
+        const dynamicResponse = await axios.get(`/api/ward-dynamic-data?wardId=${userWard._id}`);
+        setDynamicData(dynamicResponse.data);
+        console.log('Dynamic data loaded successfully');
+      } catch (dynamicError) {
+        console.error('Error fetching dynamic data:', dynamicError);
+        // This is not critical - set empty array
+        setDynamicData([]);
+      }
 
       setError('');
     } catch (error) {
@@ -264,6 +308,18 @@ export default function WardBasicData() {
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">Form Not Available</h3>
               <p className="mt-1 text-sm text-gray-500">{error}</p>
+              <div className="mt-4">
+                <Button 
+                  onClick={fetchData}
+                  disabled={isLoading}
+                  className="inline-flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {isLoading ? 'Retrying...' : 'Retry'}
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -349,6 +405,7 @@ export default function WardBasicData() {
                 {activeForm.fields.filter(field => field.applicableToClusters).length > 0 && ward && (
                   <div className="mb-8">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Cluster-wise Information</h3>
+
                     <ClusterDataCollector
                       wardId={ward._id}
                       questions={activeForm.fields.filter(field => field.applicableToClusters)}

@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import dbConnect from '../../../lib/mongodb';
+import connectToDatabase from '../../../lib/mongodb';
 import WardDynamicData from '../../../models/WardDynamicData';
 import Ward from '../../../models/Ward';
 
@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  await dbConnect();
+  await connectToDatabase();
 
   switch (req.method) {
     case 'GET':

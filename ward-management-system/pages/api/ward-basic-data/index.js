@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import dbConnect from '../../../lib/mongodb';
+import connectToDatabase from '../../../lib/mongodb';
 import WardBasicData from '../../../models/WardBasicData';
 import WardBasicForm from '../../../models/WardBasicForm';
 import Ward from '../../../models/Ward';
@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  await dbConnect();
+  await connectToDatabase();
 
   switch (req.method) {
     case 'GET':
@@ -106,6 +106,18 @@ async function handlePost(req, res, session) {
       });
     }
 
+    // Validate cluster data if there are cluster-applicable fields
+    const clusterFields = form.fields.filter(field => field.applicableToClusters);
+    if (clusterFields.length > 0) {
+      const clusterValidationErrors = await validateClusterData(clusterData, clusterFields, wardId);
+      if (clusterValidationErrors.length > 0) {
+        return res.status(400).json({ 
+          message: 'Cluster data validation errors', 
+          errors: clusterValidationErrors 
+        });
+      }
+    }
+
     // Check if data already exists for this ward and form
     const existingData = await WardBasicData.findOne({ ward: wardId, form: formId });
     
@@ -155,7 +167,10 @@ async function handlePost(req, res, session) {
 function validateFormData(data, fields) {
   const errors = [];
   
-  for (const field of fields) {
+  // Only validate non-cluster fields here
+  const nonClusterFields = fields.filter(field => !field.applicableToClusters);
+  
+  for (const field of nonClusterFields) {
     const value = data[field.id];
     
     // Check required fields
@@ -252,6 +267,94 @@ function validateFormData(data, fields) {
           errors.push(`${field.label} must be 'yes' or 'no'`);
         }
         break;
+    }
+  }
+  
+  return errors;
+}
+
+async function validateClusterData(clusterData, clusterFields, wardId) {
+  const errors = [];
+  
+  if (!clusterData || typeof clusterData !== 'object') {
+    if (clusterFields.some(field => field.required)) {
+      errors.push('Cluster data is required for cluster-applicable fields');
+    }
+    return errors;
+  }
+
+  // Get ward clusters to validate against
+  let clusters = [];
+  try {
+    const Cluster = require('../../../models/Cluster');
+    clusters = await Cluster.find({ ward: wardId });
+  } catch (error) {
+    console.error('Error fetching clusters for validation:', error);
+    // Continue without cluster validation if we can't fetch clusters
+    return errors;
+  }
+
+  // Validate each cluster's data
+  for (const cluster of clusters) {
+    const clusterId = cluster._id.toString();
+    const clusterFieldData = clusterData[clusterId] || {};
+
+    for (const field of clusterFields) {
+      const value = clusterFieldData[field.id];
+      
+      // Check required fields
+      if (field.required && (value === undefined || value === null || value === '')) {
+        errors.push(`${field.label} is required for cluster: ${cluster.name}`);
+        continue;
+      }
+      
+      // Skip validation if field is empty and not required
+      if (value === undefined || value === null || value === '') {
+        continue;
+      }
+      
+      // Type-specific validation (same as regular fields)
+      switch (field.type) {
+        case 'number':
+          if (isNaN(value)) {
+            errors.push(`${field.label} must be a number for cluster: ${cluster.name}`);
+          } else {
+            const num = Number(value);
+            if (field.validation?.min !== undefined && num < field.validation.min) {
+              errors.push(`${field.label} must be at least ${field.validation.min} for cluster: ${cluster.name}`);
+            }
+            if (field.validation?.max !== undefined && num > field.validation.max) {
+              errors.push(`${field.label} must be at most ${field.validation.max} for cluster: ${cluster.name}`);
+            }
+          }
+          break;
+          
+        case 'text':
+        case 'textarea':
+          if (typeof value !== 'string') {
+            errors.push(`${field.label} must be text for cluster: ${cluster.name}`);
+          } else {
+            if (field.validation?.minLength && value.length < field.validation.minLength) {
+              errors.push(`${field.label} must be at least ${field.validation.minLength} characters for cluster: ${cluster.name}`);
+            }
+            if (field.validation?.maxLength && value.length > field.validation.maxLength) {
+              errors.push(`${field.label} must be at most ${field.validation.maxLength} characters for cluster: ${cluster.name}`);
+            }
+          }
+          break;
+          
+        case 'select':
+          if (!field.options.includes(value)) {
+            errors.push(`${field.label} must be one of: ${field.options.join(', ')} for cluster: ${cluster.name}`);
+          }
+          break;
+          
+        case 'yesno':
+          if (!['Yes', 'No'].includes(value)) {
+            errors.push(`${field.label} must be 'Yes' or 'No' for cluster: ${cluster.name}`);
+          }
+          break;
+      }
     }
   }
   

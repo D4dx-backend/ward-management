@@ -458,7 +458,7 @@ export default function Clusters() {
                 </Button>
               </Link>
             )}
-            {['stateAdmin', 'wardAdmin'].includes(session?.user?.role) && (
+            {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
               <div className="flex space-x-2">
                 <Button onClick={() => setShowCreateModal(true)}>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -574,7 +574,7 @@ export default function Clusters() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {['stateAdmin', 'wardAdmin'].includes(session?.user?.role) && (
+                        {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
                           <Button variant="outline" size="sm" onClick={() => handleEdit(cluster)}>
                             Edit
                           </Button>
@@ -587,6 +587,9 @@ export default function Clusters() {
                           >
                             Delete
                           </Button>
+                        )}
+                        {session?.user?.role === 'wardAdmin' && (
+                          <span className="text-sm text-gray-500 italic">View Only</span>
                         )}
                       </div>
                     </td>

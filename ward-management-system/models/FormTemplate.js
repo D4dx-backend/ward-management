@@ -75,6 +75,15 @@ const FormTemplateSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Submission control options
+  allowMultipleSubmissions: {
+    type: Boolean,
+    default: true,
+  },
+  allowEditAfterSubmission: {
+    type: Boolean,
+    default: false,
+  },
   enableDateTime: {
     type: Date,
     required: true,

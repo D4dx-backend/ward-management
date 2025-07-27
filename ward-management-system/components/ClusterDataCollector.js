@@ -175,86 +175,188 @@ export default function ClusterDataCollector({
             </svg>
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Cluster Data Collection</h3>
+            <h3 className="text-sm font-medium text-blue-800">Cluster-wise Information</h3>
             <div className="mt-2 text-sm text-blue-700">
               <p>Please fill out the following information for each cluster in your ward.</p>
-              <p className="mt-1">Found {clusters.length} cluster{clusters.length !== 1 ? 's' : ''} to collect data for.</p>
-              {recurringQuestions.length > 0 && (
-                <p className="mt-1">Including {recurringQuestions.length} recurring question{recurringQuestions.length !== 1 ? 's' : ''} per cluster.</p>
-              )}
+              <p className="mt-1">Found {clusters.length} cluster{clusters.length !== 1 ? 's' : ''}: {clusters.map(c => c.name).join(', ')}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {clusters.map((cluster, index) => (
-        <div key={cluster._id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
-          <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">
-                  {cluster.name}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  Cluster {index + 1} of {clusters.length}
-                  {cluster.description && ` • ${cluster.description}`}
-                </p>
-              </div>
-              <div className="text-sm text-gray-500">
-                {cluster.households ? `${cluster.households} households` : 'Households: N/A'}
+      {/* Display questions grouped by question, then by cluster */}
+      <div className="space-y-8">
+        {questions.map((question, questionIndex) => (
+          <div key={question.id} className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
+              <h3 className="text-lg font-medium text-gray-900">
+                {question.label}
+                {question.required && <span className="text-red-500 ml-1">*</span>}
+              </h3>
+              {question.helpText && (
+                <p className="text-sm text-gray-600 mt-1">{question.helpText}</p>
+              )}
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {clusters.map((cluster, clusterIndex) => (
+                  <div key={cluster._id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-900">
+                        {cluster.name}
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Cluster {clusterIndex + 1}
+                        {cluster.households && ` • ${cluster.households} households`}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      {question.type === 'text' && (
+                        <input
+                          type="text"
+                          placeholder={question.placeholder || `Enter ${question.label.toLowerCase()} for ${cluster.name}`}
+                          value={clusterData[cluster._id]?.[question.id] || ''}
+                          onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                          disabled={disabled}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      )}
+
+                      {question.type === 'number' && (
+                        <input
+                          type="number"
+                          placeholder={question.placeholder || `Enter ${question.label.toLowerCase()} for ${cluster.name}`}
+                          value={clusterData[cluster._id]?.[question.id] || ''}
+                          onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                          disabled={disabled}
+                          min={question.validation?.min}
+                          max={question.validation?.max}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      )}
+
+                      {question.type === 'textarea' && (
+                        <textarea
+                          placeholder={question.placeholder || `Enter ${question.label.toLowerCase()} for ${cluster.name}`}
+                          value={clusterData[cluster._id]?.[question.id] || ''}
+                          onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                          disabled={disabled}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      )}
+
+                      {question.type === 'select' && (
+                        <select
+                          value={clusterData[cluster._id]?.[question.id] || ''}
+                          onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                          disabled={disabled}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        >
+                          <option value="">Select option for {cluster.name}</option>
+                          {question.options?.map((option, optionIndex) => (
+                            <option key={optionIndex} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      {question.type === 'yesno' && (
+                        <div className="flex space-x-4">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`${question.id}_${cluster._id}`}
+                              value="Yes"
+                              checked={clusterData[cluster._id]?.[question.id] === 'Yes'}
+                              onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                              disabled={disabled}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Yes</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name={`${question.id}_${cluster._id}`}
+                              value="No"
+                              checked={clusterData[cluster._id]?.[question.id] === 'No'}
+                              onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                              disabled={disabled}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">No</span>
+                          </label>
+                        </div>
+                      )}
+
+                      {question.type === 'date' && (
+                        <input
+                          type="date"
+                          value={clusterData[cluster._id]?.[question.id] || ''}
+                          onChange={(e) => handleClusterDataChange(cluster._id, question.id, e.target.value)}
+                          disabled={disabled}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+        ))}
 
-          <div className="p-6 space-y-6">
-            {/* Regular form fields */}
-            {questions.length > 0 && (
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Basic Information</h4>
-                <DynamicFormRenderer
-                  fields={questions}
-                  data={clusterData[cluster._id] || {}}
-                  onChange={(formData) => handleClusterFormChange(cluster._id, formData)}
-                  disabled={disabled}
-                />
-              </div>
-            )}
-
-            {/* Recurring questions */}
-            {recurringQuestions.length > 0 && (
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Additional Questions</h4>
-                <div className="space-y-4">
-                  {recurringQuestions.map((question) => (
-                    <RecurringQuestionRenderer
-                      key={`${cluster._id}_${question._id}`}
-                      question={question}
-                      formType={formType}
-                      weekNumber={weekNumber}
-                      year={year}
-                      wardId={wardId}
-                      clusterId={cluster._id}
-                      onComplete={(questionId, answer) => 
-                        handleRecurringQuestionComplete(cluster._id, questionId, answer)
-                      }
-                      disabled={disabled}
-                    />
-                  ))}
+        {/* Recurring questions section */}
+        {recurringQuestions.length > 0 && (
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
+              <h3 className="text-lg font-medium text-gray-900">Additional Questions</h3>
+              <p className="text-sm text-gray-600 mt-1">Recurring questions for each cluster</p>
+            </div>
+            <div className="p-6 space-y-6">
+              {clusters.map((cluster, index) => (
+                <div key={cluster._id} className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-md font-medium text-gray-900 mb-4">
+                    {cluster.name} - Additional Questions
+                  </h4>
+                  <div className="space-y-4">
+                    {recurringQuestions.map((question) => (
+                      <RecurringQuestionRenderer
+                        key={`${cluster._id}_${question._id}`}
+                        question={question}
+                        formType={formType}
+                        weekNumber={weekNumber}
+                        year={year}
+                        wardId={wardId}
+                        clusterId={cluster._id}
+                        onComplete={(questionId, answer) => 
+                          handleRecurringQuestionComplete(cluster._id, questionId, answer)
+                        }
+                        disabled={disabled}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        )}
+      </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            <strong>Summary:</strong> Data collection for {clusters.length} cluster{clusters.length !== 1 ? 's' : ''} 
-            with {questions.length + recurringQuestions.length} question{(questions.length + recurringQuestions.length) !== 1 ? 's' : ''} each.
+            <strong>Summary:</strong> {questions.length} question{questions.length !== 1 ? 's' : ''} × {clusters.length} cluster{clusters.length !== 1 ? 's' : ''} = {questions.length * clusters.length} data points
+            {recurringQuestions.length > 0 && (
+              <span> + {recurringQuestions.length} recurring question{recurringQuestions.length !== 1 ? 's' : ''} per cluster</span>
+            )}
           </div>
           <div className="text-sm text-gray-500">
-            Total data points: {clusters.length * (questions.length + recurringQuestions.length)}
+            Total fields: {(questions.length + recurringQuestions.length) * clusters.length}
           </div>
         </div>
       </div>
