@@ -41,7 +41,12 @@ export default async function handler(req, res) {
           // Get only responses from wards under this coordinator
           const coordinatorWards = await Ward.find({ coordinator: session.user.id });
           const wardIds = coordinatorWards.map(ward => ward._id);
-          query.ward = { $in: wardIds };
+          if (wardIds.length > 0) {
+            query.ward = { $in: wardIds };
+          } else {
+            // If coordinator has no wards, return empty result
+            return res.status(200).json([]);
+          }
         } else {
           // Coordinators can only see their district's responses
           query.district = session.user.district;
@@ -60,11 +65,14 @@ export default async function handler(req, res) {
       }
       
       // Get responses
+      console.log('Final query for responses:', JSON.stringify(query, null, 2));
       const responses = await Response.find(query)
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name email district role')
         .populate('ward', 'name district')
         .sort({ submittedAt: -1 });
+      
+      console.log(`Found ${responses.length} responses matching query`);
       
       // Log the report view activity with better description
       try {
@@ -127,6 +135,22 @@ export default async function handler(req, res) {
       // Check if form is active
       if (!formTemplate.isActive) {
         return res.status(400).json({ message: 'Form is no longer active' });
+      }
+
+      // Check submission controls
+      if (!formTemplate.allowMultipleSubmissions) {
+        // Check if user has already submitted for this form
+        const existingResponse = await Response.findOne({
+          formTemplate: formTemplateId,
+          respondent: session.user.id,
+          ...(formTemplate.formType === 'wardReport' && wardId ? { ward: wardId } : {})
+        });
+
+        if (existingResponse) {
+          return res.status(400).json({ 
+            message: 'Multiple submissions are not allowed for this form. You have already submitted a response.' 
+          });
+        }
       }
       
       // Check permissions based on form type

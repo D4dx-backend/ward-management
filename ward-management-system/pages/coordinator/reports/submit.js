@@ -23,6 +23,13 @@ export default function SubmitReport() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewClicked, setPreviewClicked] = useState(false);
 
+  const isFormEditable = (form) => {
+    if (!form) return false;
+    const now = new Date();
+    const closeDate = new Date(form.closeDateTime);
+    return now < closeDate && form.allowEditAfterSubmission;
+  };
+
   useEffect(() => {
     // Check if user is authenticated and is coordinator
     if (status === 'unauthenticated') {

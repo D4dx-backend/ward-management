@@ -42,7 +42,7 @@ export default async function handler(req, res) {
             { coordinator: user._id },
             { wardAdmin: user._id }
           ]
-        }).select('name wardNumber panchayath district');
+        }).populate('coordinator', 'name email mobileNumber').select('name wardNumber panchayath district coordinator clusters');
         
         if (ward) {
           userObj.ward = ward;

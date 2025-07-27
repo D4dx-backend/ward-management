@@ -2,22 +2,22 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 
-export default function CoordinatorWardReports() {
+export default function WardReports() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [wardReports, setWardReports] = useState([]);
+  const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState({
-    ward: '',
     week: '',
     year: new Date().getFullYear(),
     status: ''
@@ -26,26 +26,21 @@ export default function CoordinatorWardReports() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
+    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
       router.push('/');
     } else if (status === 'authenticated') {
-      fetchWardReports();
+      fetchReports();
     }
   }, [status, session, router]);
 
   useEffect(() => {
-    let filtered = wardReports;
+    let filtered = reports;
 
     if (searchTerm) {
       filtered = filtered.filter(report =>
-        report.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.ward?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.submittedBy?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        report.form?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.ward?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    if (filter.ward) {
-      filtered = filtered.filter(report => report.ward?._id === filter.ward);
     }
 
     if (filter.week) {
@@ -57,49 +52,47 @@ export default function CoordinatorWardReports() {
     }
 
     if (filter.status) {
-      // Since all fetched reports are submitted, only show them if status filter is 'submitted' or empty
-      if (filter.status !== 'submitted') {
-        filtered = [];
+      if (filter.status === 'editable') {
+        filtered = filtered.filter(report => isFormEditable(report.form));
+      } else if (filter.status === 'expired') {
+        filtered = filtered.filter(report => !isFormEditable(report.form));
       }
     }
 
     setFilteredReports(filtered);
-  }, [wardReports, searchTerm, filter]);
+  }, [reports, searchTerm, filter]);
 
-  const fetchWardReports = async () => {
+  const fetchReports = async () => {
     setIsLoading(true);
-
+    
     try {
       const response = await axios.get('/api/responses', {
         params: {
-          formType: 'wardReport',
-          coordinatorOnly: 'true'
+          formType: 'wardReport'
         }
       });
-
-      // Transform the response data to match the expected format
-      const transformedReports = response.data.map(report => ({
-        _id: report._id,
-        title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
-        type: report.formType,
-        weekNumber: report.weekNumber,
-        year: report.year,
-        status: 'submitted', // All fetched reports are submitted
-        submittedBy: report.respondent,
-        ward: report.ward,
-        submittedAt: report.submittedAt,
-        responses: report.responses,
-        formTemplate: report.formTemplate
-      }));
-      setWardReports(transformedReports);
+      
+      // Filter to only show current user's reports
+      const userReports = response.data.filter(report => 
+        report.respondent === session.user.id
+      );
+      
+      setReports(userReports || []);
       setError('');
     } catch (error) {
-      console.error('Error fetching ward reports:', error);
-      setError('Failed to fetch ward reports. Please try again.');
-      setWardReports([]);
+      console.error('Error fetching reports:', error);
+      setError('Failed to fetch reports');
+      setReports([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const isFormEditable = (form) => {
+    if (!form) return false;
+    const now = new Date();
+    const closeDate = new Date(form.closeDateTime);
+    return now < closeDate && form.allowEditAfterSubmission;
   };
 
   const handleFilterChange = (e) => {
@@ -107,43 +100,28 @@ export default function CoordinatorWardReports() {
     setFilter({ ...filter, [name]: value });
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'submitted':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (report) => {
+    const editable = isFormEditable(report.form);
+    if (editable) {
+      return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Editable</span>;
+    } else {
+      return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">View Only</span>;
     }
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'Not submitted';
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  const handleViewReport = (report) => {
-    // For now, we'll show an alert with report details
-    // In a full implementation, this would open a modal or navigate to a details page
-    const reportDetails = Object.entries(report.responses || {})
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n');
-
-    alert(`Report Details for ${report.ward?.name}\n\nWeek: ${report.weekNumber}, Year: ${report.year}\nSubmitted by: ${report.submittedBy?.name}\nSubmitted at: ${formatDate(report.submittedAt)}\n\nResponses:\n${reportDetails}`);
+  const handleEdit = (report) => {
+    router.push(`/ward/reports/edit/${report._id}`);
   };
 
-  const uniqueWards = wardReports
-    .filter(report => report.ward)
-    .reduce((acc, report) => {
-      if (!acc.find(ward => ward._id === report.ward._id)) {
-        acc.push(report.ward);
-      }
-      return acc;
-    }, []);
+  const handleView = (report) => {
+    router.push(`/ward/reports/view/${report._id}`);
+  };
 
   if (status === 'loading' || isLoading) {
     return (
@@ -153,29 +131,28 @@ export default function CoordinatorWardReports() {
     );
   }
 
-
   return (
     <Layout>
       <Head>
-        <title>Ward Reports - Ward Management System</title>
+        <title>My Reports - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Reports</h1>
-            <p className="mt-1 text-sm text-gray-600">Monitor ward progress reports from your district</p>
+            <h1 className="text-2xl font-bold text-gray-900">My Reports</h1>
+            <p className="mt-1 text-sm text-gray-600">View and manage your submitted ward reports</p>
           </div>
-          <Button
-            onClick={fetchWardReports}
-            disabled={isLoading}
-            className="flex items-center gap-2"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
-          </Button>
+          <div className="flex space-x-3">
+            <Link href="/ward/reports/submit">
+              <Button>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Submit New Report
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {error && (
@@ -195,27 +172,13 @@ export default function CoordinatorWardReports() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <SearchInput
                 onSearch={setSearchTerm}
-                placeholder="Search ward reports..."
-                className="md:col-span-2"
+                placeholder="Search reports..."
+                className="md:col-span-1"
               />
-
-              <div>
-                <select
-                  name="ward"
-                  value={filter.ward}
-                  onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Wards</option>
-                  {uniqueWards.map((ward) => (
-                    <option key={ward._id} value={ward._id}>{ward.name}</option>
-                  ))}
-                </select>
-              </div>
-
+              
               <div>
                 <select
                   name="week"
@@ -232,32 +195,45 @@ export default function CoordinatorWardReports() {
 
               <div>
                 <select
+                  name="year"
+                  value={filter.year}
+                  onChange={handleFilterChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Years</option>
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <select
                   name="status"
                   value={filter.status}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Status</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="pending">Pending</option>
-                  <option value="overdue">Overdue</option>
+                  <option value="editable">Editable</option>
+                  <option value="expired">View Only</option>
                 </select>
               </div>
             </div>
           </div>
-
+          
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Details
+                    Report Details
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Week/Year
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Submitted By
+                    Ward
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -275,8 +251,12 @@ export default function CoordinatorWardReports() {
                   <tr key={report._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{report.ward?.name}</div>
-                        <div className="text-sm text-gray-500">{report.ward?.district}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {report.form?.title || 'Ward Report'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {report.form?.description || 'No description'}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -284,44 +264,34 @@ export default function CoordinatorWardReports() {
                       <div className="text-sm text-gray-500">{report.year}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {report.submittedBy ? (
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-8 w-8">
-                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                              <span className="text-xs font-medium text-gray-600">
-                                {report.submittedBy?.name?.charAt(0) || 'U'}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {report.submittedBy?.name || 'Unknown User'}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {report.submittedBy?.role || 'Unknown Role'}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">Not assigned</span>
-                      )}
+                      <div className="text-sm text-gray-900">{report.ward?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{report.ward?.district || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(report.status)}`}>
-                        {report.status}
-                      </span>
+                      {getStatusBadge(report)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(report.submittedAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewReport(report)}
-                      >
-                        View Details
-                      </Button>
+                      <div className="flex justify-end space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleView(report)}
+                        >
+                          View
+                        </Button>
+                        {isFormEditable(report.form) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEdit(report)}
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -333,8 +303,13 @@ export default function CoordinatorWardReports() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {searchTerm || filter.ward || filter.week || filter.status ? 'No ward reports found matching your criteria' : 'No ward reports have been submitted yet'}
+                          {searchTerm || filter.week || filter.status ? 'No reports found matching your criteria' : 'No reports submitted yet'}
                         </p>
+                        {!searchTerm && !filter.week && !filter.status && (
+                          <Link href="/ward/reports/submit">
+                            <Button className="mt-4">Submit Your First Report</Button>
+                          </Link>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -353,8 +328,8 @@ export default function CoordinatorWardReports() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>Note:</strong> This page shows submitted ward reports from wards under your coordination.
-                You can review completed reports to track ward performance and progress.
+                <strong>Note:</strong> You can edit your submitted reports until the form expires. 
+                After expiration, reports become view-only. The edit option is only available if the form creator has enabled editing.
               </p>
             </div>
           </div>

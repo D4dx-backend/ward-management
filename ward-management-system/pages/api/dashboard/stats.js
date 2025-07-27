@@ -265,21 +265,26 @@ export default async function handler(req, res) {
 
     } else if (session.user.role === 'wardAdmin') {
       // Ward Admin Dashboard Stats
-      const responses = await Response.countDocuments({ respondent: session.user.id });
-      stats.reports = responses;
-
+      
       // Get ward admin's wards
       const userWards = await Ward.find({ wardAdmin: session.user.id });
       const wardIds = userWards.map(ward => ward._id);
+      
+      // Get clusters count for the ward admin's wards
+      const Cluster = require('../../../models/Cluster').default;
+      const totalClusters = await Cluster.countDocuments({ 
+        ward: { $in: wardIds } 
+      });
+      stats.clusters = totalClusters;
 
-      // Get the district from the ward admin's ward (for logging purposes)
+      // Get the district from the ward admin's ward
       const userDistrict = userWards.length > 0 ? userWards[0].district : session.user.district;
 
-      // Count submitted reports (responses that exist)
-      const submittedReports = await Response.countDocuments({
-        respondent: session.user.id,
-        formType: 'wardReport'
+      // Count all reports submitted by this ward admin
+      const totalSubmittedReports = await Response.countDocuments({ 
+        respondent: session.user.id 
       });
+      stats.reports = totalSubmittedReports;
 
       // Count pending reports (active forms that haven't been submitted)
       const activeForms = await FormTemplate.find({
@@ -289,19 +294,16 @@ export default async function handler(req, res) {
         closeDateTime: { $gte: new Date() }
       });
 
-      // Check which forms have been submitted
+      // Check which forms have been submitted by this user
       const submittedFormIds = await Response.distinct('formTemplate', {
-        respondent: session.user.id,
-        formType: 'wardReport'
+        respondent: session.user.id
       });
 
       const pendingReports = activeForms.filter(form =>
         !submittedFormIds.some(id => id.toString() === form._id.toString())
       ).length;
 
-      stats.submittedReports = submittedReports;
       stats.pendingReports = pendingReports;
-      stats.totalReports = submittedReports + pendingReports;
 
       // Get recent activity logs for ward admin (last 10)
       const logs = await ActivityLog.find({

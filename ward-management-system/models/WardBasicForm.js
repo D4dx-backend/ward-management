@@ -46,6 +46,10 @@ const FieldSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+  applicableToClusters: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const WardBasicFormSchema = new mongoose.Schema({

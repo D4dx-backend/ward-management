@@ -1,13 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import axios from 'axios';
 import Layout from '../../components/Layout';
+import Card from '../../components/Card';
+import Button from '../../components/Button';
 
 export default function CoordinatorWardStatus() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [wards, setWards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reportConsolidation, setReportConsolidation] = useState({
+    docket: { completed: 0, ongoing: 0, notStarted: 0 },
+    basicSurvey: { completed: 0, ongoing: 0, notStarted: 0 }
+  });
+  const [showModal, setShowModal] = useState(false);
+  const [modalData, setModalData] = useState({ type: '', status: '', wards: [] });
   const [filters, setFilters] = useState({
     status: '',
     page: 1
@@ -32,22 +43,171 @@ export default function CoordinatorWardStatus() {
   const fetchWardStatus = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
+      setError('');
+
+      // Fetch coordinator's wards with enhanced data
+      const [wardsResponse, reportsResponse, visitsResponse, formsResponse] = await Promise.all([
+        axios.get('/api/wards/coordinator'),
+        axios.get('/api/responses?coordinatorOnly=true'),
+        axios.get('/api/ward-visits/coordinator'),
+        axios.get('/api/ward-basic-data/coordinator')
+      ]);
+
+      const wardsData = wardsResponse.data || [];
+      const reportsData = reportsResponse.data || [];
+      const visitsData = visitsResponse.data || [];
+      const formsData = formsResponse.data || [];
+
+      // Process ward data with enhanced information
+      const processedWards = wardsData.map(ward => {
+        // Get ward admin's last login
+        const lastLogin = ward.wardAdmin?.lastLogin;
+        const daysSinceLogin = lastLogin ? 
+          Math.floor((new Date() - new Date(lastLogin)) / (1000 * 60 * 60 * 24)) : null;
+
+        // Get last report submission
+        const wardReports = reportsData.filter(r => r.ward?._id === ward._id);
+        const lastReport = wardReports.length > 0 ? 
+          wardReports.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0] : null;
+
+        // Get last visit
+        const wardVisits = visitsData.filter(v => v.ward?._id === ward._id);
+        const lastVisit = wardVisits.length > 0 ? 
+          wardVisits.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate))[0] : null;
+        const daysSinceLastVisit = lastVisit ? 
+          Math.floor((new Date() - new Date(lastVisit.visitDate)) / (1000 * 60 * 60 * 24)) : null;
+
+        // Calculate report completion status
+        const currentWeek = Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (1000 * 60 * 60 * 24 * 7));
+        const expectedReports = Math.min(currentWeek, 52);
+        const submittedReports = wardReports.length;
+        const reportCompletionRate = expectedReports > 0 ? Math.round((submittedReports / expectedReports) * 100) : 0;
+
+        // Determine ward status color based on recent activity
+        let statusColor = 'gray';
+        if (lastReport) {
+          const daysSinceReport = Math.floor((new Date() - new Date(lastReport.submittedAt)) / (1000 * 60 * 60 * 24));
+          if (daysSinceReport <= 7) statusColor = 'green';
+          else if (daysSinceReport <= 14) statusColor = 'orange';
+          else statusColor = 'red';
+        }
+
+        // Check form completion status
+        const wardForms = formsData.filter(f => f.ward?._id === ward._id);
+        const docketStatus = wardForms.some(f => f.form?.title?.toLowerCase().includes('docket')) ? 'completed' : 'notStarted';
+        const basicSurveyStatus = wardForms.some(f => f.form?.title?.toLowerCase().includes('basic') || f.form?.title?.toLowerCase().includes('survey')) ? 'completed' : 'notStarted';
+
+        return {
+          ...ward,
+          lastLogin,
+          daysSinceLogin,
+          lastReportDate: lastReport?.submittedAt,
+          lastVisitDate: lastVisit?.visitDate,
+          daysSinceLastVisit,
+          submittedReports,
+          expectedReports,
+          reportCompletionRate,
+          statusColor,
+          docketStatus,
+          basicSurveyStatus,
+          recentReportStatus: lastReport ? 'completed' : 'notCompleted'
+        };
       });
 
-      const response = await fetch(`/api/admin/ward-status?${queryParams}`);
-      const data = await response.json();
+      setWards(processedWards);
 
-      if (response.ok) {
-        setWards(data.wards);
-        setPagination(data.pagination);
-      } else {
-        console.error('Error fetching ward status:', data.message);
-      }
+      // Calculate report consolidation
+      const consolidation = {
+        docket: { completed: 0, ongoing: 0, notStarted: 0 },
+        basicSurvey: { completed: 0, ongoing: 0, notStarted: 0 }
+      };
+
+      processedWards.forEach(ward => {
+        consolidation.docket[ward.docketStatus]++;
+        consolidation.basicSurvey[ward.basicSurveyStatus]++;
+      });
+
+      setReportConsolidation(consolidation);
+
     } catch (error) {
       console.error('Error fetching ward status:', error);
+      setError('Failed to load ward status data');
+      
+      // Fallback to mock data for development
+      const mockWards = [
+        {
+          _id: 'ward1',
+          name: 'Panchayath Ward 1',
+          wardNumber: 1,
+          district: session?.user?.district || 'Thiruvananthapuram',
+          wardAdmin: {
+            _id: 'admin1',
+            name: 'Ward Admin 1',
+            mobileNumber: '+91 9876543210',
+            lastLogin: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          lastReportDate: new Date().toISOString(),
+          daysSinceLogin: 2,
+          daysSinceLastVisit: 5,
+          submittedReports: 8,
+          expectedReports: 15,
+          reportCompletionRate: 53,
+          statusColor: 'green',
+          recentReportStatus: 'completed',
+          docketStatus: 'completed',
+          basicSurveyStatus: 'completed'
+        },
+        {
+          _id: 'ward2',
+          name: 'Panchayath Ward 2',
+          wardNumber: 2,
+          district: session?.user?.district || 'Thiruvananthapuram',
+          wardAdmin: {
+            _id: 'admin2',
+            name: 'Ward Admin 2',
+            mobileNumber: '+91 9876543211',
+            lastLogin: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          lastReportDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          daysSinceLogin: 5,
+          daysSinceLastVisit: 12,
+          submittedReports: 6,
+          expectedReports: 15,
+          reportCompletionRate: 40,
+          statusColor: 'orange',
+          recentReportStatus: 'notCompleted',
+          docketStatus: 'ongoing',
+          basicSurveyStatus: 'completed'
+        },
+        {
+          _id: 'ward3',
+          name: 'Panchayath Ward 3',
+          wardNumber: 3,
+          district: session?.user?.district || 'Thiruvananthapuram',
+          wardAdmin: {
+            _id: 'admin3',
+            name: 'Ward Admin 3',
+            mobileNumber: '+91 9876543212',
+            lastLogin: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+          },
+          lastReportDate: null,
+          daysSinceLogin: 10,
+          daysSinceLastVisit: 20,
+          submittedReports: 2,
+          expectedReports: 15,
+          reportCompletionRate: 13,
+          statusColor: 'red',
+          recentReportStatus: 'notCompleted',
+          docketStatus: 'notStarted',
+          basicSurveyStatus: 'notStarted'
+        }
+      ];
+
+      setWards(mockWards);
+      setReportConsolidation({
+        docket: { completed: 1, ongoing: 1, notStarted: 1 },
+        basicSurvey: { completed: 2, ongoing: 0, notStarted: 1 }
+      });
     } finally {
       setLoading(false);
     }
@@ -66,6 +226,25 @@ export default function CoordinatorWardStatus() {
       ...prev,
       page: newPage
     }));
+  };
+
+  const handleConsolidationClick = (type, status) => {
+    const filteredWards = wards.filter(ward => {
+      if (type === 'docket') return ward.docketStatus === status;
+      if (type === 'basicSurvey') return ward.basicSurveyStatus === status;
+      return false;
+    });
+
+    setModalData({
+      type: type === 'docket' ? 'Docket Survey' : 'Basic Survey',
+      status: status.charAt(0).toUpperCase() + status.slice(1).replace(/([A-Z])/g, ' $1'),
+      wards: filteredWards
+    });
+    setShowModal(true);
+  };
+
+  const getWardDetailUrl = (wardId) => {
+    return `/coordinator/wards?ward=${wardId}`;
   };
 
   const handleExport = async () => {
@@ -166,15 +345,104 @@ export default function CoordinatorWardStatus() {
     <Layout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">My Wards Status</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Ward Status Dashboard</h1>
+            <p className="mt-1 text-sm text-gray-600">Monitor ward activities and track progress</p>
+          </div>
           
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
-          >
-            {exporting ? 'Exporting...' : 'Export Ward Status'}
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {exporting ? 'Exporting...' : 'Export Status'}
+            </button>
+            <Link href="/coordinator/ward-visits">
+              <Button variant="outline">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Ward Visits
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Report Consolidation Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Docket Survey Status</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div 
+                  className="text-center p-4 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                  onClick={() => handleConsolidationClick('docket', 'completed')}
+                >
+                  <div className="text-2xl font-bold text-green-600">{reportConsolidation.docket.completed}</div>
+                  <div className="text-sm text-green-800">Completed</div>
+                </div>
+                <div 
+                  className="text-center p-4 bg-yellow-50 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                  onClick={() => handleConsolidationClick('docket', 'ongoing')}
+                >
+                  <div className="text-2xl font-bold text-yellow-600">{reportConsolidation.docket.ongoing}</div>
+                  <div className="text-sm text-yellow-800">Ongoing</div>
+                </div>
+                <div 
+                  className="text-center p-4 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+                  onClick={() => handleConsolidationClick('docket', 'notStarted')}
+                >
+                  <div className="text-2xl font-bold text-red-600">{reportConsolidation.docket.notStarted}</div>
+                  <div className="text-sm text-red-800">Not Started</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Survey Status</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div 
+                  className="text-center p-4 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                  onClick={() => handleConsolidationClick('basicSurvey', 'completed')}
+                >
+                  <div className="text-2xl font-bold text-green-600">{reportConsolidation.basicSurvey.completed}</div>
+                  <div className="text-sm text-green-800">Completed</div>
+                </div>
+                <div 
+                  className="text-center p-4 bg-yellow-50 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                  onClick={() => handleConsolidationClick('basicSurvey', 'ongoing')}
+                >
+                  <div className="text-2xl font-bold text-yellow-600">{reportConsolidation.basicSurvey.ongoing}</div>
+                  <div className="text-sm text-yellow-800">Ongoing</div>
+                </div>
+                <div 
+                  className="text-center p-4 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+                  onClick={() => handleConsolidationClick('basicSurvey', 'notStarted')}
+                >
+                  <div className="text-2xl font-bold text-red-600">{reportConsolidation.basicSurvey.notStarted}</div>
+                  <div className="text-sm text-red-800">Not Started</div>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Status Summary Cards */}
@@ -268,25 +536,32 @@ export default function CoordinatorWardStatus() {
         </div>
 
         {/* Ward Status Table */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <Card>
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Ward Tracking</h3>
+            <p className="mt-1 text-sm text-gray-600">Monitor ward activities and performance</p>
+          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Details
+                    Ward Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Admin
+                    Last Login Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Login
+                    Last Report Submitted
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Reports Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reports This Week
+                    Days Since Last Visit
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Recent Report Status
                   </th>
                 </tr>
               </thead>
@@ -295,41 +570,41 @@ export default function CoordinatorWardStatus() {
                   <tr key={ward._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {ward.name}
-                        </div>
+                        <Link href={getWardDetailUrl(ward._id)}>
+                          <a className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                            {ward.name}
+                          </a>
+                        </Link>
                         <div className="text-sm text-gray-500">
-                          Ward #{ward.wardNumber} • {ward.panchayath}
+                          Ward #{ward.wardNumber} • {ward.district}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {ward.wardAdmin ? (
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {ward.wardAdmin.name}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {ward.wardAdmin.mobileNumber}
-                          </div>
+                      <div className="text-sm text-gray-900">
+                        {ward.lastLogin 
+                          ? new Date(ward.lastLogin).toLocaleDateString()
+                          : 'Never'
+                        }
+                      </div>
+                      {ward.daysSinceLogin !== null && (
+                        <div className="text-xs text-gray-500">
+                          {ward.daysSinceLogin} days ago
                         </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">Not assigned</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {ward.lastLogin 
-                        ? new Date(ward.lastLogin).toLocaleDateString()
-                        : 'Never'
-                      }
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(ward.statusColor, ward.daysSinceLogin)}
+                      <div className="text-sm text-gray-900">
+                        {ward.lastReportDate 
+                          ? new Date(ward.lastReportDate).toLocaleDateString()
+                          : 'No reports'
+                        }
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="text-sm text-gray-900 mr-2">
-                          {ward.submittedReports} / {ward.totalExpectedReports}
+                          {ward.submittedReports} / {ward.expectedReports}
                         </div>
                         <div className="w-16 bg-gray-200 rounded-full h-2">
                           <div 
@@ -342,6 +617,23 @@ export default function CoordinatorWardStatus() {
                         </div>
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {ward.daysSinceLastVisit !== null 
+                          ? `${ward.daysSinceLastVisit} days`
+                          : 'No visits'
+                        }
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        ward.recentReportStatus === 'completed' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {ward.recentReportStatus === 'completed' ? 'Completed' : 'Not Completed'}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -353,7 +645,7 @@ export default function CoordinatorWardStatus() {
               No wards found matching the current filters.
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
@@ -379,6 +671,67 @@ export default function CoordinatorWardStatus() {
               >
                 Next
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Modal for Ward Details */}
+        {showModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {modalData.type} - {modalData.status} Wards
+                </h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {modalData.wards.length > 0 ? (
+                  <div className="space-y-3">
+                    {modalData.wards.map((ward) => (
+                      <div key={ward._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <Link href={getWardDetailUrl(ward._id)}>
+                            <a className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                              {ward.name}
+                            </a>
+                          </Link>
+                          <p className="text-xs text-gray-500">Ward #{ward.wardNumber}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-900">
+                            {ward.wardAdmin?.name || 'No admin assigned'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {ward.wardAdmin?.mobileNumber || ''}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No wards found for this status.</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={() => setShowModal(false)}
+                  variant="outline"
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           </div>
         )}

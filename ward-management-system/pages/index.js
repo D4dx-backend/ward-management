@@ -142,24 +142,28 @@ export default function Home() {
             value={stats.users}
             icon="👥"
             color="blue"
+            href="/admin/users"
           />
           <StatsCard
             title="Total Wards"
             value={stats.wards}
             icon="🏘️"
             color="green"
+            href="/admin/wards"
           />
           <StatsCard
             title="Active Forms"
             value={stats.forms}
             icon="📝"
             color="purple"
+            href="/admin/forms"
           />
           <StatsCard
             title="Reports Submitted"
             value={stats.reports}
             icon="📊"
             color="yellow"
+            href="/admin/reports"
           />
         </div>
 
@@ -249,24 +253,28 @@ export default function Home() {
               value={stats.totalWards || 0}
               icon="🏘️"
               color="blue"
+              href="/coordinator/wards"
             />
             <StatsCard
               title="Active Wards"
               value={stats.activeWards || 0}
               icon="✅"
               color="green"
+              href="/coordinator/wards"
             />
             <StatsCard
               title="Total Reports"
               value={stats.totalReports || 0}
               icon="📝"
               color="purple"
+              href="/coordinator/ward-reports"
             />
             <StatsCard
               title="Pending Reports"
               value={stats.pendingReports || 0}
               icon="⏰"
               color="yellow"
+              href="/coordinator/ward-reports"
             />
           </div>
 
@@ -308,15 +316,20 @@ export default function Home() {
               {pendingReportsList && pendingReportsList.length > 0 ? (
                 <div className="space-y-3">
                   {pendingReportsList.map((report, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100"
-                         onClick={() => window.location.href = `/coordinator/wards/${report.wardId}`}>
+                    <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
+                         onClick={() => window.location.href = `/coordinator/ward-reports`}>
                       <div>
                         <p className="font-medium text-gray-900">{report.wardName}</p>
                         <p className="text-sm text-gray-600">{report.formTitle}</p>
                       </div>
-                      <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-                        Pending
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                          Pending
+                        </span>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -348,63 +361,211 @@ export default function Home() {
         </Head>
         
         <div className="space-y-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Admin Dashboard</h1>
-            <div className="mt-1 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Welcome back, {session.user.name}</p>
-                {userInfo?.ward && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Ward: {userInfo.ward.name} (#{userInfo.ward.wardNumber}) - {userInfo.ward.panchayath}, {userInfo.ward.district}
-                  </p>
+          {/* Ward Info Header */}
+          {userInfo?.ward && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">Ward Admin Dashboard</h1>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium text-gray-700">Ward:</span>
+                      <p className="text-gray-900">{userInfo.ward.name}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Panchayath:</span>
+                      <p className="text-gray-900">{userInfo.ward.panchayath}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">District:</span>
+                      <p className="text-gray-900">{userInfo.ward.district}</p>
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-700">Coordinator:</span>
+                      <p className="text-gray-900">{userInfo.ward.coordinator?.name || 'Not assigned'}</p>
+                    </div>
+                  </div>
+                </div>
+                {userInfo?.lastLogin && (
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Last login:</p>
+                    <p className="text-sm font-medium text-gray-700">
+                      {new Date(userInfo.lastLogin).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(userInfo.lastLogin).toLocaleTimeString()}
+                    </p>
+                  </div>
                 )}
               </div>
-              {userInfo?.lastLogin && (
-                <p className="text-sm text-gray-500">
-                  Last login: {new Date(userInfo.lastLogin).toLocaleString()}
-                </p>
-              )}
             </div>
-          </div>
+          )}
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatsCard
               title="Reports Submitted"
-              value={stats.reports}
+              value={stats.reports || 0}
               icon="📝"
               color="blue"
+              href="/ward/reports"
             />
             <StatsCard
               title="Pending Reports"
               value={hasSubmittedThisWeek ? "0" : "1"}
               icon="⏰"
               color="yellow"
+              href="/ward/reports/submit"
+            />
+            <StatsCard
+              title="Total Clusters"
+              value={userInfo?.ward?.clusters?.length || stats.clusters || 0}
+              icon="🏢"
+              color="green"
+              href="/admin/clusters"
             />
           </div>
 
-          {/* Only show pending reports for ward admins */}
-          <div className="grid grid-cols-1 gap-8">
+          {/* Quick Actions */}
+          <Card>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => window.location.href = '/ward/reports/submit'}
+                className="justify-start h-auto p-4 bg-green-600 hover:bg-green-700 text-white"
+                variant={hasSubmittedThisWeek ? "outline" : "default"}
+              >
+                <div className="text-left">
+                  <div className="font-medium">
+                    {hasSubmittedThisWeek ? "✓ Weekly Report Submitted" : "Submit Weekly Report"}
+                  </div>
+                  <div className={`text-sm ${hasSubmittedThisWeek ? "text-gray-500" : "opacity-90"}`}>
+                    {hasSubmittedThisWeek ? "Report submitted this week" : "Submit your ward progress report"}
+                  </div>
+                </div>
+              </Button>
+              <Button
+                onClick={() => window.location.href = '/ward/basic-data'}
+                variant="outline"
+                className="justify-start h-auto p-4"
+              >
+                <div className="text-left">
+                  <div className="font-medium">Update Ward Profile</div>
+                  <div className="text-sm text-gray-500">Manage ward basic information</div>
+                </div>
+              </Button>
+              <Button
+                onClick={() => window.location.href = '/instructions'}
+                variant="outline"
+                className="justify-start h-auto p-4"
+              >
+                <div className="text-left">
+                  <div className="font-medium">View Instructions</div>
+                  <div className="text-sm text-gray-500">Read important guidelines</div>
+                </div>
+              </Button>
+            </div>
+          </Card>
+
+          {/* Pending Reports and Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Reports</h2>
               {!hasSubmittedThisWeek ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100"
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
                        onClick={() => window.location.href = '/ward/reports/submit'}>
                     <div>
                       <p className="font-medium text-gray-900">Weekly Ward Report</p>
                       <p className="text-sm text-gray-600">Submit your weekly ward progress report</p>
                     </div>
-                    <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-                      Pending
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                        Pending
+                      </span>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">No pending reports</p>
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-gray-500 mt-2">All reports up to date!</p>
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+              {recentReports.length > 0 ? (
+                <div className="space-y-3">
+                  {recentReports.slice(0, 3).map((report, index) => (
+                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                         onClick={() => window.location.href = '/ward/reports'}>
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 text-sm">📝</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {report.form?.title || 'Report Submitted'}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(report.submittedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-500 mt-2">No recent activity</p>
+                </div>
               )}
             </Card>
           </div>
+
+          {/* Ward Information */}
+          {userInfo?.ward && (
+            <Card>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Information</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Ward Details</h3>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-gray-900">Name: {userInfo.ward.name}</p>
+                    <p className="text-sm text-gray-900">Number: #{userInfo.ward.wardNumber}</p>
+                    <p className="text-sm text-gray-900">Panchayath: {userInfo.ward.panchayath}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Location</h3>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-gray-900">District: {userInfo.ward.district}</p>
+                    <p className="text-sm text-gray-900">State: {userInfo.ward.state}</p>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Statistics</h3>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-sm text-gray-900">Population: {userInfo.ward.population || 'Not set'}</p>
+                    <p className="text-sm text-gray-900">Status: {userInfo.ward.isActive ? 'Active' : 'Inactive'}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </>
     );
