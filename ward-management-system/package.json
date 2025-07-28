@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "create-admin": "node scripts/create-admin.js"
+    "create-admin": "node scripts/create-admin.js",
+    "init-docker-surveys": "node scripts/initialize-docker-surveys.js"
   },
   "dependencies": {
     "axios": "^1.5.0",

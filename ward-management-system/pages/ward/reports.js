@@ -38,7 +38,7 @@ export default function WardReports() {
 
     if (searchTerm) {
       filtered = filtered.filter(report =>
-        report.form?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        report.formTemplate?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         report.ward?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -53,9 +53,9 @@ export default function WardReports() {
 
     if (filter.status) {
       if (filter.status === 'editable') {
-        filtered = filtered.filter(report => isFormEditable(report.form));
+        filtered = filtered.filter(report => isFormEditable(report.formTemplate));
       } else if (filter.status === 'expired') {
-        filtered = filtered.filter(report => !isFormEditable(report.form));
+        filtered = filtered.filter(report => !isFormEditable(report.formTemplate));
       }
     }
 
@@ -72,12 +72,8 @@ export default function WardReports() {
         }
       });
       
-      // Filter to only show current user's reports
-      const userReports = response.data.filter(report => 
-        report.respondent === session.user.id
-      );
-      
-      setReports(userReports || []);
+      // API already filters to show only current user's reports
+      setReports(response.data || []);
       setError('');
     } catch (error) {
       console.error('Error fetching reports:', error);
@@ -101,7 +97,7 @@ export default function WardReports() {
   };
 
   const getStatusBadge = (report) => {
-    const editable = isFormEditable(report.form);
+    const editable = isFormEditable(report.formTemplate);
     if (editable) {
       return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Editable</span>;
     } else {
@@ -252,10 +248,10 @@ export default function WardReports() {
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {report.form?.title || 'Ward Report'}
+                          {report.formTemplate?.title || 'Ward Report'}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {report.form?.description || 'No description'}
+                          {report.formTemplate?.description || 'No description'}
                         </div>
                       </div>
                     </td>
@@ -282,7 +278,7 @@ export default function WardReports() {
                         >
                           View
                         </Button>
-                        {isFormEditable(report.form) && (
+                        {isFormEditable(report.formTemplate) && (
                           <Button 
                             variant="outline" 
                             size="sm"

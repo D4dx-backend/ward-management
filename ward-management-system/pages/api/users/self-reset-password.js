@@ -30,13 +30,22 @@ export default async function handler(req, res) {
     // Generate new password based on user role
     const isPIN = user.role !== 'stateAdmin';
     const newPassword = isPIN ? generate4DigitPIN() : generateSecurePassword();
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    // Update user password
-    await User.findByIdAndUpdate(session.user.id, {
-      password: hashedPassword,
-      passwordResetAt: new Date()
-    });
+    // Update user credentials based on role
+    if (isPIN) {
+      // For coordinators and ward admins, update pinCode (plain text)
+      await User.findByIdAndUpdate(session.user.id, {
+        pinCode: newPassword,
+        passwordResetAt: new Date()
+      });
+    } else {
+      // For state admins, update password (hashed)
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      await User.findByIdAndUpdate(session.user.id, {
+        password: hashedPassword,
+        passwordResetAt: new Date()
+      });
+    }
 
     // Send WhatsApp notification if mobile number exists
     let whatsappResult = null;
@@ -47,7 +56,8 @@ export default async function handler(req, res) {
         email: user.email,
         newPassword: newPassword,
         mobileNumber: user.mobileNumber,
-        isPIN: isPIN
+        isPIN: isPIN,
+        userRole: user.role
       });
       console.log('Self-reset WhatsApp result:', whatsappResult);
     } else {

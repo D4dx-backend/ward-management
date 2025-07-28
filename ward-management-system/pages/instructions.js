@@ -13,6 +13,9 @@ export default function Instructions() {
   const [instructions, setInstructions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [replyText, setReplyText] = useState({});
+  const [submittingReply, setSubmittingReply] = useState({});
+  const [expandedReplies, setExpandedReplies] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -37,6 +40,56 @@ export default function Instructions() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleViewInstruction = async (instructionId) => {
+    try {
+      await axios.post(`/api/instructions/${instructionId}/view`);
+      // Update view count in local state
+      setInstructions(prev => prev.map(inst => 
+        inst._id === instructionId 
+          ? { ...inst, viewCount: (inst.viewCount || 0) + 1 }
+          : inst
+      ));
+    } catch (error) {
+      console.error('Error updating view count:', error);
+    }
+  };
+
+  const handleReplySubmit = async (instructionId) => {
+    const message = replyText[instructionId];
+    if (!message || !message.trim()) return;
+
+    setSubmittingReply(prev => ({ ...prev, [instructionId]: true }));
+    
+    try {
+      const response = await axios.post(`/api/instructions/${instructionId}/reply`, {
+        message: message.trim()
+      });
+
+      // Update the instruction with the new reply
+      setInstructions(prev => prev.map(inst => 
+        inst._id === instructionId 
+          ? { ...inst, replies: [...(inst.replies || []), response.data] }
+          : inst
+      ));
+
+      // Clear the reply text
+      setReplyText(prev => ({ ...prev, [instructionId]: '' }));
+      setError('');
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      setError('Failed to submit reply');
+    } finally {
+      setSubmittingReply(prev => ({ ...prev, [instructionId]: false }));
+    }
+  };
+
+  const toggleReplies = (instructionId) => {
+    setExpandedReplies(prev => ({
+      ...prev,
+      [instructionId]: !prev[instructionId]
+    }));
   };
 
   const getPriorityColor = (priority) => {
@@ -96,8 +149,8 @@ export default function Instructions() {
 
         <div className="space-y-6">
           {instructions.length > 0 ? (
-            instructions.map((instruction) => (
-              <Card key={instruction._id}>
+            instructions.slice(0, 3).map((instruction, index) => (
+              <Card key={instruction._id} className={instruction.isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}>
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -108,18 +161,56 @@ export default function Instructions() {
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
                           {instruction.priority}
                         </span>
+                        {instruction.isHighlighted && (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            New
+                          </span>
+                        )}
+                        {index < 3 && (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            Recent
+                          </span>
+                        )}
                       </div>
-                      <p className="text-sm text-gray-500 mb-3">
-                        Created: {formatDate(instruction.createdAt)}
-                      </p>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
+                        <span>Created: {formatDate(instruction.createdAt)}</span>
+                        <span>Views: {instruction.viewCount || 0}</span>
+                        {instruction.replies && instruction.replies.length > 0 && (
+                          <span>Replies: {instruction.replies.length}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   
                   <div className="prose max-w-none">
-                    <div className="text-gray-700 whitespace-pre-wrap break-words">
+                    <div 
+                      className="text-gray-700 whitespace-pre-wrap break-words cursor-pointer"
+                      onClick={() => handleViewInstruction(instruction._id)}
+                    >
                       {instruction.description}
                     </div>
                   </div>
+
+                  {/* Target Audience Info */}
+                  {instruction.targetAudience !== 'all' && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="text-sm text-blue-700 font-medium">
+                          {instruction.targetAudience === 'specific_wards' && instruction.targetWards?.length > 0 && 
+                            `Targeted to: ${instruction.targetWards.map(w => w.name).join(', ')}`
+                          }
+                          {instruction.targetAudience === 'specific_coordinators' && instruction.targetCoordinators?.length > 0 && 
+                            `Targeted to coordinators: ${instruction.targetCoordinators.map(c => c.name).join(', ')}`
+                          }
+                          {instruction.targetAudience === 'coordinators' && 'For Coordinators'}
+                          {instruction.targetAudience === 'ward_admins' && 'For Ward Admins'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {instruction.fileUrl && (
                     <div className="mt-4 pt-4 border-t border-gray-200">
@@ -136,6 +227,72 @@ export default function Instructions() {
                           {instruction.fileName || 'Download Attachment'}
                         </a>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Replies Section */}
+                  {instruction.allowReplies && session.user.role === 'wardAdmin' && (
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-medium text-gray-900">
+                          Comments ({instruction.replies?.length || 0})
+                        </h3>
+                        {instruction.replies && instruction.replies.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleReplies(instruction._id)}
+                          >
+                            {expandedReplies[instruction._id] ? 'Hide' : 'Show'} Comments
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Reply Form */}
+                      <div className="mb-4">
+                        <textarea
+                          value={replyText[instruction._id] || ''}
+                          onChange={(e) => setReplyText(prev => ({ ...prev, [instruction._id]: e.target.value }))}
+                          placeholder="Add a comment..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          rows="3"
+                        />
+                        <div className="mt-2 flex justify-end">
+                          <Button
+                            onClick={() => handleReplySubmit(instruction._id)}
+                            disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
+                            size="sm"
+                          >
+                            {submittingReply[instruction._id] ? 'Submitting...' : 'Submit Comment'}
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Replies List */}
+                      {expandedReplies[instruction._id] && instruction.replies && instruction.replies.length > 0 && (
+                        <div className="space-y-3">
+                          {instruction.replies.map((reply, replyIndex) => (
+                            <div key={replyIndex} className="bg-gray-50 p-3 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {reply.user?.name || 'Unknown User'}
+                                  </span>
+                                  <span className="text-xs text-gray-500 capitalize">
+                                    ({reply.user?.role?.replace('Admin', ' Admin') || 'Unknown Role'})
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {formatDate(reply.createdAt)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                {reply.message}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

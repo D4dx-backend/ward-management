@@ -402,7 +402,7 @@ export default function Home() {
           )}
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <StatsCard
               title="Reports Submitted"
               value={stats.reports || 0}
@@ -422,52 +422,20 @@ export default function Home() {
               value={userInfo?.ward?.clusters?.length || stats.clusters || 0}
               icon="🏢"
               color="green"
-              href="/admin/clusters"
+              href="/ward/clusters"
+            />
+            <StatsCard
+              title="Instructions"
+              value={stats.instructions || 0}
+              icon="📋"
+              color="purple"
+              href="/instructions"
             />
           </div>
 
-          {/* Quick Actions */}
-          <Card>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Button
-                onClick={() => window.location.href = '/ward/reports/submit'}
-                className="justify-start h-auto p-4 bg-green-600 hover:bg-green-700 text-white"
-                variant={hasSubmittedThisWeek ? "outline" : "default"}
-              >
-                <div className="text-left">
-                  <div className="font-medium">
-                    {hasSubmittedThisWeek ? "✓ Weekly Report Submitted" : "Submit Weekly Report"}
-                  </div>
-                  <div className={`text-sm ${hasSubmittedThisWeek ? "text-gray-500" : "opacity-90"}`}>
-                    {hasSubmittedThisWeek ? "Report submitted this week" : "Submit your ward progress report"}
-                  </div>
-                </div>
-              </Button>
-              <Button
-                onClick={() => window.location.href = '/ward/basic-data'}
-                variant="outline"
-                className="justify-start h-auto p-4"
-              >
-                <div className="text-left">
-                  <div className="font-medium">Update Ward Profile</div>
-                  <div className="text-sm text-gray-500">Manage ward basic information</div>
-                </div>
-              </Button>
-              <Button
-                onClick={() => window.location.href = '/instructions'}
-                variant="outline"
-                className="justify-start h-auto p-4"
-              >
-                <div className="text-left">
-                  <div className="font-medium">View Instructions</div>
-                  <div className="text-sm text-gray-500">Read important guidelines</div>
-                </div>
-              </Button>
-            </div>
-          </Card>
 
-          {/* Pending Reports and Recent Activity */}
+
+          {/* Pending Reports and Recent Reports */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Reports</h2>
@@ -500,24 +468,27 @@ export default function Home() {
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Reports</h2>
               {recentReports.length > 0 ? (
                 <div className="space-y-3">
-                  {recentReports.slice(0, 3).map((report, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                  {recentReports
+                    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                    .slice(0, 5)
+                    .map((report, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
                          onClick={() => window.location.href = '/ward/reports'}>
-                      <div className="flex-shrink-0">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 text-sm">📝</span>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className={`w-3 h-3 rounded-full ${report.status === 'submitted' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                         </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {report.form?.title || 'Report Submitted'}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(report.submittedAt).toLocaleDateString()}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {report.form?.title || 'Report'}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(report.submittedAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -530,42 +501,13 @@ export default function Home() {
                   <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <p className="text-gray-500 mt-2">No recent activity</p>
+                  <p className="text-gray-500 mt-2">No recent reports</p>
                 </div>
               )}
             </Card>
           </div>
 
-          {/* Ward Information */}
-          {userInfo?.ward && (
-            <Card>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Ward Details</h3>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-gray-900">Name: {userInfo.ward.name}</p>
-                    <p className="text-sm text-gray-900">Number: #{userInfo.ward.wardNumber}</p>
-                    <p className="text-sm text-gray-900">Panchayath: {userInfo.ward.panchayath}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Location</h3>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-gray-900">District: {userInfo.ward.district}</p>
-                    <p className="text-sm text-gray-900">State: {userInfo.ward.state}</p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Statistics</h3>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-gray-900">Population: {userInfo.ward.population || 'Not set'}</p>
-                    <p className="text-sm text-gray-900">Status: {userInfo.ward.isActive ? 'Active' : 'Inactive'}</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
+
         </div>
       </>
     );

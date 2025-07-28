@@ -449,14 +449,15 @@ export default function Clusters() {
           </div>
           <div className="flex space-x-3">
             {router.query.wardId && (
-              <Link href="/admin/wards">
-                <Button variant="outline">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Back to Wards
-                </Button>
-              </Link>
+              <Button 
+                variant="outline"
+                onClick={() => router.push('/admin/wards')}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Wards
+              </Button>
             )}
             {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
               <div className="flex space-x-2">

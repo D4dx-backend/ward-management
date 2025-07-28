@@ -53,11 +53,8 @@ export default async function handler(req, res) {
         }
       } else if (session.user.role === 'wardAdmin') {
         // Ward admins can only see their own responses
-        const userWards = await Ward.find({ wardAdmin: session.user.id });
-        const wardIds = userWards.map(ward => ward._id);
-        
         if (formType === 'wardReport') {
-          query.ward = { $in: wardIds };
+          query.respondent = session.user.id;
         } else {
           // Ward admins can't see coordinator reports
           return res.status(403).json({ message: 'Forbidden' });
