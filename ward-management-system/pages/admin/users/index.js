@@ -10,6 +10,8 @@ import Modal from '../../../components/Modal';
 import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import UserWardsModal from '../../../components/UserWardsModal';
+import Pagination from '../../../components/Pagination';
+import usePagination from '../../../hooks/usePagination';
 
 export default function Users() {
   const { data: session, status } = useSession();
@@ -47,9 +49,17 @@ export default function Users() {
     isResetting: false
   });
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Pagination using custom hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedUsers,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    resetPagination,
+  } = usePagination(filteredUsers, 10);
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -76,18 +86,8 @@ export default function Users() {
     } else {
       setFilteredUsers(users);
     }
-    setCurrentPage(1); // Reset to first page when search changes
-  }, [users, searchTerm]);
-
-  // Pagination logic
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+    resetPagination(); // Reset to first page when search changes
+  }, [users, searchTerm, resetPagination]);
 
   const fetchUsers = async () => {
     try {
@@ -563,7 +563,7 @@ export default function Users() {
               className="max-w-md"
             />
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedUsers.length} of {filteredUsers.length} users
+              Showing {paginatedUsers.length} of {totalItems} users
             </div>
           </div>
           
@@ -687,7 +687,7 @@ export default function Users() {
                     </td>
                   </tr>
                 ))}
-                {filteredUsers.length === 0 && (
+                {totalItems === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -706,59 +706,13 @@ export default function Users() {
           </div>
           
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-2 text-sm font-medium rounded-md ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </Card>
 
         {/* Create User Modal */}

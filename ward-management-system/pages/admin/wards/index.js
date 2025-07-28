@@ -11,6 +11,8 @@ import Modal from '../../../components/Modal';
 import SearchInput from '../../../components/SearchInput';
 import SearchableSelect from '../../../components/SearchableSelect';
 import DeleteModal from '../../../components/DeleteModal';
+import Pagination from '../../../components/Pagination';
+import usePagination from '../../../hooks/usePagination';
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
 
 export default function AdminWards() {
@@ -38,12 +40,22 @@ export default function AdminWards() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
   
-  // Pagination and filters
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Filters
   const [filterDistrict, setFilterDistrict] = useState('');
   const [filterPanchayath, setFilterPanchayath] = useState('');
   const [filterCoordinator, setFilterCoordinator] = useState('');
+  
+  // Pagination using custom hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedWards,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    resetPagination,
+  } = usePagination(filteredWards, 10);
   
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -95,8 +107,8 @@ export default function AdminWards() {
     }
 
     setFilteredWards(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator]);
+    resetPagination(); // Reset to first page when filters change
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, resetPagination]);
 
   // Get unique districts, panchayaths, and coordinators for filters
   const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();
@@ -104,15 +116,7 @@ export default function AdminWards() {
   const uniqueCoordinators = [...new Set(wards.filter(ward => ward.coordinator).map(ward => ward.coordinator))]
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredWards.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedWards = filteredWards.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
 
   useEffect(() => {
     // Update available panchayaths when district changes
@@ -556,7 +560,7 @@ export default function AdminWards() {
             </div>
             
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedWards.length} of {filteredWards.length} wards
+              Showing {paginatedWards.length} of {totalItems} wards
             </div>
           </div>
 
@@ -694,7 +698,7 @@ export default function AdminWards() {
                     </td>
                   </tr>
                 ))}
-                {filteredWards.length === 0 && (
+                {totalItems === 0 && (
                   <tr>
                     <td colSpan="6" className="px-4 py-12 text-center">
                       <div className="text-gray-500">
@@ -715,60 +719,13 @@ export default function AdminWards() {
           </div>
           
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
-                  Page {currentPage} of {totalPages}
-                </div>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  
-                  {/* Page numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`px-3 py-2 text-sm font-medium rounded-md ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </Card>
 
         {/* Create Ward Modal */}

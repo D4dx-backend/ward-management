@@ -7,6 +7,8 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
+import Pagination from '../../components/Pagination';
+import usePagination from '../../hooks/usePagination';
 
 export default function CoordinatorWardReports() {
   const { data: session, status } = useSession();
@@ -22,6 +24,18 @@ export default function CoordinatorWardReports() {
     year: new Date().getFullYear(),
     status: ''
   });
+  
+  // Pagination using custom hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedReports,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    resetPagination,
+  } = usePagination(filteredReports, 10);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,7 +78,8 @@ export default function CoordinatorWardReports() {
     }
 
     setFilteredReports(filtered);
-  }, [wardReports, searchTerm, filter]);
+    resetPagination(); // Reset to first page when filters change
+  }, [wardReports, searchTerm, filter, resetPagination]);
 
   const fetchWardReports = async () => {
     setIsLoading(true);
@@ -271,7 +286,7 @@ export default function CoordinatorWardReports() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredReports.map((report) => (
+                {paginatedReports.map((report) => (
                   <tr key={report._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -325,7 +340,7 @@ export default function CoordinatorWardReports() {
                     </td>
                   </tr>
                 ))}
-                {filteredReports.length === 0 && (
+                {totalItems === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -342,6 +357,15 @@ export default function CoordinatorWardReports() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         </Card>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
