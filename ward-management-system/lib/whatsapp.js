@@ -157,29 +157,61 @@ Ward Management Team`;
 }
 
 // Send password reset message
-export async function sendPasswordResetMessage({ name, email, newPassword, mobileNumber, isPIN = false }) {
+export async function sendPasswordResetMessage({ name, email, newPassword, mobileNumber, isPIN = false, userRole }) {
   const credentialType = isPIN ? 'PIN' : 'Password';
-  const message = `🔐 ${credentialType} Reset - Ward Management System
+  
+  // Determine login URL - use environment URL, fallback to localhost for development
+  const loginUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  
+  let message;
+  
+  if (isPIN) {
+    // Customized message for coordinators and ward admins using mobile + PIN
+    message = `🔐 PIN Reset - Ward Management System
 
 Hi ${name},
 
-Your ${credentialType.toLowerCase()} has been reset successfully.
+Your pin has been reset successfully.
 
 *New Login Details:*
-📧 Email: ${email}
-🔐 New ${credentialType}: ${newPassword}
+📱 Mobile Number: ${mobileNumber}
+🔐 New PIN: ${newPassword}
 
-🌐 *Login URL:* ${process.env.NEXTAUTH_URL}/auth/signin
+🌐 *Login URL:* ${loginUrl}/auth/signin
 
 ⚠️ *Security Reminder:*
-• Keep your ${credentialType.toLowerCase()} secure
-• Do not share your ${credentialType.toLowerCase()} with anyone
-${isPIN ? '• Use this 4-digit PIN to login' : '• Please change this password after login'}
+• Keep your pin secure
+• Do not share your pin with anyone
+• Use this 4-digit PIN to login
 
 If you didn't request this reset, contact your administrator immediately.
 
 Best regards,
 Ward Management Team`;
+  } else {
+    // Original message for state admins using email + password
+    message = `🔐 Password Reset - Ward Management System
+
+Hi ${name},
+
+Your password has been reset successfully.
+
+*New Login Details:*
+📧 Email: ${email}
+🔐 New Password: ${newPassword}
+
+🌐 *Login URL:* ${loginUrl}/auth/signin
+
+⚠️ *Security Reminder:*
+• Keep your password secure
+• Do not share your password with anyone
+• Please change this password after login
+
+If you didn't request this reset, contact your administrator immediately.
+
+Best regards,
+Ward Management Team`;
+  }
 
   return await sendWhatsAppMessage({
     recipient: mobileNumber,

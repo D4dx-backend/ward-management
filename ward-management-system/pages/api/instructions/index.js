@@ -3,6 +3,7 @@ import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Instruction from '../../../models/Instruction';
 import User from '../../../models/User';
+import Ward from '../../../models/Ward';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -19,30 +20,47 @@ export default async function handler(req, res) {
       
       let query = { isActive: true };
       
-      // Filter by target audience based on user role
-      if (session.user.role === 'coordinator' || session.user.role === 'wardAdmin') {
-        const roleMapping = {
-          'coordinator': 'coordinators',
-          'wardAdmin': 'ward_admins'
-        };
-        query.targetAudience = { $in: ['all', roleMapping[session.user.role]] };
+      // Enhanced filtering based on user role and specific targeting
+      if (session.user.role === 'coordinator') {
+        const user = await User.findById(session.user.id);
+        query.$or = [
+          { targetAudience: 'all' },
+          { targetAudience: 'coordinators' },
+          { targetCoordinators: session.user.id },
+          { targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } }
+        ];
+      } else if (session.user.role === 'wardAdmin') {
+        const user = await User.findById(session.user.id);
+        const ward = await Ward.findOne({ wardAdmin: session.user.id });
+        query.$or = [
+          { targetAudience: 'all' },
+          { targetAudience: 'ward_admins' },
+          { targetWards: ward ? ward._id : null }
+        ].filter(condition => condition.targetWards !== null);
       } else if (targetAudience && targetAudience !== 'all') {
         query.targetAudience = targetAudience;
       }
       
       // Search functionality
       if (search) {
-        query.$or = [
-          { title: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } }
-        ];
+        query.$and = query.$and || [];
+        query.$and.push({
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ]
+        });
       }
 
       const skip = (parseInt(page) - 1) * parseInt(limit);
       
+      // Sort by highlighted first, then by creation date
       const instructions = await Instruction.find(query)
         .populate('createdBy', 'name email')
-        .sort({ createdAt: -1 })
+        .populate('targetWards', 'name wardNumber panchayath district')
+        .populate('targetCoordinators', 'name email district')
+        .populate('replies.user', 'name email role')
+        .sort({ isHighlighted: -1, createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit));
 
@@ -134,7 +152,19 @@ export default async function handler(req, res) {
     }
 
     try {
-      const { title, description, fileUrl, fileName, fileSize, targetAudience, priority } = req.body;
+      const { 
+        title, 
+        description, 
+        fileUrl, 
+        fileName, 
+        fileSize, 
+        targetAudience, 
+        targetWards, 
+        targetCoordinators, 
+        priority, 
+        isHighlighted, 
+        allowReplies 
+      } = req.body;
 
       // Validate required fields
       if (!title || !description) {
@@ -154,7 +184,7 @@ export default async function handler(req, res) {
       const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
 
       // Validate target audience
-      const validAudiences = ['all', 'coordinators', 'ward_admins'];
+      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators'];
       const validatedAudience = validAudiences.includes(targetAudience) ? targetAudience : 'all';
 
       const instruction = new Instruction({
@@ -164,12 +194,20 @@ export default async function handler(req, res) {
         fileName: fileName || null,
         fileSize: fileSize ? parseInt(fileSize) : null,
         targetAudience: validatedAudience,
+        targetWards: targetWards || [],
+        targetCoordinators: targetCoordinators || [],
         priority: validatedPriority,
+        isHighlighted: Boolean(isHighlighted),
+        allowReplies: allowReplies !== false,
         createdBy: session.user.id
       });
 
       await instruction.save();
-      await instruction.populate('createdBy', 'name email');
+      await instruction.populate([
+        { path: 'createdBy', select: 'name email' },
+        { path: 'targetWards', select: 'name wardNumber panchayath district' },
+        { path: 'targetCoordinators', select: 'name email district' }
+      ]);
 
       res.status(201).json(instruction);
     } catch (error) {

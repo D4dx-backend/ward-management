@@ -7,6 +7,7 @@ import FormTemplate from '../../../models/FormTemplate';
 import Response from '../../../models/Response';
 import ActivityLog from '../../../models/ActivityLog';
 import LoginHistory from '../../../models/LoginHistory';
+import Instruction from '../../../models/Instruction';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -276,6 +277,18 @@ export default async function handler(req, res) {
         ward: { $in: wardIds } 
       });
       stats.clusters = totalClusters;
+
+      // Get instructions count for ward admin
+      const ward = userWards[0]; // Get the first ward
+      const instructionsCount = await Instruction.countDocuments({
+        isActive: true,
+        $or: [
+          { targetAudience: 'all' },
+          { targetAudience: 'ward_admins' },
+          { targetWards: ward ? ward._id : null }
+        ].filter(condition => condition.targetWards !== null)
+      });
+      stats.instructions = instructionsCount;
 
       // Get the district from the ward admin's ward
       const userDistrict = userWards.length > 0 ? userWards[0].district : session.user.district;

@@ -62,10 +62,18 @@ async function handleGet(req, res, session, id) {
 
 async function handlePut(req, res, session, id) {
   try {
-    const { status, reviewComments } = req.body;
+    const { status, reviewComments, data: formData, clusterData } = req.body;
 
-    const data = await WardBasicData.findById(id);
-    if (!data) {
+    console.log('Ward Basic Data Update Request:', {
+      id,
+      status,
+      hasFormData: !!formData,
+      hasClusterData: !!clusterData,
+      userId: session.user.id
+    });
+
+    const existingData = await WardBasicData.findById(id);
+    if (!existingData) {
       return res.status(404).json({ message: 'Data not found' });
     }
 
@@ -74,10 +82,10 @@ async function handlePut(req, res, session, id) {
     if (session.user.role === 'stateAdmin') {
       hasAccess = true;
     } else if (session.user.role === 'coordinator') {
-      const ward = await Ward.findOne({ _id: data.ward, coordinator: session.user.id });
+      const ward = await Ward.findOne({ _id: existingData.ward, coordinator: session.user.id });
       hasAccess = !!ward;
     } else if (session.user.role === 'wardAdmin') {
-      const ward = await Ward.findOne({ _id: data.ward, wardAdmin: session.user.id });
+      const ward = await Ward.findOne({ _id: existingData.ward, wardAdmin: session.user.id });
       hasAccess = !!ward;
     }
 
@@ -88,7 +96,27 @@ async function handlePut(req, res, session, id) {
     // Update data
     const updateData = {};
     
-    if (status !== undefined) {
+    // Update form data if provided
+    if (formData !== undefined) {
+      console.log('Updating form data');
+      updateData.data = formData;
+      updateData.submittedBy = session.user.id;
+      updateData.submittedAt = new Date();
+      // Reset review status when data is updated
+      updateData.status = 'submitted';
+      updateData.reviewedBy = undefined;
+      updateData.reviewedAt = undefined;
+      updateData.reviewComments = undefined;
+    }
+    
+    // Update cluster data if provided
+    if (clusterData !== undefined) {
+      console.log('Updating cluster data');
+      updateData.clusterData = clusterData;
+    }
+    
+    // Update status and review info (for admin/coordinator reviews)
+    if (status !== undefined && !formData) {
       updateData.status = status;
       if (['approved', 'rejected'].includes(status)) {
         updateData.reviewedBy = session.user.id;
@@ -100,6 +128,8 @@ async function handlePut(req, res, session, id) {
       updateData.reviewComments = reviewComments;
     }
 
+    console.log('Update data:', Object.keys(updateData));
+
     const updatedData = await WardBasicData.findByIdAndUpdate(
       id,
       updateData,
@@ -109,10 +139,15 @@ async function handlePut(req, res, session, id) {
      .populate('submittedBy', 'name email')
      .populate('reviewedBy', 'name email');
 
+    console.log('Ward basic data updated successfully');
     res.status(200).json(updatedData);
   } catch (error) {
     console.error('Error updating ward basic data:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 }
 
