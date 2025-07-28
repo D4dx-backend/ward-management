@@ -50,15 +50,15 @@ export default function CoordinatorWards() {
   const fetchCoordinatorWards = async () => {
     try {
       setIsLoading(true);
-      
+
       // Fetch wards assigned to this coordinator
       const response = await axios.get('/api/wards/coordinator');
-      
+
       setWards(response.data || []);
       setError('');
     } catch (error) {
       console.error('Error fetching coordinator wards:', error);
-      
+
       // Fallback to mock data for development
       const mockWards = [
         {
@@ -122,7 +122,7 @@ export default function CoordinatorWards() {
           pendingReports: 2
         }
       ];
-      
+
       setWards(mockWards);
       setError('');
     } finally {
@@ -133,7 +133,7 @@ export default function CoordinatorWards() {
   const fetchWardDetails = async (wardId) => {
     try {
       setLoadingDetails(true);
-      
+
       // Fetch comprehensive ward details
       const [wardResponse, reportsResponse, clustersResponse, formsResponse] = await Promise.all([
         axios.get(`/api/wards/${wardId}`),
@@ -141,7 +141,7 @@ export default function CoordinatorWards() {
         axios.get(`/api/clusters?ward=${wardId}`),
         axios.get(`/api/forms/ward/${wardId}`)
       ]);
-      
+
       setWardDetails({
         ward: wardResponse.data,
         reports: reportsResponse.data || [],
@@ -150,7 +150,7 @@ export default function CoordinatorWards() {
       });
     } catch (error) {
       console.error('Error fetching ward details:', error);
-      
+
       // Mock detailed data
       const selectedWardData = wards.find(w => w._id === wardId);
       setWardDetails({
@@ -295,15 +295,14 @@ export default function CoordinatorWards() {
                   placeholder="Search wards..."
                 />
               </div>
-              
+
               <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {filteredWards.map((ward) => (
                   <div
                     key={ward._id}
                     onClick={() => handleWardClick(ward)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      selectedWard?._id === ward._id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                    }`}
+                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${selectedWard?._id === ward._id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -354,7 +353,7 @@ export default function CoordinatorWards() {
                             {wardDetails.ward.status}
                           </span>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="text-center p-3 bg-blue-50 rounded-lg">
                             <div className="text-2xl font-bold text-blue-600">{wardDetails.ward.population?.toLocaleString()}</div>
@@ -404,7 +403,7 @@ export default function CoordinatorWards() {
                             <Button variant="outline" size="sm">View All</Button>
                           </Link>
                         </div>
-                        
+
                         <div className="space-y-3">
                           {wardDetails.reports.slice(0, 5).map((report) => (
                             <div key={report._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -438,7 +437,7 @@ export default function CoordinatorWards() {
                             <Button variant="outline" size="sm">Manage</Button>
                           </Link>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {wardDetails.clusters.map((cluster) => (
                             <div key={cluster._id} className="p-4 border border-gray-200 rounded-lg">
@@ -463,7 +462,7 @@ export default function CoordinatorWards() {
                     <Card>
                       <div className="p-6">
                         <h3 className="text-lg font-medium text-gray-900 mb-4">Ward Profile Forms</h3>
-                        
+
                         <div className="space-y-3">
                           {wardDetails.forms.map((form) => (
                             <div key={form._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

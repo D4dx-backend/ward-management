@@ -5,6 +5,8 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import StatsCard from '../../components/StatsCard';
 import Button from '../../components/Button';
+import Pagination from '../../components/Pagination';
+import usePagination from '../../hooks/usePagination';
 import axios from 'axios';
 
 const statusColors = {
@@ -26,12 +28,52 @@ export default function AdminDockerSurveys() {
   const [selectedWard, setSelectedWard] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredSurveys, setFilteredSurveys] = useState([]);
+  
+  // Pagination using custom hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedSurveys,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    resetPagination,
+  } = usePagination(filteredSurveys, 10);
 
   useEffect(() => {
     if (session) {
       fetchSurveys();
     }
   }, [session]);
+
+  useEffect(() => {
+    // Filter surveys based on search term and status
+    let filtered = data.surveys || [];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(survey =>
+        survey.ward?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.ward?.wardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.ward?.panchayath.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.ward?.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.wardAdmin?.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(survey => {
+        const basicStatus = survey.basicSurvey?.status || 'not_started';
+        return basicStatus === filterStatus;
+      });
+    }
+
+    setFilteredSurveys(filtered);
+    resetPagination(); // Reset to first page when filters change
+  }, [data.surveys, searchTerm, filterStatus, resetPagination]);
 
   const fetchSurveys = async () => {
     try {
@@ -62,17 +104,6 @@ export default function AdminDockerSurveys() {
     if (survey.completionRate > 0) return 'ongoing';
     return 'not_started';
   };
-
-  const filteredSurveys = data.surveys.filter(survey => {
-    const matchesSearch = !searchTerm || 
-      survey.ward?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      survey.ward?.panchayath.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      survey.ward?.district.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterStatus === 'all' || getOverallStatus(survey) === filterStatus;
-    
-    return matchesSearch && matchesFilter;
-  });
 
   const exportData = async () => {
     try {
@@ -196,11 +227,11 @@ export default function AdminDockerSurveys() {
         <Card>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900">
-              Ward Survey Status ({filteredSurveys.length} of {data.surveys.length})
+              Ward Survey Status ({totalItems} total)
             </h2>
           </div>
           
-          {filteredSurveys.length > 0 ? (
+          {totalItems > 0 ? (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -229,7 +260,7 @@ export default function AdminDockerSurveys() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredSurveys.map((survey) => {
+                  {paginatedSurveys.map((survey) => {
                     const completedQuestions = Object.values(survey.questions || {}).filter(q => q.status === 'completed').length;
                     const totalQuestions = Object.keys(survey.questions || {}).length;
                     
@@ -300,6 +331,15 @@ export default function AdminDockerSurveys() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Pagination */}
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
           ) : (
             <div className="text-center py-8">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
