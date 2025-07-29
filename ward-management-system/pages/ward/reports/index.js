@@ -14,6 +14,9 @@ export default function WardReports() {
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [availableForms, setAvailableForms] = useState([]);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
   const [filter, setFilter] = useState({
     formType: 'wardReport',
     weekNumber: '',
@@ -35,16 +38,14 @@ export default function WardReports() {
     try {
       setIsLoading(true);
       
-      // Build query string - filter by current user's reports
-      const queryParams = new URLSearchParams();
-      queryParams.append('formType', 'wardReport');
-      if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
-      if (filter.year) queryParams.append('year', filter.year);
+      // Fetch both reports and available forms
+      const [reportsResponse, formsResponse] = await Promise.all([
+        axios.get(`/api/responses?formType=wardReport${filter.weekNumber ? `&weekNumber=${filter.weekNumber}` : ''}${filter.year ? `&year=${filter.year}` : ''}`),
+        axios.get('/api/forms?formType=wardReport&isActive=true')
+      ]);
       
-      const response = await axios.get(`/api/responses?${queryParams.toString()}`);
-      const responseData = response.data;
-      
-      // Ensure reports is always an array
+      // Process reports data
+      const responseData = reportsResponse.data;
       let reportsData = [];
       if (Array.isArray(responseData)) {
         reportsData = responseData;
@@ -55,6 +56,7 @@ export default function WardReports() {
       }
       
       setReports(reportsData);
+      setAvailableForms(formsResponse.data || []);
       setError('');
     } catch (error) {
       setError('Failed to fetch reports');
@@ -62,6 +64,11 @@ export default function WardReports() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleViewReport = (report) => {
+    setSelectedReport(report);
+    setShowViewModal(true);
   };
 
   const formatDateTime = (timestamp) => {
@@ -88,14 +95,16 @@ export default function WardReports() {
             <h1 className="text-2xl font-bold text-gray-900">My Ward Reports</h1>
             <p className="mt-1 text-sm text-gray-600">View your submitted ward reports</p>
           </div>
-          <Link href="/ward/reports/submit">
-            <Button>
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Submit New Report
-            </Button>
-          </Link>
+          {availableForms.length > 0 && (
+            <Link href="/ward/reports/submit">
+              <Button>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Submit New Report
+              </Button>
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -171,6 +180,9 @@ export default function WardReports() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -200,21 +212,38 @@ export default function WardReports() {
                         Submitted
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleViewReport(report)}
+                          className="text-blue-600 hover:text-blue-900"
+                        >
+                          View Details
+                        </button>
+                        {/* Edit functionality can be added here if needed */}
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {reports.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <p className="mt-2 text-sm">No reports found</p>
-                        <p className="mt-1 text-sm text-gray-400">
-                          <Link href="/ward/reports/submit" className="text-blue-600 hover:text-blue-800">
-                            Submit your first report
-                          </Link>
-                        </p>
+                        {availableForms.length > 0 ? (
+                          <p className="mt-1 text-sm text-gray-400">
+                            <Link href="/ward/reports/submit" className="text-blue-600 hover:text-blue-800">
+                              Submit your first report
+                            </Link>
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-gray-400">
+                            No report forms are currently available for submission
+                          </p>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -223,6 +252,94 @@ export default function WardReports() {
             </table>
           </div>
         </Card>
+
+        {/* View Report Details Modal */}
+        {showViewModal && selectedReport && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Report Details</h3>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Report Header */}
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Form Title</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedReport.formTemplate?.title || 'Unknown Form'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Ward</label>
+                      <p className="mt-1 text-sm text-gray-900">{selectedReport.ward?.name || 'Unknown Ward'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Period</label>
+                      <p className="mt-1 text-sm text-gray-900">Week {selectedReport.weekNumber}, {selectedReport.year}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Submitted</label>
+                      <p className="mt-1 text-sm text-gray-900">{formatDateTime(selectedReport.submittedAt)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Report Responses */}
+                <div>
+                  <h4 className="text-md font-medium text-gray-900 mb-4">Report Responses</h4>
+                  <div className="space-y-4">
+                    {selectedReport.responses && Object.entries(selectedReport.responses).map(([question, answer]) => (
+                      <div key={question} className="border-l-4 border-blue-200 pl-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{question}</label>
+                        <div className="text-sm text-gray-900">
+                          {typeof answer === 'boolean' ? (answer ? 'Yes' : 'No') : 
+                           typeof answer === 'object' ? JSON.stringify(answer, null, 2) : 
+                           answer || 'No response'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                    <div>
+                      <span className="font-medium">District:</span> {selectedReport.district}
+                    </div>
+                    <div>
+                      <span className="font-medium">Form Type:</span> {selectedReport.formType}
+                    </div>
+                    <div>
+                      <span className="font-medium">Submitted by:</span> {selectedReport.respondent?.name || 'Unknown'}
+                    </div>
+                    <div>
+                      <span className="font-medium">Report ID:</span> {selectedReport._id}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowViewModal(false)}
+                >
+                  Close
+                </Button>
+                {/* Edit button can be added here if editing is allowed */}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

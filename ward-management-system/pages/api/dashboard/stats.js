@@ -290,6 +290,21 @@ export default async function handler(req, res) {
       });
       stats.instructions = instructionsCount;
 
+      // Get recent instructions for ward admin (last 3)
+      const recentInstructions = await Instruction.find({
+        isActive: true,
+        $or: [
+          { targetAudience: 'all' },
+          { targetAudience: 'ward_admins' },
+          { targetWards: ward ? ward._id : null }
+        ].filter(condition => condition.targetWards !== null)
+      })
+        .populate('createdBy', 'name role')
+        .sort({ createdAt: -1 })
+        .limit(3);
+
+      stats.recentInstructions = recentInstructions;
+
       // Get the district from the ward admin's ward
       const userDistrict = userWards.length > 0 ? userWards[0].district : session.user.district;
 
@@ -312,11 +327,21 @@ export default async function handler(req, res) {
         respondent: session.user.id
       });
 
-      const pendingReports = activeForms.filter(form =>
+      const pendingFormsList = activeForms.filter(form =>
         !submittedFormIds.some(id => id.toString() === form._id.toString())
-      ).length;
+      );
 
-      stats.pendingReports = pendingReports;
+      stats.pendingReports = pendingFormsList.length;
+      stats.pendingFormsList = pendingFormsList.map(form => ({
+        _id: form._id,
+        title: form.title,
+        formType: form.formType,
+        enableDateTime: form.enableDateTime,
+        closeDateTime: form.closeDateTime,
+        weekNumber: form.weekNumber,
+        year: form.year,
+        isSubmitted: false
+      }));
 
       // Get recent activity logs for ward admin (last 10)
       const logs = await ActivityLog.find({

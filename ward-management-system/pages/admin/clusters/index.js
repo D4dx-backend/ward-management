@@ -459,7 +459,7 @@ export default function Clusters() {
                 Back to Wards
               </Button>
             )}
-            {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
+            {['stateAdmin', 'coordinator', 'wardAdmin'].includes(session?.user?.role) && (
               <div className="flex space-x-2">
                 <Button onClick={() => setShowCreateModal(true)}>
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -575,7 +575,7 @@ export default function Clusters() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
+                        {['stateAdmin', 'coordinator', 'wardAdmin'].includes(session?.user?.role) && (
                           <Button variant="outline" size="sm" onClick={() => handleEdit(cluster)}>
                             Edit
                           </Button>

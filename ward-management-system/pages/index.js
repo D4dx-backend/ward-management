@@ -66,6 +66,10 @@ export default function Home() {
       if (response.data.stats.pendingReportsList) {
         setPendingReportsList(response.data.stats.pendingReportsList);
       }
+      // Set ward admin pending forms list if available
+      if (response.data.stats.pendingFormsList) {
+        setPendingReportsList(response.data.stats.pendingFormsList);
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     }
@@ -344,15 +348,9 @@ export default function Home() {
   };
 
   const renderWardAdminDashboard = () => {
-    // Check if ward admin has submitted a report this week
-    const hasSubmittedThisWeek = recentReports.some(report => {
-      const reportDate = new Date(report.submittedAt);
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return report.respondent === session.user.id && 
-             reportDate > weekAgo && 
-             (report.formType === 'wardReport' || report.form?.title?.toLowerCase().includes('ward'));
-    });
+    // Use the proper pending forms list from API
+    const pendingForms = pendingReportsList || [];
+    const hasPendingReports = pendingForms.length > 0;
 
     return (
       <>
@@ -412,7 +410,7 @@ export default function Home() {
             />
             <StatsCard
               title="Pending Reports"
-              value={hasSubmittedThisWeek ? "0" : "1"}
+              value={stats.pendingReports || 0}
               icon="⏰"
               color="yellow"
               href="/ward/reports/submit"
@@ -439,23 +437,32 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <Card>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Pending Reports</h2>
-              {!hasSubmittedThisWeek ? (
+              {hasPendingReports ? (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                       onClick={() => window.location.href = '/ward/reports/submit'}>
-                    <div>
-                      <p className="font-medium text-gray-900">Weekly Ward Report</p>
-                      <p className="text-sm text-gray-600">Submit your weekly ward progress report</p>
+                  {pendingForms.map((form, index) => (
+                    <div key={form._id || index} 
+                         className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+                         onClick={() => window.location.href = '/ward/reports/submit'}>
+                      <div>
+                        <p className="font-medium text-gray-900">{form.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {form.formType === 'wardReport' ? 'Ward Report' : form.formType} - 
+                          Week {form.weekNumber}, {form.year}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Due: {new Date(form.closeDateTime).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">
+                          Not Submitted
+                        </span>
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
-                        Pending
-                      </span>
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </div>
+                  ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -475,19 +482,26 @@ export default function Home() {
                     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
                     .slice(0, 5)
                     .map((report, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
                          onClick={() => window.location.href = '/ward/reports'}>
                       <div className="flex items-center space-x-3">
                         <div className="flex-shrink-0">
-                          <div className={`w-3 h-3 rounded-full ${report.status === 'submitted' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
-                            {report.form?.title || 'Report'}
+                            {report.form?.title || report.formTemplate?.title || 'Report'}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {new Date(report.submittedAt).toLocaleDateString()}
+                            Submitted: {new Date(report.submittedAt).toLocaleDateString()}
                           </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                            Submitted
+                          </span>
                         </div>
                       </div>
                       <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -507,6 +521,65 @@ export default function Home() {
             </Card>
           </div>
 
+          {/* Recent Instructions */}
+          <Card>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Instructions</h2>
+            {stats.recentInstructions && stats.recentInstructions.length > 0 ? (
+              <div className="space-y-3">
+                {stats.recentInstructions.slice(0, 3).map((instruction, index) => (
+                  <div key={instruction._id} 
+                       className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
+                         instruction.isHighlighted 
+                           ? 'bg-yellow-50 border border-yellow-200 hover:bg-yellow-100' 
+                           : 'bg-gray-50 hover:bg-gray-100'
+                       }`}
+                       onClick={() => window.location.href = '/instructions'}>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        {instruction.isHighlighted ? (
+                          <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {instruction.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(instruction.createdAt).toLocaleDateString()}
+                          {instruction.replies && instruction.replies.length > 0 && (
+                            <span className="ml-2">• {instruction.replies.length} replies</span>
+                          )}
+                        </p>
+                      </div>
+                      {instruction.isHighlighted && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-yellow-600 bg-yellow-100 px-2 py-1 rounded-full">
+                            New
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-gray-500 mt-2">No recent instructions</p>
+              </div>
+            )}
+          </Card>
 
         </div>
       </>

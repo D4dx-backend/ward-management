@@ -160,31 +160,27 @@ const DockerSurveySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Calculate completion rate before saving
+// Calculate completion rate before saving (only for docket survey questions, not basic survey)
 DockerSurveySchema.pre('save', function(next) {
   try {
     const questions = this.questions || {};
-    const basicSurvey = this.basicSurvey || {};
     
     let completedCount = 0;
-    let totalCount = Object.keys(questions).length + 1; // +1 for basic survey
+    let totalCount = Object.keys(questions).length; // Only count docket survey questions
     
-    // Count completed questions
+    // Count completed docket survey questions only
     Object.values(questions).forEach(question => {
       if (question && question.status === 'completed') {
         completedCount++;
       }
     });
     
-    // Count basic survey
-    if (basicSurvey && basicSurvey.status === 'completed') {
-      completedCount++;
-    }
+    // Note: Basic survey is NOT included in progress calculation as per requirement
     
     this.completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     this.lastUpdated = new Date();
     
-    console.log(`Completion rate calculated: ${completedCount}/${totalCount} = ${this.completionRate}%`);
+    console.log(`Docket Survey completion rate calculated: ${completedCount}/${totalCount} = ${this.completionRate}%`);
     
     next();
   } catch (error) {

@@ -65,6 +65,11 @@ const WardVisitSchema = new mongoose.Schema({
     type: String,
     enum: ['completed', 'pending_followup', 'cancelled'],
     default: 'completed'
+  },
+  recordedBy: {
+    type: String,
+    enum: ['coordinator', 'wardAdmin'],
+    default: 'coordinator'
   }
 }, {
   timestamps: true

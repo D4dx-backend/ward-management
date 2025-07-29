@@ -64,9 +64,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: 'All fields are required' });
       }
       
-      if (!coordinator.name) {
-        return res.status(400).json({ message: 'Coordinator name is required' });
-      }
+      // Coordinator name is optional
+      // if (!coordinator.name) {
+      //   return res.status(400).json({ message: 'Coordinator name is required' });
+      // }
       
       // Validate mobile number if provided
       if (coordinator.mobileNumber && !/^\d{10}$/.test(coordinator.mobileNumber)) {

@@ -84,7 +84,32 @@ export default function WardProfile() {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    
+    // Handle number inputs properly
+    if (type === 'number') {
+      // Allow empty string for clearing the field
+      if (value === '') {
+        setEditData(prev => ({
+          ...prev,
+          [name]: ''
+        }));
+        return;
+      }
+      
+      // Validate number inputs
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) && numValue >= 0) {
+        setEditData(prev => ({
+          ...prev,
+          [name]: value
+        }));
+      }
+      // If invalid number, don't update the state (keeps previous valid value)
+      return;
+    }
+    
+    // Handle other input types normally
     setEditData(prev => ({
       ...prev,
       [name]: value
@@ -97,18 +122,47 @@ export default function WardProfile() {
     setSuccess('');
 
     try {
-      const response = await axios.put(`/api/wards/${ward._id}`, {
-        population: editData.population ? parseInt(editData.population) : null,
-        area: editData.area ? parseFloat(editData.area) : null,
-        description: editData.description || null
-      });
+      // Validate inputs before sending
+      const updateData = {};
+      
+      // Handle population - must be a positive integer or null
+      if (editData.population !== '' && editData.population !== null && editData.population !== undefined) {
+        const popValue = parseInt(editData.population);
+        if (isNaN(popValue) || popValue < 0) {
+          throw new Error('Population must be a valid positive number');
+        }
+        updateData.population = popValue;
+      } else {
+        updateData.population = null;
+      }
+      
+      // Handle area - must be a positive number or null
+      if (editData.area !== '' && editData.area !== null && editData.area !== undefined) {
+        const areaValue = parseFloat(editData.area);
+        if (isNaN(areaValue) || areaValue < 0) {
+          throw new Error('Area must be a valid positive number');
+        }
+        updateData.area = areaValue;
+      } else {
+        updateData.area = null;
+      }
+      
+      // Handle description
+      updateData.description = editData.description?.trim() || null;
+
+      const response = await axios.put(`/api/wards/${ward._id}`, updateData);
 
       setWard(response.data);
       setIsEditing(false);
       setSuccess('Ward profile updated successfully!');
     } catch (error) {
       console.error('Error updating ward:', error);
-      setError(error.response?.data?.message || 'Failed to update ward profile');
+      if (error.message && !error.response) {
+        // Client-side validation error
+        setError(error.message);
+      } else {
+        setError(error.response?.data?.message || 'Failed to update ward profile');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -280,10 +334,11 @@ export default function WardProfile() {
                       <input
                         type="number"
                         name="population"
-                        value={editData.population}
+                        value={editData.population || ''}
                         onChange={handleInputChange}
+                        min="0"
                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter population"
+                        placeholder="Enter population (numbers only)"
                       />
                     ) : (
                       <p className="mt-1 text-sm">{formatValue(ward.population, 'Not set')}</p>
@@ -297,10 +352,11 @@ export default function WardProfile() {
                         type="number"
                         step="0.01"
                         name="area"
-                        value={editData.area}
+                        value={editData.area || ''}
                         onChange={handleInputChange}
+                        min="0"
                         className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter area in sq km"
+                        placeholder="Enter area in sq km (decimal allowed)"
                       />
                     ) : (
                       <p className="mt-1 text-sm">{formatValue(ward.area, 'Not set')}</p>

@@ -28,7 +28,11 @@ export default function Instructions() {
   const fetchInstructions = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('/api/instructions');
+      const response = await axios.get('/api/instructions', {
+        params: {
+          includeHierarchy: true // Request hierarchy-based data
+        }
+      });
       // Handle both array response and paginated response
       const instructionsData = response.data.instructions || response.data || [];
       setInstructions(instructionsData);
@@ -44,11 +48,15 @@ export default function Instructions() {
 
   const handleViewInstruction = async (instructionId) => {
     try {
-      await axios.post(`/api/instructions/${instructionId}/view`);
-      // Update view count in local state
+      const response = await axios.post(`/api/instructions/${instructionId}/view`);
+      // Update view count and hierarchy stats in local state
       setInstructions(prev => prev.map(inst => 
         inst._id === instructionId 
-          ? { ...inst, viewCount: (inst.viewCount || 0) + 1 }
+          ? { 
+              ...inst, 
+              viewCount: response.data.viewCount,
+              hierarchyStats: response.data.hierarchyStats || inst.hierarchyStats
+            }
           : inst
       ));
     } catch (error) {
@@ -58,7 +66,10 @@ export default function Instructions() {
 
   const handleReplySubmit = async (instructionId) => {
     const message = replyText[instructionId];
-    if (!message || !message.trim()) return;
+    if (!message || !message.trim()) {
+      setError('Please enter a message before submitting');
+      return;
+    }
 
     setSubmittingReply(prev => ({ ...prev, [instructionId]: true }));
     
@@ -77,9 +88,14 @@ export default function Instructions() {
       // Clear the reply text
       setReplyText(prev => ({ ...prev, [instructionId]: '' }));
       setError('');
+      
+      // Auto-expand replies to show the new comment
+      setExpandedReplies(prev => ({ ...prev, [instructionId]: true }));
+      
     } catch (error) {
       console.error('Error submitting reply:', error);
-      setError('Failed to submit reply');
+      const errorMessage = error.response?.data?.error || 'Failed to submit reply';
+      setError(errorMessage);
     } finally {
       setSubmittingReply(prev => ({ ...prev, [instructionId]: false }));
     }
@@ -126,10 +142,26 @@ export default function Instructions() {
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Important instructions and guidelines for your role
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Important instructions and guidelines for your role
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Your Role:</span>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                session.user.role === 'stateAdmin' ? 'bg-red-100 text-red-800' :
+                session.user.role === 'coordinator' ? 'bg-green-100 text-green-800' :
+                'bg-blue-100 text-blue-800'
+              }`}>
+                {session.user.role === 'stateAdmin' ? 'State Admin' :
+                 session.user.role === 'coordinator' ? 'Coordinator' :
+                 'Ward Admin'}
+              </span>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -174,9 +206,33 @@ export default function Instructions() {
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                         <span>Created: {formatDate(instruction.createdAt)}</span>
-                        <span>Views: {instruction.viewCount || 0}</span>
+                        <span className="flex items-center">
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          Views: {instruction.viewCount || 0}
+                        </span>
                         {instruction.replies && instruction.replies.length > 0 && (
-                          <span>Replies: {instruction.replies.length}</span>
+                          <span className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            Replies: {instruction.replies.length}
+                          </span>
+                        )}
+                        {/* Show hierarchy-based stats for higher roles */}
+                        {(session.user.role === 'stateAdmin' || session.user.role === 'coordinator') && instruction.hierarchyStats && (
+                          <>
+                            <span className="text-blue-600 font-medium">
+                              Ward Views: {instruction.hierarchyStats.wardAdminViews || 0}
+                            </span>
+                            {session.user.role === 'stateAdmin' && (
+                              <span className="text-green-600 font-medium">
+                                Coordinator Views: {instruction.hierarchyStats.coordinatorViews || 0}
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -231,7 +287,7 @@ export default function Instructions() {
                   )}
 
                   {/* Replies Section */}
-                  {instruction.allowReplies && session.user.role === 'wardAdmin' && (
+                  {instruction.allowReplies && (session.user.role === 'wardAdmin' || session.user.role === 'coordinator' || session.user.role === 'stateAdmin') && (
                     <div className="mt-6 pt-4 border-t border-gray-200">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-medium text-gray-900">
@@ -249,46 +305,140 @@ export default function Instructions() {
                       </div>
 
                       {/* Reply Form */}
-                      <div className="mb-4">
-                        <textarea
-                          value={replyText[instruction._id] || ''}
-                          onChange={(e) => setReplyText(prev => ({ ...prev, [instruction._id]: e.target.value }))}
-                          placeholder="Add a comment..."
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                          rows="3"
-                        />
-                        <div className="mt-2 flex justify-end">
-                          <Button
-                            onClick={() => handleReplySubmit(instruction._id)}
-                            disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
-                            size="sm"
-                          >
-                            {submittingReply[instruction._id] ? 'Submitting...' : 'Submit Comment'}
-                          </Button>
+                      <div className="mb-6 bg-gray-50 rounded-xl p-4">
+                        <div className="flex items-start space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <textarea
+                              value={replyText[instruction._id] || ''}
+                              onChange={(e) => setReplyText(prev => ({ ...prev, [instruction._id]: e.target.value }))}
+                              placeholder="Share your thoughts or ask a question..."
+                              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-all duration-200"
+                              rows="3"
+                            />
+                            <div className="mt-3 flex items-center justify-between">
+                              <div className="text-xs text-gray-500">
+                                {replyText[instruction._id]?.length || 0} characters
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button
+                                  onClick={() => setReplyText(prev => ({ ...prev, [instruction._id]: '' }))}
+                                  variant="outline"
+                                  size="sm"
+                                  className="px-4 py-2 text-gray-600 border-gray-300 hover:bg-gray-100"
+                                  disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
+                                >
+                                  Clear
+                                </Button>
+                                <Button
+                                  onClick={() => handleReplySubmit(instruction._id)}
+                                  disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
+                                  size="sm"
+                                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                                >
+                                  {submittingReply[instruction._id] ? (
+                                    <div className="flex items-center">
+                                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Posting...
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center">
+                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                      </svg>
+                                      Post Comment
+                                    </div>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       {/* Replies List */}
                       {expandedReplies[instruction._id] && instruction.replies && instruction.replies.length > 0 && (
-                        <div className="space-y-3">
-                          {instruction.replies.map((reply, replyIndex) => (
-                            <div key={replyIndex} className="bg-gray-50 p-3 rounded-lg">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {reply.user?.name || 'Unknown User'}
-                                  </span>
-                                  <span className="text-xs text-gray-500 capitalize">
-                                    ({reply.user?.role?.replace('Admin', ' Admin') || 'Unknown Role'})
-                                  </span>
+                        <div className="space-y-4">
+                          <div className="border-t border-gray-200 pt-4">
+                            <h4 className="text-sm font-medium text-gray-900 mb-4 flex items-center">
+                              <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                              Comments ({instruction.replies.length})
+                            </h4>
+                          </div>
+                          {instruction.replies
+                            .sort((a, b) => {
+                              // Sort by role hierarchy: stateAdmin > coordinator > wardAdmin
+                              const roleOrder = { stateAdmin: 3, coordinator: 2, wardAdmin: 1 };
+                              const aOrder = roleOrder[a.user?.role] || 0;
+                              const bOrder = roleOrder[b.user?.role] || 0;
+                              if (aOrder !== bOrder) return bOrder - aOrder;
+                              // If same role, sort by date (newest first)
+                              return new Date(b.createdAt) - new Date(a.createdAt);
+                            })
+                            .map((reply, replyIndex) => (
+                            <div key={replyIndex} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                              <div className="flex items-start space-x-3">
+                                <div className="flex-shrink-0 relative">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    reply.user?.role === 'stateAdmin' ? 'bg-gradient-to-br from-red-500 to-red-600' :
+                                    reply.user?.role === 'coordinator' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                                    'bg-gradient-to-br from-blue-500 to-purple-600'
+                                  }`}>
+                                    <span className="text-white text-sm font-semibold">
+                                      {reply.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                    </span>
+                                  </div>
+                                  {/* Hierarchy indicator */}
+                                  {reply.user?.role === 'stateAdmin' && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white flex items-center justify-center">
+                                      <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      </svg>
+                                    </div>
+                                  )}
                                 </div>
-                                <span className="text-xs text-gray-500">
-                                  {formatDate(reply.createdAt)}
-                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-sm font-semibold text-gray-900">
+                                        {reply.user?.name || 'Unknown User'}
+                                      </span>
+                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                        reply.user?.role === 'stateAdmin' ? 'bg-red-100 text-red-800' :
+                                        reply.user?.role === 'coordinator' ? 'bg-green-100 text-green-800' :
+                                        'bg-blue-100 text-blue-800'
+                                      }`}>
+                                        {reply.user?.role === 'stateAdmin' ? 'State Admin' :
+                                         reply.user?.role === 'coordinator' ? 'Coordinator' :
+                                         reply.user?.role === 'wardAdmin' ? 'Ward Admin' :
+                                         'Unknown Role'}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-gray-500 flex items-center">
+                                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                      {formatDate(reply.createdAt)}
+                                    </span>
+                                  </div>
+                                  <div className="bg-gray-50 rounded-lg p-3">
+                                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                      {reply.message}
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
-                              <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                {reply.message}
-                              </p>
                             </div>
                           ))}
                         </div>

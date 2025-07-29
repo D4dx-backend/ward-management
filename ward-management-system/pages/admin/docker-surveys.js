@@ -143,9 +143,9 @@ export default function AdminDockerSurveys() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Docker Surveys</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Surveys</h1>
             <p className="text-sm text-gray-600 mt-1">
-              Monitor docker survey progress across all wards
+              Monitor survey progress across all wards
             </p>
           </div>
           <Button onClick={exportData} variant="outline">
@@ -418,7 +418,7 @@ export default function AdminDockerSurveys() {
 
                 {/* Detailed Question Status */}
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-4">Docket Survey Questions</h4>
+                  <h4 className="font-medium text-gray-900 mb-4">Survey Questions</h4>
                   <div className="space-y-3 max-h-80 overflow-y-auto">
                     {Object.entries(selectedWard.questions || {}).map(([key, question]) => (
                       <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

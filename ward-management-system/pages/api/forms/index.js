@@ -75,7 +75,22 @@ export default async function handler(req, res) {
     }
     
     try {
-      const { title, description, formType, fields, weekNumber, year, isActive, enableDateTime, closeDateTime } = req.body;
+      const { 
+        title, 
+        description, 
+        formType, 
+        fields, 
+        sittingWardFields,
+        weekNumber, 
+        year, 
+        isActive, 
+        isPublished,
+        isSittingWardForm,
+        allowMultipleSubmissions,
+        allowEditAfterSubmission,
+        enableDateTime, 
+        closeDateTime 
+      } = req.body;
       
       // Validate required fields
       if (!title || !formType || !fields || !enableDateTime || !closeDateTime) {
@@ -134,15 +149,31 @@ export default async function handler(req, res) {
         }
       }
       
+      // Add order to fields if not present
+      const orderedFields = fields.map((field, index) => ({
+        ...field,
+        order: field.order !== undefined ? field.order : index
+      }));
+
+      const orderedSittingWardFields = sittingWardFields ? sittingWardFields.map((field, index) => ({
+        ...field,
+        order: field.order !== undefined ? field.order : index
+      })) : [];
+
       // Create new form template
       const newForm = new FormTemplate({
         title,
         description,
         formType,
-        fields,
+        fields: orderedFields,
+        sittingWardFields: orderedSittingWardFields,
         weekNumber: calculatedWeekNumber,
         year: calculatedYear,
         isActive: isActive !== undefined ? isActive : true,
+        isPublished: isPublished !== undefined ? isPublished : false,
+        isSittingWardForm: isSittingWardForm !== undefined ? isSittingWardForm : false,
+        allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true,
+        allowEditAfterSubmission: allowEditAfterSubmission !== undefined ? allowEditAfterSubmission : false,
         enableDateTime: new Date(enableDateTime),
         closeDateTime: new Date(closeDateTime),
         createdBy: session.user.id,
