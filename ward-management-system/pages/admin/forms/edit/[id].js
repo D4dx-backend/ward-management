@@ -738,8 +738,8 @@ export default function EditForm() {
                 </Button>
               </div>
             </div>
-          </form>
-        </Card>
+          </Card>
+        </form>
       </div>
 
       {/* Import Questions Modal */}
