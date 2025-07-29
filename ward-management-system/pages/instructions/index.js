@@ -36,6 +36,10 @@ export default function Instructions() {
       if (response.ok) {
         const data = await response.json();
         console.log('Instructions API response:', data);
+        console.log('Instructions array:', data.instructions);
+        if (data.instructions && data.instructions.length > 0) {
+          console.log('First instruction:', data.instructions[0]);
+        }
         setInstructions(data.instructions || []);
       } else {
         console.error('Instructions API error:', response.status, response.statusText);
@@ -88,8 +92,10 @@ export default function Instructions() {
   };
 
   const filteredInstructions = instructions.filter(instruction => {
-    const matchesSearch = instruction.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      instruction.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = instruction.title || '';
+    const description = instruction.description || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = priorityFilter === 'all' || instruction.priority === priorityFilter;
     return matchesSearch && matchesPriority;
   });
@@ -216,12 +222,14 @@ export default function Instructions() {
                 {filteredInstructions.map((instruction) => (
                   <tr key={instruction._id}>
                     <td className="px-3 py-4">
-                      <div className="text-sm font-medium text-gray-900 truncate max-w-0">{instruction.title}</div>
+                      <div className="text-sm font-medium text-gray-900 truncate max-w-0">
+                        {instruction.title || 'Untitled Instruction'}
+                      </div>
                     </td>
                     <td className="px-3 py-4">
                       <div className="text-sm text-gray-900 truncate max-w-0">
                         {(() => {
-                          const desc = instruction.description || 'No description';
+                          const desc = instruction.description || 'No description available';
                           if (desc.length > 40) {
                             return desc.substring(0, 40) + '...';
                           }
@@ -279,8 +287,24 @@ export default function Instructions() {
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No instructions</h3>
-              <p className="mt-1 text-sm text-gray-500">No instructions available at the moment.</p>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No instructions found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {instructions.length === 0 
+                  ? "No instructions have been created yet. Contact your administrator to add instructions."
+                  : "No instructions match your current search criteria. Try adjusting your search or priority filter."
+                }
+              </p>
+              {instructions.length > 0 && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setPriorityFilter('all');
+                  }}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           )}
         </div>
