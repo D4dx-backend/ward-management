@@ -6,6 +6,7 @@ import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
+import DragDropField from '../../../components/DragDropField';
 
 export default function CreateForm() {
   const { data: session, status } = useSession();
@@ -31,10 +32,11 @@ export default function CreateForm() {
     description: '',
     formType: 'coordinatorReport',
     isActive: true,
+    isPublished: false,
     isSittingWardForm: false,
     allowMultipleSubmissions: true,
     allowEditAfterSubmission: false,
-    enableDateTime: new Date().toISOString().slice(0, 16), // Format for datetime-local input
+    enableDateTime: new Date().toISOString().slice(0, 16),
     closeDateTime: (() => {
       const date = new Date();
       date.setDate(date.getDate() + 7);
@@ -47,21 +49,12 @@ export default function CreateForm() {
         required: false, 
         options: [],
         subQuestions: [],
-        showSubQuestionsWhen: '', // For conditional sub-questions
-        applicableToClusters: false // For cluster-based data collection
+        showSubQuestionsWhen: '',
+        applicableToClusters: false,
+        order: 0
       }
     ],
-    sittingWardFields: [
-      { 
-        label: '', 
-        type: 'text', 
-        required: false, 
-        options: [],
-        subQuestions: [],
-        showSubQuestionsWhen: '',
-        applicableToClusters: false
-      }
-    ]
+    sittingWardFields: []
   });
 
   // Redirect if not authenticated or not state admin
@@ -145,69 +138,35 @@ export default function CreateForm() {
         options: [],
         subQuestions: [],
         showSubQuestionsWhen: '',
-        applicableToClusters: false
+        applicableToClusters: false,
+        order: formData.fields.length
       }]
     });
   };
 
-  const handleImportQuestions = () => {
-    let apiUrl = `/api/recurring-questions?formType=${formData.formType}&isActive=true`;
-    if (formData.isSittingWardForm) {
-      apiUrl += '&isSittingWard=true';
-    }
-    
-    axios.get(apiUrl)
-      .then(response => {
-        setRecurringQuestions(response.data);
-        setSelectedQuestions([]);
-        setImportType('regular');
-        setShowImportModal(true);
-      })
-      .catch(error => {
-        console.error('Error fetching recurring questions:', error);
-        setError('Failed to fetch recurring questions');
-      });
-  };
-
-  const handleQuestionSelection = (questionId) => {
-    setSelectedQuestions(prev => 
-      prev.includes(questionId) 
-        ? prev.filter(id => id !== questionId)
-        : [...prev, questionId]
-    );
-  };
-
-  const handleImportSelectedQuestions = () => {
-    const questionsToImport = recurringQuestions.filter(q => selectedQuestions.includes(q._id));
-    const newFields = questionsToImport.map((question) => ({
-      label: question.question,
-      type: question.fieldType,
-      required: question.validation?.required || false,
-      options: question.options || [],
-      subQuestions: [],
-      showSubQuestionsWhen: '',
-      applicableToClusters: question.applicableToClusters || false,
-      isRecurring: question.isRecurring,
-      recurringCondition: question.recurringCondition,
-      expectedValue: question.expectedValue,
-      maxAttempts: question.maxAttempts,
-      recurringQuestionId: question._id,
+  const removeField = (index) => {
+    const updatedFields = [...formData.fields];
+    updatedFields.splice(index, 1);
+    // Update order values
+    const reorderedFields = updatedFields.map((field, idx) => ({
+      ...field,
+      order: idx
     }));
+    setFormData({ ...formData, fields: reorderedFields });
+  };
 
-    if (importType === 'sittingWard') {
-      setFormData({
-        ...formData,
-        sittingWardFields: [...formData.sittingWardFields, ...newFields]
-      });
-    } else {
-      setFormData({
-        ...formData,
-        fields: [...formData.fields, ...newFields]
-      });
-    }
+  const moveField = (fromIndex, toIndex) => {
+    const updatedFields = [...formData.fields];
+    const [movedField] = updatedFields.splice(fromIndex, 1);
+    updatedFields.splice(toIndex, 0, movedField);
     
-    setShowImportModal(false);
-    setSelectedQuestions([]);
+    // Update order values
+    const reorderedFields = updatedFields.map((field, index) => ({
+      ...field,
+      order: index
+    }));
+    
+    setFormData({ ...formData, fields: reorderedFields });
   };
 
   const addSubQuestion = (fieldIndex) => {
@@ -296,61 +255,61 @@ export default function CreateForm() {
     setFormData({ ...formData, fields: updatedFields });
   };
 
-  const removeField = (index) => {
-    const updatedFields = [...formData.fields];
-    updatedFields.splice(index, 1);
-    setFormData({ ...formData, fields: updatedFields });
-  };
-
-  // Sitting Ward Field Functions
-  const addSittingWardField = () => {
-    setFormData({
-      ...formData,
-      sittingWardFields: [...formData.sittingWardFields, { 
-        label: '', 
-        type: 'text', 
-        required: false, 
-        options: [],
-        subQuestions: [],
-        showSubQuestionsWhen: '',
-        applicableToClusters: false
-      }]
-    });
-  };
-
-  const handleSittingWardFieldChange = (index, e) => {
-    const { name, value, type, checked } = e.target;
-    const updatedFields = [...formData.sittingWardFields];
-    updatedFields[index] = {
-      ...updatedFields[index],
-      [name]: type === 'checkbox' ? checked : value
-    };
-    setFormData({ ...formData, sittingWardFields: updatedFields });
-  };
-
-  const removeSittingWardField = (index) => {
-    const updatedFields = [...formData.sittingWardFields];
-    updatedFields.splice(index, 1);
-    setFormData({ ...formData, sittingWardFields: updatedFields });
-  };
-
-  const handleImportSittingWardQuestions = () => {
-    axios.get(`/api/recurring-questions?formType=${formData.formType}&isActive=true&isSittingWard=true`)
+  const handleImportQuestions = () => {
+    let apiUrl = `/api/recurring-questions?formType=${formData.formType}&isActive=true`;
+    if (formData.isSittingWardForm) {
+      apiUrl += '&isSittingWard=true';
+    }
+    
+    axios.get(apiUrl)
       .then(response => {
-        // Filter to only sitting ward specific questions
-        const sittingWardQuestions = response.data.filter(q => q.applicableToSittingWards);
-        setRecurringQuestions(sittingWardQuestions);
+        setRecurringQuestions(response.data);
         setSelectedQuestions([]);
-        setImportType('sittingWard');
+        setImportType('regular');
         setShowImportModal(true);
       })
       .catch(error => {
-        console.error('Error fetching sitting ward questions:', error);
-        setError('Failed to fetch sitting ward questions');
+        console.error('Error fetching recurring questions:', error);
+        setError('Failed to fetch recurring questions');
       });
   };
 
-  const handleSubmit = async (e) => {
+  const handleQuestionSelection = (questionId) => {
+    setSelectedQuestions(prev => 
+      prev.includes(questionId) 
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    );
+  };
+
+  const handleImportSelectedQuestions = () => {
+    const questionsToImport = recurringQuestions.filter(q => selectedQuestions.includes(q._id));
+    const newFields = questionsToImport.map((question) => ({
+      label: question.question,
+      type: question.fieldType,
+      required: question.validation?.required || false,
+      options: question.options || [],
+      subQuestions: [],
+      showSubQuestionsWhen: '',
+      applicableToClusters: question.applicableToClusters || false,
+      isRecurring: question.isRecurring,
+      recurringCondition: question.recurringCondition,
+      expectedValue: question.expectedValue,
+      maxAttempts: question.maxAttempts,
+      recurringQuestionId: question._id,
+      order: formData.fields.length
+    }));
+
+    setFormData({
+      ...formData,
+      fields: [...formData.fields, ...newFields]
+    });
+    
+    setShowImportModal(false);
+    setSelectedQuestions([]);
+  };
+
+  const handleSubmit = async (e, shouldPublish = false) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
@@ -373,15 +332,28 @@ export default function CreateForm() {
       const weekNumber = getWeekNumber(enableDate);
       const year = enableDate.getFullYear();
 
+      // Filter out empty fields
+      const validFields = formData.fields.filter(field => field.label && field.label.trim());
+      const validSittingWardFields = formData.isSittingWardForm 
+        ? formData.sittingWardFields.filter(field => field.label && field.label.trim())
+        : [];
+
       // Add calculated values to form data
       const formDataWithCalculated = {
         ...formData,
         weekNumber,
-        year
+        year,
+        isPublished: shouldPublish,
+        fields: validFields,
+        sittingWardFields: validSittingWardFields
       };
 
       // Validate fields
-      for (const field of formData.fields) {
+      if (validFields.length === 0) {
+        throw new Error('At least one field with a label is required');
+      }
+
+      for (const field of validFields) {
         if (!field.label || !field.type) {
           throw new Error('All fields must have a label and type');
         }
@@ -392,8 +364,8 @@ export default function CreateForm() {
       }
 
       // Validate sitting ward fields if enabled
-      if (formData.isSittingWardForm) {
-        for (const field of formData.sittingWardFields) {
+      if (formData.isSittingWardForm && validSittingWardFields.length > 0) {
+        for (const field of validSittingWardFields) {
           if (!field.label || !field.type) {
             throw new Error('All sitting ward fields must have a label and type');
           }
@@ -626,321 +598,24 @@ export default function CreateForm() {
 
               <div className="space-y-6">
                 {formData.fields.map((field, index) => (
-                  <div key={index}>
-                    <Card className="border-l-4 border-l-blue-500">
-                      <div className="flex justify-between items-center mb-4">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-md font-medium text-gray-900">Question {index + 1}</h3>
-                          {field.applicableToClusters && (
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              🏘️ Clusters
-                            </span>
-                          )}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => removeField(index)}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Question Label *
-                        </label>
-                        <input
-                          type="text"
-                          name="label"
-                          value={field.label}
-                          onChange={(e) => handleFieldChange(index, e)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter question text"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Question Type *
-                        </label>
-                        <select
-                          name="type"
-                          value={field.type}
-                          onChange={(e) => handleFieldChange(index, e)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          required
-                        >
-                          <option value="text">Text</option>
-                          <option value="number">Number</option>
-                          <option value="textarea">Text Area</option>
-                          <option value="select">Single Select</option>
-                          <option value="multiselect">Multi Select</option>
-                          <option value="yesno">Yes/No</option>
-                          <option value="date">Date</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="mb-4 space-y-3">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          name="required"
-                          checked={field.required}
-                          onChange={(e) => handleFieldChange(index, e)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
-                      </label>
-                      
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          name="applicableToClusters"
-                          checked={field.applicableToClusters}
-                          onChange={(e) => handleFieldChange(index, e)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-700">Applicable to Clusters (show as loop for ward clusters data collection)</span>
-                      </label>
-                      <p className="text-xs text-gray-500 ml-6">
-                        When enabled, this question will be asked for each cluster in the ward
-                      </p>
-                    </div>
-
-                    {(field.type === 'select' || field.type === 'multiselect') && (
-                      <div className="mt-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Options *
-                          </label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addOption(index)}
-                          >
-                            Add Option
-                          </Button>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {field.options.map((option, optionIndex) => (
-                            <div key={optionIndex} className="flex items-center space-x-2">
-                              <input
-                                type="text"
-                                value={option}
-                                onChange={(e) => handleOptionChange(index, optionIndex, e.target.value)}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder={`Option ${optionIndex + 1}`}
-                                required
-                              />
-                              <Button
-                                type="button"
-                                variant="danger"
-                                size="sm"
-                                onClick={() => removeOption(index, optionIndex)}
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Follow-up questions section */}
-                    {(field.type === 'yesno' || field.type === 'select' || field.type === 'multiselect') && (
-                      <div className="mt-4 border-t border-gray-200 pt-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Follow-up Questions (Optional)
-                          </label>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addSubQuestion(index)}
-                          >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add Follow-up Question
-                          </Button>
-                        </div>
-
-                        {field.type === 'yesno' && field.subQuestions.length > 0 && (
-                          <div className="mb-3">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Show follow-up questions when:
-                            </label>
-                            <select
-                              name="showSubQuestionsWhen"
-                              value={field.showSubQuestionsWhen}
-                              onChange={(e) => handleFieldChange(index, e)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="">Always show</option>
-                              <option value="yes">When answer is Yes</option>
-                              <option value="no">When answer is No</option>
-                            </select>
-                          </div>
-                        )}
-
-                        {(field.type === 'select' || field.type === 'multiselect') && field.subQuestions.length > 0 && (
-                          <div className="mb-3">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Show follow-up questions when option selected:
-                            </label>
-                            <select
-                              name="showSubQuestionsWhen"
-                              value={field.showSubQuestionsWhen}
-                              onChange={(e) => handleFieldChange(index, e)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="">Always show</option>
-                              {field.options.map((option, optionIndex) => (
-                                <option key={optionIndex} value={option}>
-                                  When "{option}" is selected
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        
-                        <div className="space-y-4">
-                          {field.subQuestions.map((subQuestion, subIndex) => (
-                            <div key={subIndex} className="bg-gray-50 p-4 rounded-lg border">
-                              <div className="flex justify-between items-center mb-3">
-                                <h4 className="text-sm font-medium text-gray-900">Follow-up Question {subIndex + 1}</h4>
-                                <Button
-                                  type="button"
-                                  variant="danger"
-                                  size="sm"
-                                  onClick={() => removeSubQuestion(index, subIndex)}
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Question Label *
-                                  </label>
-                                  <input
-                                    type="text"
-                                    name="label"
-                                    value={subQuestion.label}
-                                    onChange={(e) => handleSubQuestionChange(index, subIndex, e)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Enter follow-up question text"
-                                    required
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Question Type *
-                                  </label>
-                                  <select
-                                    name="type"
-                                    value={subQuestion.type}
-                                    onChange={(e) => handleSubQuestionChange(index, subIndex, e)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    required
-                                  >
-                                    <option value="text">Text</option>
-                                    <option value="number">Number</option>
-                                    <option value="textarea">Text Area</option>
-                                    <option value="select">Single Select</option>
-                                    <option value="multiselect">Multi Select</option>
-                                    <option value="yesno">Yes/No</option>
-                                    <option value="date">Date</option>
-                                  </select>
-                                </div>
-                              </div>
-
-                              <div className="mb-3">
-                                <label className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    name="required"
-                                    checked={subQuestion.required}
-                                    onChange={(e) => handleSubQuestionChange(index, subIndex, e)}
-                                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                  />
-                                  <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
-                                </label>
-                              </div>
-
-                              {(subQuestion.type === 'select' || subQuestion.type === 'multiselect') && (
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Question Options *
-                                    </label>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => addSubQuestionOption(index, subIndex)}
-                                    >
-                                      Add Option
-                                    </Button>
-                                  </div>
-                                  
-                                  <div className="space-y-2">
-                                    {subQuestion.options.map((option, optionIndex) => (
-                                      <div key={optionIndex} className="flex items-center space-x-2">
-                                        <input
-                                          type="text"
-                                          value={option}
-                                          onChange={(e) => handleSubQuestionOptionChange(index, subIndex, optionIndex, e.target.value)}
-                                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                          placeholder={`Option ${optionIndex + 1}`}
-                                          required
-                                        />
-                                        <Button
-                                          type="button"
-                                          variant="danger"
-                                          size="sm"
-                                          onClick={() => removeSubQuestionOption(index, subIndex, optionIndex)}
-                                        >
-                                          Remove
-                                        </Button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    </Card>
-                    
-                    {/* Add Question button after each field */}
-                    <div className="flex justify-center mt-2 mb-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addField}
-                        className="text-green-600 border-green-300 hover:bg-green-50"
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        Add Question
-                      </Button>
-                    </div>
-                  </div>
+                  <DragDropField
+                    key={index}
+                    field={field}
+                    index={index}
+                    onFieldChange={handleFieldChange}
+                    onRemoveField={removeField}
+                    onMoveField={moveField}
+                    totalFields={formData.fields.length}
+                    onAddOption={addOption}
+                    onRemoveOption={removeOption}
+                    onOptionChange={handleOptionChange}
+                    onAddSubQuestion={addSubQuestion}
+                    onRemoveSubQuestion={removeSubQuestion}
+                    onSubQuestionChange={handleSubQuestionChange}
+                    onAddSubQuestionOption={addSubQuestionOption}
+                    onRemoveSubQuestionOption={removeSubQuestionOption}
+                    onSubQuestionOptionChange={handleSubQuestionOptionChange}
+                  />
                 ))}
 
                 {formData.fields.length === 0 && (
@@ -948,205 +623,11 @@ export default function CreateForm() {
                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p className="mt-2 text-sm">No fields added yet. Click "Add Field" to get started.</p>
+                    <p className="mt-2 text-sm">No fields added yet. Click "Add Question" to get started.</p>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Sitting Ward Questions Section */}
-            {formData.isSittingWardForm && (
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">Sitting Ward Specific Questions</h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      These questions will only appear for sitting wards in addition to the regular questions above
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleImportSittingWardQuestions}
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      Import Sitting Ward Questions
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addSittingWardField}
-                    >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Sitting Ward Question
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  {formData.sittingWardFields.map((field, index) => (
-                    <div key={index}>
-                      <Card className="border-l-4 border-l-purple-500">
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex items-center space-x-2">
-                            <h3 className="text-md font-medium text-gray-900">Sitting Ward Question {index + 1}</h3>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                              🪑 Sitting Ward Only
-                            </span>
-                            {field.applicableToClusters && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                🏘️ Clusters
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="sm"
-                            onClick={() => removeSittingWardField(index)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Question Label *
-                            </label>
-                            <input
-                              type="text"
-                              name="label"
-                              value={field.label}
-                              onChange={(e) => handleSittingWardFieldChange(index, e)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              placeholder="Enter question text"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Question Type *
-                            </label>
-                            <select
-                              name="type"
-                              value={field.type}
-                              onChange={(e) => handleSittingWardFieldChange(index, e)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                              required
-                            >
-                              <option value="text">Text</option>
-                              <option value="number">Number</option>
-                              <option value="textarea">Text Area</option>
-                              <option value="select">Single Select</option>
-                              <option value="multiselect">Multi Select</option>
-                              <option value="yesno">Yes/No</option>
-                              <option value="date">Date</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="mb-4 space-y-3">
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              name="required"
-                              checked={field.required}
-                              onChange={(e) => handleSittingWardFieldChange(index, e)}
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm font-medium text-gray-700">Required Question</span>
-                          </label>
-                          
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              name="applicableToClusters"
-                              checked={field.applicableToClusters}
-                              onChange={(e) => handleSittingWardFieldChange(index, e)}
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm font-medium text-gray-700">Applicable to Clusters</span>
-                          </label>
-                        </div>
-
-                        {(field.type === 'select' || field.type === 'multiselect') && (
-                          <div className="mt-4">
-                            <div className="flex justify-between items-center mb-3">
-                              <label className="block text-sm font-medium text-gray-700">
-                                Options *
-                              </label>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const updatedFields = [...formData.sittingWardFields];
-                                  updatedFields[index] = {
-                                    ...updatedFields[index],
-                                    options: [...updatedFields[index].options, '']
-                                  };
-                                  setFormData({ ...formData, sittingWardFields: updatedFields });
-                                }}
-                              >
-                                Add Option
-                              </Button>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              {field.options.map((option, optionIndex) => (
-                                <div key={optionIndex} className="flex items-center space-x-2">
-                                  <input
-                                    type="text"
-                                    value={option}
-                                    onChange={(e) => {
-                                      const updatedFields = [...formData.sittingWardFields];
-                                      const options = [...updatedFields[index].options];
-                                      options[optionIndex] = e.target.value;
-                                      updatedFields[index] = {
-                                        ...updatedFields[index],
-                                        options
-                                      };
-                                      setFormData({ ...formData, sittingWardFields: updatedFields });
-                                    }}
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder={`Option ${optionIndex + 1}`}
-                                    required
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={() => {
-                                      const updatedFields = [...formData.sittingWardFields];
-                                      const options = [...updatedFields[index].options];
-                                      options.splice(optionIndex, 1);
-                                      updatedFields[index] = {
-                                        ...updatedFields[index],
-                                        options
-                                      };
-                                      setFormData({ ...formData, sittingWardFields: updatedFields });
-                                    }}
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </Card>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <Button
@@ -1158,7 +639,26 @@ export default function CreateForm() {
               </Button>
               <Button
                 type="submit"
+                variant="outline"
                 disabled={isSubmitting}
+                onClick={(e) => handleSubmit(e, false)}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </div>
+                ) : (
+                  'Save as Draft'
+                )}
+              </Button>
+              <Button
+                type="button"
+                disabled={isSubmitting}
+                onClick={(e) => handleSubmit(e, true)}
               >
                 {isSubmitting ? (
                   <div className="flex items-center">
@@ -1166,16 +666,103 @@ export default function CreateForm() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Creating...
+                    Publishing...
                   </div>
                 ) : (
-                  'Create Form'
+                  <>
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Publish Form
+                  </>
                 )}
               </Button>
             </div>
           </form>
         </Card>
       </div>
+
+      {/* Import Questions Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Import Questions
+                </h3>
+                <button
+                  onClick={() => setShowImportModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                {recurringQuestions.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No questions available to import</p>
+                ) : (
+                  <div className="space-y-3">
+                    {recurringQuestions.map((question) => (
+                      <div key={question._id} className="border border-gray-200 rounded-lg p-3">
+                        <label className="flex items-start space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedQuestions.includes(question._id)}
+                            onChange={() => handleQuestionSelection(question._id)}
+                            className="mt-1 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium text-gray-900">{question.question}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              Type: {question.fieldType}
+                              {question.applicableToClusters && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  Clusters
+                                </span>
+                              )}
+                              {question.applicableToSittingWards && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                  Sitting Ward
+                                </span>
+                              )}
+                            </div>
+                            {question.options && question.options.length > 0 && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                Options: {question.options.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowImportModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleImportSelectedQuestions}
+                  disabled={selectedQuestions.length === 0}
+                >
+                  Import {selectedQuestions.length} Question{selectedQuestions.length !== 1 ? 's' : ''}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

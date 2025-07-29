@@ -41,10 +41,21 @@ export default async function handler(req, res) {
       console.log('Request body:', JSON.stringify(req.body, null, 2));
       console.log('Form ID:', id);
 
-      const { title, description, fields, isActive, formType } = req.body;
+      const { 
+        title, 
+        description, 
+        fields, 
+        sittingWardFields,
+        isActive, 
+        isPublished,
+        isSittingWardForm,
+        allowMultipleSubmissions,
+        allowEditAfterSubmission,
+        formType 
+      } = req.body;
 
-      // Check if this is a status-only update
-      const isStatusOnlyUpdate = isActive !== undefined && !title && !fields;
+      // Check if this is a status-only update (including publish status)
+      const isStatusOnlyUpdate = (isActive !== undefined || isPublished !== undefined) && !title && !fields;
       
       // Validate input data - allow status-only updates
       if (!isStatusOnlyUpdate && (!title || !fields)) {
@@ -108,15 +119,46 @@ export default async function handler(req, res) {
       // Update form properties
       if (isStatusOnlyUpdate) {
         // Only update the status
-        console.log('Updating form status only:', isActive);
-        form.isActive = isActive;
+        console.log('Updating form status only - isActive:', isActive, 'isPublished:', isPublished);
+        if (isActive !== undefined) form.isActive = isActive;
+        if (isPublished !== undefined) {
+          form.isPublished = isPublished;
+          if (isPublished) {
+            form.publishedAt = new Date();
+            form.publishedBy = session.user.id;
+          }
+        }
       } else {
         // Update all form content
         form.title = title.trim();
         form.description = description ? description.trim() : '';
-        if (formType) form.formType = formType; // Update form type if provided
+        if (formType) form.formType = formType;
         if (isActive !== undefined) form.isActive = isActive;
-        form.fields = fields;
+        if (isPublished !== undefined) {
+          form.isPublished = isPublished;
+          if (isPublished) {
+            form.publishedAt = new Date();
+            form.publishedBy = session.user.id;
+          }
+        }
+        if (isSittingWardForm !== undefined) form.isSittingWardForm = isSittingWardForm;
+        if (allowMultipleSubmissions !== undefined) form.allowMultipleSubmissions = allowMultipleSubmissions;
+        if (allowEditAfterSubmission !== undefined) form.allowEditAfterSubmission = allowEditAfterSubmission;
+        
+        // Add order to fields if not present
+        if (fields) {
+          form.fields = fields.map((field, index) => ({
+            ...field,
+            order: field.order !== undefined ? field.order : index
+          }));
+        }
+        
+        if (sittingWardFields) {
+          form.sittingWardFields = sittingWardFields.map((field, index) => ({
+            ...field,
+            order: field.order !== undefined ? field.order : index
+          }));
+        }
       }
 
       console.log('Saving form to database...');

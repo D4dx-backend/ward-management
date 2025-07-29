@@ -47,6 +47,14 @@ const FieldSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  applicableToClusters: {
+    type: Boolean,
+    default: false,
+  },
+  order: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const FormTemplateSchema = new mongoose.Schema({
@@ -63,6 +71,7 @@ const FormTemplateSchema = new mongoose.Schema({
     required: true,
   },
   fields: [FieldSchema],
+  sittingWardFields: [FieldSchema],
   weekNumber: {
     type: Number,
     required: true,
@@ -74,6 +83,14 @@ const FormTemplateSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true,
+  },
+  isPublished: {
+    type: Boolean,
+    default: false,
+  },
+  isSittingWardForm: {
+    type: Boolean,
+    default: false,
   },
   // Submission control options
   allowMultipleSubmissions: {
@@ -98,6 +115,13 @@ const FormTemplateSchema = new mongoose.Schema({
       date.setDate(date.getDate() + 7);
       return date;
     },
+  },
+  publishedAt: {
+    type: Date,
+  },
+  publishedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
   },
   createdAt: {
     type: Date,

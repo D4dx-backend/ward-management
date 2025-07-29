@@ -31,24 +31,35 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
       }
 
-      // Add the reply
-      instruction.replies.push({
-        user: session.user.id,
-        message: message.trim()
-      });
+      // Allow all authenticated users to reply based on hierarchy
+      const allowedRoles = ['wardAdmin', 'coordinator', 'stateAdmin'];
+      if (!allowedRoles.includes(session.user.role)) {
+        return res.status(403).json({ error: 'You do not have permission to reply to instructions' });
+      }
 
+      // Add the reply
+      const newReply = {
+        user: session.user.id,
+        message: message.trim(),
+        createdAt: new Date()
+      };
+
+      instruction.replies.push(newReply);
       await instruction.save();
 
-      // Populate the new reply
+      // Populate the instruction with the new reply
       await instruction.populate('replies.user', 'name email role');
 
-      // Return the new reply
-      const newReply = instruction.replies[instruction.replies.length - 1];
+      // Return the populated new reply
+      const populatedReply = instruction.replies[instruction.replies.length - 1];
 
-      res.status(201).json(newReply);
+      res.status(201).json(populatedReply);
     } catch (error) {
       console.error('Error adding reply:', error);
-      res.status(500).json({ error: 'Failed to add reply' });
+      res.status(500).json({ 
+        error: 'Failed to add reply',
+        details: error.message 
+      });
     }
   } else {
     res.setHeader('Allow', ['POST']);

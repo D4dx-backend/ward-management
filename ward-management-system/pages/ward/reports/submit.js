@@ -8,6 +8,7 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import FormRenderer from '../../../components/FormRenderer';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SubmitWardReport() {
   const { data: session, status } = useSession();
@@ -68,32 +69,34 @@ export default function SubmitWardReport() {
         }
       });
       
-      // RESTRICTION: Only allow one form submission per ward admin
-      // Check if ward admin has already submitted any form
-      const hasSubmittedAnyForm = responsesResponse.data.some(response => 
-        response.respondent === session.user.id
-      );
+      // Check submission status for each form
+      const formsWithStatus = formsResponse.data.map(form => {
+        const existingResponse = responsesResponse.data.find(response => 
+          response.formTemplate === form._id && response.respondent === session.user.id
+        );
+        
+        return {
+          ...form,
+          isSubmitted: !!existingResponse,
+          submittedResponse: existingResponse || null
+        };
+      });
       
-      // If ward admin has already submitted a form, show only that form for viewing
-      if (hasSubmittedAnyForm) {
-        const submittedForm = responsesResponse.data.find(response => 
-          response.respondent === session.user.id
-        );
+      // Filter forms based on submission status and form settings
+      const availableForms = formsWithStatus.filter(form => {
+        // If form is not submitted, show it
+        if (!form.isSubmitted) return true;
         
-        const originalForm = formsResponse.data.find(form => 
-          form._id === submittedForm.formTemplate
-        );
-        
-        if (originalForm) {
-          setActiveForms([{ ...originalForm, isSubmitted: true, submittedResponse: submittedForm }]);
-        } else {
-          setActiveForms([]);
+        // If form is submitted but allows editing and is still within time limit, show it
+        if (form.isSubmitted && form.allowEditAfterSubmission && isFormEditable(form)) {
+          return true;
         }
-      } else {
-        // If no form submitted yet, show only the first available form
-        const availableForms = formsResponse.data.slice(0, 1); // Only first form
-        setActiveForms(availableForms.map(form => ({ ...form, isSubmitted: false })));
-      }
+        
+        // Otherwise, don't show submitted forms
+        return false;
+      });
+      
+      setActiveForms(availableForms);
       setUserWards(wardsResponse.data);
       
       // Auto-select ward for ward admin
@@ -402,123 +405,231 @@ export default function SubmitWardReport() {
             </div>
           </Card>
         ) : !selectedForm ? (
-          <Card>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Select a Report Form</h2>
-              <p className="text-sm text-gray-600 mt-1">Choose the form you want to submit</p>
-            </div>
-            <div className="p-6 space-y-4">
-              {activeForms.map((form) => (
-                <div
-                  key={form._id}
-                  className={`border rounded-lg p-4 transition-colors ${
-                    form.isSubmitted 
-                      ? 'border-green-200 bg-green-50 cursor-default' 
-                      : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300 cursor-pointer'
-                  }`}
-                  onClick={() => !form.isSubmitted && handleFormSelect(form._id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <h3 className={`font-medium ${form.isSubmitted ? 'text-green-800' : 'text-gray-900'}`}>
-                          {form.title}
-                        </h3>
-                        {form.isSubmitted && (
-                          <div className="ml-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="overflow-hidden shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Select Report Form</h2>
+                    <p className="text-blue-100 mt-1">Choose the form you want to submit</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-8">
+                <div className="grid gap-6">
+                  <AnimatePresence>
+                    {activeForms.map((form, index) => (
+                      <motion.div
+                        key={form._id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
+                          form.isSubmitted 
+                            ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 cursor-default' 
+                            : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg cursor-pointer transform hover:-translate-y-1'
+                        }`}
+                        onClick={() => !form.isSubmitted && handleFormSelect(form._id)}
+                        whileHover={!form.isSubmitted ? { scale: 1.02 } : {}}
+                        whileTap={!form.isSubmitted ? { scale: 0.98 } : {}}
+                      >
+                        <div className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-3 mb-3">
+                                <div className={`p-2 rounded-xl ${
+                                  form.isSubmitted 
+                                    ? 'bg-emerald-100 text-emerald-600' 
+                                    : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
+                                }`}>
+                                  {form.isSubmitted ? (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div>
+                                  <h3 className={`text-lg font-semibold ${
+                                    form.isSubmitted ? 'text-emerald-800' : 'text-gray-900'
+                                  }`}>
+                                    {form.title}
+                                  </h3>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                                      form.isSubmitted 
+                                        ? 'bg-emerald-100 text-emerald-700' 
+                                        : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      Week {form.weekNumber}, {form.year}
+                                    </span>
+                                    {form.isSubmitted && (
+                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
+                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                        Submitted
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {form.description && (
+                                <p className={`text-sm leading-relaxed ${
+                                  form.isSubmitted ? 'text-emerald-700' : 'text-gray-600'
+                                }`}>
+                                  {form.description}
+                                </p>
+                              )}
+                            </div>
+                            
+                            <div className="ml-4">
+                              {!form.isSubmitted ? (
+                                <div className="p-2 rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="text-right">
+                                  <span className="text-xs text-emerald-600 font-medium">View Only</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {!form.isSubmitted && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Card className="overflow-hidden shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-700 p-8 text-white">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedForm.title}</h2>
+                      <div className="flex items-center space-x-4 mt-2">
+                        <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium backdrop-blur-sm">
+                          Week {selectedForm.weekNumber}, {selectedForm.year}
+                        </span>
+                        {submittedResponse && (
+                          <div className="flex items-center space-x-2 bg-emerald-500/20 px-3 py-1 rounded-full backdrop-blur-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
+                            <span className="text-sm font-medium">
+                              Submitted {new Date(submittedResponse.submittedAt).toLocaleDateString()}
+                            </span>
                           </div>
                         )}
                       </div>
-                      <p className={`text-sm ${form.isSubmitted ? 'text-green-600' : 'text-gray-500'}`}>
-                        Week {form.weekNumber}, {form.year}
-                        {form.isSubmitted && ' - Submitted'}
-                      </p>
-                      {form.description && (
-                        <p className={`mt-2 text-sm ${form.isSubmitted ? 'text-green-700' : 'text-gray-700'}`}>
-                          {form.description}
-                        </p>
-                      )}
                     </div>
-                    {!form.isSubmitted && (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    )}
-                    {form.isSubmitted && (
-                      <span className="text-sm text-green-600 font-medium">View Only</span>
-                    )}
                   </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedForm(null)}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Change Form
+                  </Button>
                 </div>
-              ))}
-            </div>
-          </Card>
-        ) : (
-          <Card>
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{selectedForm.title}</h2>
-                  <p className="text-sm text-gray-600">Week {selectedForm.weekNumber}, {selectedForm.year}</p>
-                  {submittedResponse && (
-                    <div className="mt-2 flex items-center">
-                      <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm text-green-600 font-medium">
-                        Report submitted on {new Date(submittedResponse.submittedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedForm(null)}
-                >
-                  Change Form
-                </Button>
+                
+                {selectedForm.description && (
+                  <div className="mt-6 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
+                    <p className="text-indigo-100 leading-relaxed">{selectedForm.description}</p>
+                  </div>
+                )}
               </div>
               
-              {selectedForm.description && (
-                <p className="mt-4 text-gray-700">{selectedForm.description}</p>
-              )}
-              
               {submittedResponse && (
-                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                <div className="mx-8 -mt-4 mb-6">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-2xl p-6"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="p-2 bg-emerald-100 rounded-xl">
+                        <svg className="h-6 w-6 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-emerald-800">Report Successfully Submitted</h3>
+                        <p className="text-emerald-700 mt-1">
+                          Your ward report has been submitted and is now read-only. You can review your responses below.
+                        </p>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+            </Card>
+            
+            <Card className="mt-6">
+            <div className="p-8 space-y-8">
+              {userWards.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-blue-100 rounded-xl">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800">Ward Report Already Submitted</h3>
-                      <p className="text-sm text-green-700 mt-1">
-                        You have already submitted this ward report. The form below shows your submitted responses and is read-only.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {userWards.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center">
-                    <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
                     <div>
-                      <h4 className="text-sm font-medium text-blue-800">Ward Information</h4>
-                      <p className="text-sm text-blue-700">
-                        Submitting report for: <strong>{userWards[0]?.name} ({userWards[0]?.district})</strong>
+                      <h4 className="text-lg font-semibold text-blue-800">Ward Information</h4>
+                      <p className="text-blue-700 mt-1">
+                        Submitting report for: <span className="font-bold">{userWards[0]?.name}</span>
+                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                          {userWards[0]?.district}
+                        </span>
                       </p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               )}
               
               {!showPreview ? (
@@ -543,14 +654,24 @@ export default function SubmitWardReport() {
                     errors={validationErrors}
                   />
                   
-                  <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                    className="flex flex-wrap justify-end gap-4 pt-8 border-t-2 border-gray-100"
+                  >
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => router.push('/')}
+                      className="px-6 py-3 rounded-xl border-2 hover:shadow-lg transition-all duration-200"
                     >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
                       {submittedResponse ? 'Back to Dashboard' : 'Cancel'}
                     </Button>
+                    
                     {!submittedResponse && (
                       <>
                         <Button
@@ -562,9 +683,14 @@ export default function SubmitWardReport() {
                             setSuccess('');
                             setValidationErrors({});
                           }}
+                          className="px-6 py-3 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-orange-600 border-orange-200 hover:bg-orange-50"
                         >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                           Clear Form
                         </Button>
+                        
                         <Button
                           type="button"
                           variant="outline"
@@ -572,40 +698,62 @@ export default function SubmitWardReport() {
                             setShowPreview(true);
                             setPreviewClicked(true);
                           }}
+                          className="px-6 py-3 rounded-xl border-2 hover:shadow-lg transition-all duration-200 text-blue-600 border-blue-200 hover:bg-blue-50"
                         >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                           Preview Report
                         </Button>
+                        
                         {previewClicked && (
-                          <Button
-                            type="submit"
-                            disabled={isSubmitting}
-                            onClick={handleSubmit}
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
                           >
-                            {isSubmitting ? (
-                              <div className="flex items-center">
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Submitting...
-                              </div>
-                            ) : (
-                              'Submit Report'
-                            )}
-                          </Button>
+                            <Button
+                              type="submit"
+                              disabled={isSubmitting}
+                              onClick={handleSubmit}
+                              className="px-8 py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+                            >
+                              {isSubmitting ? (
+                                <div className="flex items-center">
+                                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Submitting Report...
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                  </svg>
+                                  Submit Report
+                                </div>
+                              )}
+                            </Button>
+                          </motion.div>
                         )}
                       </>
                     )}
+                    
                     {submittedResponse && (
                       <Button
                         variant="outline"
                         disabled
-                        className="opacity-50 cursor-not-allowed"
+                        className="px-6 py-3 rounded-xl border-2 opacity-50 cursor-not-allowed bg-emerald-50 border-emerald-200 text-emerald-600"
                       >
-                        ✓ Already Submitted
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Already Submitted
                       </Button>
                     )}
-                  </div>
+                  </motion.div>
                 </>
               ) : (
                 <div className="space-y-6">
@@ -717,7 +865,8 @@ export default function SubmitWardReport() {
                 </div>
               )}   
             </div>
-          </Card>
+            </Card>
+          </motion.div>
         )}
         
         {/* Confirmation Dialog */}

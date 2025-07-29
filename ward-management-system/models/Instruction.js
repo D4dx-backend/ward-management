@@ -71,6 +71,20 @@ const instructionSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  hierarchyStats: {
+    wardAdminViews: {
+      type: Number,
+      default: 0
+    },
+    coordinatorViews: {
+      type: Number,
+      default: 0
+    },
+    stateAdminViews: {
+      type: Number,
+      default: 0
+    }
+  },
   replies: [instructionReplySchema],
   allowReplies: {
     type: Boolean,

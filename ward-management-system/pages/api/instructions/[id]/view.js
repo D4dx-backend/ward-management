@@ -16,9 +16,21 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     try {
+      // Prepare update object based on user role
+      const updateObj = { $inc: { viewCount: 1 } };
+      
+      // Track hierarchy-based view counts
+      if (session.user.role === 'wardAdmin') {
+        updateObj.$inc['hierarchyStats.wardAdminViews'] = 1;
+      } else if (session.user.role === 'coordinator') {
+        updateObj.$inc['hierarchyStats.coordinatorViews'] = 1;
+      } else if (session.user.role === 'stateAdmin') {
+        updateObj.$inc['hierarchyStats.stateAdminViews'] = 1;
+      }
+
       const instruction = await Instruction.findByIdAndUpdate(
         id,
-        { $inc: { viewCount: 1 } },
+        updateObj,
         { new: true }
       );
 
@@ -26,7 +38,10 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Instruction not found' });
       }
 
-      res.status(200).json({ viewCount: instruction.viewCount });
+      res.status(200).json({ 
+        viewCount: instruction.viewCount,
+        hierarchyStats: instruction.hierarchyStats 
+      });
     } catch (error) {
       console.error('Error updating view count:', error);
       res.status(500).json({ error: 'Failed to update view count' });
