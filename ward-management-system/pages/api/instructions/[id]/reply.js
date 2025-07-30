@@ -10,19 +10,20 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  await dbConnect();
-
   const { id } = req.query;
+
+  await dbConnect();
 
   if (req.method === 'POST') {
     try {
       const { message } = req.body;
 
-      if (!message || !message.trim()) {
-        return res.status(400).json({ error: 'Message is required' });
+      if (!message || message.trim().length === 0) {
+        return res.status(400).json({ error: 'Reply message is required' });
       }
 
       const instruction = await Instruction.findById(id);
+
       if (!instruction) {
         return res.status(404).json({ error: 'Instruction not found' });
       }
@@ -31,35 +32,27 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
       }
 
-      // Allow all authenticated users to reply based on hierarchy
-      const allowedRoles = ['wardAdmin', 'coordinator', 'stateAdmin'];
-      if (!allowedRoles.includes(session.user.role)) {
-        return res.status(403).json({ error: 'You do not have permission to reply to instructions' });
-      }
-
-      // Add the reply
+      // Create the reply object
       const newReply = {
         user: session.user.id,
         message: message.trim(),
         createdAt: new Date()
       };
 
+      // Add the reply to the instruction
       instruction.replies.push(newReply);
       await instruction.save();
 
-      // Populate the instruction with the new reply
+      // Populate user details for the response
       await instruction.populate('replies.user', 'name email role');
-
-      // Return the populated new reply
+      
+      // Return the new reply with populated user data
       const populatedReply = instruction.replies[instruction.replies.length - 1];
 
-      res.status(201).json(populatedReply);
+      res.status(200).json(populatedReply);
     } catch (error) {
       console.error('Error adding reply:', error);
-      res.status(500).json({ 
-        error: 'Failed to add reply',
-        details: error.message 
-      });
+      res.status(500).json({ error: 'Failed to add reply' });
     }
   } else {
     res.setHeader('Allow', ['POST']);

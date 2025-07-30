@@ -17,11 +17,38 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const instruction = await Instruction.findById(id)
-        .populate('createdBy', 'name email');
+        .populate('createdBy', 'name email')
+        .populate('replies.user', 'name email role');
 
       if (!instruction) {
         return res.status(404).json({ error: 'Instruction not found' });
       }
+
+      // Track view count and hierarchy stats
+      instruction.viewCount = (instruction.viewCount || 0) + 1;
+      
+      // Update hierarchy stats based on user role
+      if (!instruction.hierarchyStats) {
+        instruction.hierarchyStats = {
+          wardAdminViews: 0,
+          coordinatorViews: 0,
+          stateAdminViews: 0
+        };
+      }
+
+      switch (session.user.role) {
+        case 'wardAdmin':
+          instruction.hierarchyStats.wardAdminViews = (instruction.hierarchyStats.wardAdminViews || 0) + 1;
+          break;
+        case 'coordinator':
+          instruction.hierarchyStats.coordinatorViews = (instruction.hierarchyStats.coordinatorViews || 0) + 1;
+          break;
+        case 'stateAdmin':
+          instruction.hierarchyStats.stateAdminViews = (instruction.hierarchyStats.stateAdminViews || 0) + 1;
+          break;
+      }
+
+      await instruction.save();
 
       res.status(200).json(instruction);
     } catch (error) {
@@ -62,6 +89,49 @@ export default async function handler(req, res) {
       console.error('Error updating instruction:', error);
       res.status(500).json({ error: 'Failed to update instruction' });
     }
+  } else if (req.method === 'POST') {
+    // Handle adding replies to instructions
+    try {
+      const { message, action } = req.body;
+
+      if (action === 'reply') {
+        if (!message || message.trim().length === 0) {
+          return res.status(400).json({ error: 'Reply message is required' });
+        }
+
+        const instruction = await Instruction.findById(id);
+
+        if (!instruction) {
+          return res.status(404).json({ error: 'Instruction not found' });
+        }
+
+        if (!instruction.allowReplies) {
+          return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
+        }
+
+        // Add the reply
+        instruction.replies.push({
+          user: session.user.id,
+          message: message.trim(),
+          createdAt: new Date()
+        });
+
+        await instruction.save();
+
+        // Populate the instruction with user details for response
+        await instruction.populate([
+          { path: 'createdBy', select: 'name email' },
+          { path: 'replies.user', select: 'name email role' }
+        ]);
+
+        res.status(200).json(instruction);
+      } else {
+        res.status(400).json({ error: 'Invalid action' });
+      }
+    } catch (error) {
+      console.error('Error handling instruction action:', error);
+      res.status(500).json({ error: 'Failed to process request' });
+    }
   } else if (req.method === 'DELETE') {
     // Only state admins can delete instructions
     if (session.user.role !== 'stateAdmin') {
@@ -81,7 +151,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Failed to delete instruction' });
     }
   } else {
-    res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

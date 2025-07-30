@@ -10,37 +10,47 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  await dbConnect();
-
   const { id } = req.query;
+
+  await dbConnect();
 
   if (req.method === 'POST') {
     try {
-      // Prepare update object based on user role
-      const updateObj = { $inc: { viewCount: 1 } };
-      
-      // Track hierarchy-based view counts
-      if (session.user.role === 'wardAdmin') {
-        updateObj.$inc['hierarchyStats.wardAdminViews'] = 1;
-      } else if (session.user.role === 'coordinator') {
-        updateObj.$inc['hierarchyStats.coordinatorViews'] = 1;
-      } else if (session.user.role === 'stateAdmin') {
-        updateObj.$inc['hierarchyStats.stateAdminViews'] = 1;
-      }
-
-      const instruction = await Instruction.findByIdAndUpdate(
-        id,
-        updateObj,
-        { new: true }
-      );
+      const instruction = await Instruction.findById(id);
 
       if (!instruction) {
         return res.status(404).json({ error: 'Instruction not found' });
       }
 
-      res.status(200).json({ 
+      // Track view count and hierarchy stats
+      instruction.viewCount = (instruction.viewCount || 0) + 1;
+      
+      // Update hierarchy stats based on user role
+      if (!instruction.hierarchyStats) {
+        instruction.hierarchyStats = {
+          wardAdminViews: 0,
+          coordinatorViews: 0,
+          stateAdminViews: 0
+        };
+      }
+
+      switch (session.user.role) {
+        case 'wardAdmin':
+          instruction.hierarchyStats.wardAdminViews = (instruction.hierarchyStats.wardAdminViews || 0) + 1;
+          break;
+        case 'coordinator':
+          instruction.hierarchyStats.coordinatorViews = (instruction.hierarchyStats.coordinatorViews || 0) + 1;
+          break;
+        case 'stateAdmin':
+          instruction.hierarchyStats.stateAdminViews = (instruction.hierarchyStats.stateAdminViews || 0) + 1;
+          break;
+      }
+
+      await instruction.save();
+
+      res.status(200).json({
         viewCount: instruction.viewCount,
-        hierarchyStats: instruction.hierarchyStats 
+        hierarchyStats: instruction.hierarchyStats
       });
     } catch (error) {
       console.error('Error updating view count:', error);

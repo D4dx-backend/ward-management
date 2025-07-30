@@ -27,7 +27,8 @@ export default async function handler(req, res) {
           { targetAudience: 'all' },
           { targetAudience: 'coordinators' },
           { targetCoordinators: session.user.id },
-          { targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } }
+          { targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } },
+          { targetAudience: 'ward_or_group', targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } }
         ];
       } else if (session.user.role === 'wardAdmin') {
         const user = await User.findById(session.user.id);
@@ -35,7 +36,8 @@ export default async function handler(req, res) {
         query.$or = [
           { targetAudience: 'all' },
           { targetAudience: 'ward_admins' },
-          { targetWards: ward ? ward._id : null }
+          { targetWards: ward ? ward._id : null },
+          { targetAudience: 'ward_or_group', targetWards: ward ? ward._id : null }
         ].filter(condition => condition.targetWards !== null);
       } else if (targetAudience && targetAudience !== 'all') {
         query.targetAudience = targetAudience;
@@ -64,29 +66,35 @@ export default async function handler(req, res) {
         .skip(skip)
         .limit(parseInt(limit));
 
-      // Ultra-aggressive cleaning for severely corrupted data
+      // Clean instructions for display - handle data corruption gracefully
       const cleanInstructions = instructions.map((instruction, index) => {
         const obj = instruction.toObject();
         
-        // Clean title
+        // Clean title - be more permissive
         let cleanTitle = 'Untitled Instruction';
-        if (obj.title && typeof obj.title === 'string' && !obj.title.includes('�')) {
-          cleanTitle = obj.title.substring(0, 100); // Limit length
-        }
-        
-        // For severely corrupted descriptions, use a safe fallback
-        let cleanDescription = 'Instruction description is currently unavailable due to data corruption. Please contact the administrator for details.';
-        
-        // Only try to clean if the description looks salvageable
-        if (obj.description && typeof obj.description === 'string') {
-          const testClean = obj.description
-            .replace(/[^\x20-\x7E\s]/g, '')
-            .replace(/�/g, '')
+        if (obj.title && typeof obj.title === 'string') {
+          // Remove only the most problematic characters but keep most content
+          const titleClean = obj.title
+            .replace(/�/g, '') // Remove replacement characters
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
             .trim();
           
-          // If cleaned version is reasonable, use it
-          if (testClean && testClean.length > 10 && testClean.length < 300) {
-            cleanDescription = testClean;
+          if (titleClean && titleClean.length > 0) {
+            cleanTitle = titleClean.substring(0, 200); // Allow longer titles
+          }
+        }
+        
+        // Clean description - be more permissive
+        let cleanDescription = '';
+        if (obj.description && typeof obj.description === 'string') {
+          // Remove only the most problematic characters but keep most content
+          const descClean = obj.description
+            .replace(/�/g, '') // Remove replacement characters
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Remove control characters
+            .trim();
+          
+          if (descClean && descClean.length > 0) {
+            cleanDescription = descClean; // Keep full description
           }
         }
         
@@ -95,9 +103,20 @@ export default async function handler(req, res) {
           title: cleanTitle,
           description: cleanDescription,
           priority: ['low', 'medium', 'high'].includes(obj.priority) ? obj.priority : 'medium',
-          targetAudience: ['all', 'coordinators', 'ward_admins'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
+          targetAudience: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
+          targetWards: obj.targetWards || [],
+          targetCoordinators: obj.targetCoordinators || [],
           fileUrl: obj.fileUrl || null,
           fileName: obj.fileName || null,
+          isHighlighted: Boolean(obj.isHighlighted),
+          allowReplies: obj.allowReplies !== false,
+          viewCount: obj.viewCount || 0,
+          hierarchyStats: obj.hierarchyStats || {
+            wardAdminViews: 0,
+            coordinatorViews: 0,
+            stateAdminViews: 0
+          },
+          replies: obj.replies || [],
           createdAt: obj.createdAt || new Date(),
           createdBy: obj.createdBy || null
         };
@@ -184,7 +203,7 @@ export default async function handler(req, res) {
       const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
 
       // Validate target audience
-      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators'];
+      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'];
       const validatedAudience = validAudiences.includes(targetAudience) ? targetAudience : 'all';
 
       const instruction = new Instruction({

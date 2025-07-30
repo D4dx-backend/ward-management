@@ -35,11 +35,6 @@ export default function Instructions() {
       const response = await fetch('/api/instructions');
       if (response.ok) {
         const data = await response.json();
-        console.log('Instructions API response:', data);
-        console.log('Instructions array:', data.instructions);
-        if (data.instructions && data.instructions.length > 0) {
-          console.log('First instruction:', data.instructions[0]);
-        }
         setInstructions(data.instructions || []);
       } else {
         console.error('Instructions API error:', response.status, response.statusText);
@@ -92,10 +87,8 @@ export default function Instructions() {
   };
 
   const filteredInstructions = instructions.filter(instruction => {
-    const title = instruction.title || '';
-    const description = instruction.description || '';
-    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = instruction.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instruction.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPriority = priorityFilter === 'all' || instruction.priority === priorityFilter;
     return matchesSearch && matchesPriority;
   });
@@ -117,35 +110,7 @@ export default function Instructions() {
     });
   };
 
-  const truncateTitle = (title, wordLimit = 5) => {
-    if (!title) return '';
-    const words = title.split(' ');
-    if (words.length <= wordLimit) {
-      return title;
-    }
-    return words.slice(0, wordLimit).join(' ') + '...';
-  };
 
-  const truncateText = (text, wordLimit = 8) => {
-    if (!text) return '';
-    const words = text.split(' ');
-    if (words.length <= wordLimit) {
-      return text;
-    }
-    return words.slice(0, wordLimit).join(' ') + '...';
-  };
-
-  const formatTextWithLineBreaks = (text, wordsPerLine = 8) => {
-    if (!text) return '';
-    const words = text.split(' ');
-    const lines = [];
-    
-    for (let i = 0; i < words.length; i += wordsPerLine) {
-      lines.push(words.slice(i, i + wordsPerLine).join(' '));
-    }
-    
-    return lines;
-  };
 
   if (loading) {
     return (
@@ -161,9 +126,9 @@ export default function Instructions() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Instructions Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Manage instructions for coordinators and ward admins
+            Important instructions from state administration
           </p>
         </div>
 
@@ -205,13 +170,13 @@ export default function Instructions() {
                     Description
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Attachment
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target Audience
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    File
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -223,19 +188,20 @@ export default function Instructions() {
                   <tr key={instruction._id}>
                     <td className="px-3 py-4">
                       <div className="text-sm font-medium text-gray-900 truncate max-w-0">
-                        {instruction.title || 'Untitled Instruction'}
+                        {instruction.title}
                       </div>
                     </td>
                     <td className="px-3 py-4">
                       <div className="text-sm text-gray-900 truncate max-w-0">
-                        {(() => {
-                          const desc = instruction.description || 'No description available';
-                          if (desc.length > 40) {
-                            return desc.substring(0, 40) + '...';
-                          }
-                          return desc;
-                        })()}
+                        {instruction.description && instruction.description.length > 40 
+                          ? instruction.description.substring(0, 40) + '...' 
+                          : instruction.description}
                       </div>
+                    </td>
+                    <td className="px-3 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
+                        {instruction.priority ? instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1) : 'Medium'}
+                      </span>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-900">
                       <div className="truncate max-w-0">
@@ -244,10 +210,10 @@ export default function Instructions() {
                             onClick={() => handleDownload(instruction._id, instruction.fileName)}
                             className="text-blue-600 hover:text-blue-800 underline bg-transparent border-none cursor-pointer truncate"
                           >
-                            {instruction.fileName ?
-                              (instruction.fileName.length > 10 ?
-                                instruction.fileName.substring(0, 10) + '...' :
-                                instruction.fileName)
+                            {instruction.fileName ? 
+                              (instruction.fileName.length > 10 ? 
+                                instruction.fileName.substring(0, 10) + '...' : 
+                                instruction.fileName) 
                               : 'File'}
                           </button>
                         ) : (
@@ -255,17 +221,10 @@ export default function Instructions() {
                         )}
                       </div>
                     </td>
-                    <td className="px-3 py-4">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {instruction.targetAudience === 'all' ? 'All' :
-                          instruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                            instruction.targetAudience === 'wardAdmins' ? 'Ward Admins' : 'All'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-4">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                        {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
-                      </span>
+                    <td className="px-3 py-4 text-sm text-gray-500">
+                      <div className="truncate max-w-0">
+                        {instruction.createdAt ? formatDate(instruction.createdAt) : '-'}
+                      </div>
                     </td>
                     <td className="px-3 py-4 text-sm text-gray-900">
                       <Button
@@ -288,23 +247,7 @@ export default function Instructions() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">No instructions found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {instructions.length === 0 
-                  ? "No instructions have been created yet. Contact your administrator to add instructions."
-                  : "No instructions match your current search criteria. Try adjusting your search or priority filter."
-                }
-              </p>
-              {instructions.length > 0 && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setPriorityFilter('all');
-                  }}
-                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
-                >
-                  Clear filters
-                </button>
-              )}
+              <p className="mt-1 text-sm text-gray-500">No instructions available at the moment.</p>
             </div>
           )}
         </div>
@@ -326,12 +269,12 @@ export default function Instructions() {
                 </h3>
                 <div className="flex items-center space-x-4 mb-4">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(viewingInstruction.priority)}`}>
-                    {viewingInstruction.priority.charAt(0).toUpperCase() + viewingInstruction.priority.slice(1)}
+                    {viewingInstruction.priority ? viewingInstruction.priority.charAt(0).toUpperCase() + viewingInstruction.priority.slice(1) : 'Medium'}
                   </span>
                   {viewingInstruction.targetAudience && (
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                       {viewingInstruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                        viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                       viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
                     </span>
                   )}
                 </div>
