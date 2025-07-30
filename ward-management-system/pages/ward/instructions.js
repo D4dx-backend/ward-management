@@ -6,7 +6,7 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 
-export default function CoordinatorInstructions() {
+export default function WardInstructions() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [instructions, setInstructions] = useState([]);
@@ -14,10 +14,10 @@ export default function CoordinatorInstructions() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if user is authenticated and is coordinator
+    // Check if user is authenticated and is ward admin
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
+    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchInstructions();
@@ -75,7 +75,7 @@ export default function CoordinatorInstructions() {
       <div className="space-y-6 overflow-hidden">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
-          <p className="mt-1 text-sm text-gray-600">Important instructions and announcements for coordinators</p>
+          <p className="mt-1 text-sm text-gray-600">Important instructions and announcements for ward administrators</p>
         </div>
 
         {error && (
@@ -208,8 +208,7 @@ export default function CoordinatorInstructions() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-blue-700">
-                    <strong>District:</strong> {session?.user?.district} | 
-                    <strong> Role:</strong> Coordinator
+                    <strong>Role:</strong> Ward Administrator
                   </p>
                 </div>
               </div>
@@ -223,7 +222,7 @@ export default function CoordinatorInstructions() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-green-700 break-words overflow-wrap-anywhere">
-                    Need help? Contact your state administrator or system support team with any questions or issues.
+                    Need help? Contact your coordinator or state administrator with any questions or issues.
                   </p>
                 </div>
               </div>

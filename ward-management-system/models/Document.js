@@ -8,37 +8,50 @@ const documentSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true
+    required: false
   },
   category: {
     type: String,
-    enum: ['policy', 'guideline', 'form', 'report', 'other'],
-    default: 'other'
+    enum: ['policy', 'procedure', 'form', 'guideline'],
+    default: 'guideline'
   },
   fileUrl: {
     type: String,
-    required: true
+    required: false
   },
   fileName: {
     type: String,
-    required: true
+    required: false
   },
   fileSize: {
     type: Number,
-    required: true
+    required: false
   },
   fileType: {
     type: String,
-    required: true
+    required: false
   },
   targetAudience: {
     type: String,
-    enum: ['all', 'coordinators', 'ward_admins'],
+    enum: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators'],
     default: 'all'
   },
+  // For specific targeting
+  targetWards: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ward'
+  }],
+  targetCoordinators: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   isActive: {
     type: Boolean,
     default: true
+  },
+  viewCount: {
+    type: Number,
+    default: 0
   },
   downloadCount: {
     type: Number,

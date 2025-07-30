@@ -41,7 +41,7 @@ const instructionSchema = new mongoose.Schema({
   },
   targetAudience: {
     type: String,
-    enum: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators'],
+    enum: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'],
     default: 'all'
   },
   // For specific targeting
