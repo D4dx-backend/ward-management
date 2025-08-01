@@ -28,7 +28,8 @@ export default async function handler(req, res) {
         // Ward admins can only see clusters in their ward
         const ward = await Ward.findOne({ wardAdmin: session.user.id });
         if (!ward) {
-          return res.status(403).json({ message: 'No ward assigned to this admin' });
+          console.log('Ward admin has no ward assigned:', session.user.id);
+          return res.status(200).json([]); // Return empty array instead of error
         }
         query.ward = ward._id;
       } else if (session.user.role === 'coordinator') {

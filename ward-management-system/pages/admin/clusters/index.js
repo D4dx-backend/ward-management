@@ -104,11 +104,13 @@ export default function Clusters() {
     try {
       setIsLoading(true);
       const response = await axios.get('/api/clusters');
-      setClusters(response.data);
+      setClusters(response.data || []);
       setError('');
     } catch (error) {
-      setError('Failed to fetch clusters');
-      console.error(error);
+      console.error('Fetch clusters error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to fetch clusters';
+      setError(errorMessage);
+      setClusters([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -117,9 +119,11 @@ export default function Clusters() {
   const fetchWards = async () => {
     try {
       const response = await axios.get('/api/wards');
-      setWards(response.data);
+      setWards(response.data || []);
     } catch (error) {
       console.error('Failed to fetch wards:', error);
+      setWards([]);
+      // Don't set error here as it's not critical for the page to function
     }
   };
 
