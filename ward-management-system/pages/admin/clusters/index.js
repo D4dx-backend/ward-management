@@ -57,14 +57,16 @@ export default function Clusters() {
       fetchClusters();
       fetchWards();
       
-      // Set selected ward from query parameter
+      // Set selected ward from query parameter or for ward admin
       if (router.query.wardId) {
         setSelectedWard(router.query.wardId);
-        // Also pre-select the ward in the form
         setFormData(prev => ({
           ...prev,
           wardId: router.query.wardId
         }));
+      } else if (session.user.role === 'wardAdmin') {
+        // For ward admins, auto-select their ward once wards are loaded
+        // This will be handled in a separate useEffect after wards are fetched
       }
     }
   }, [status, session, router]);
@@ -127,6 +129,23 @@ export default function Clusters() {
     }
   };
 
+  // Auto-select ward for ward admins
+  useEffect(() => {
+    if (session?.user?.role === 'wardAdmin' && wards.length > 0 && !selectedWard && !router.query.wardId) {
+      // Find the ward assigned to this ward admin
+      const userWard = wards.find(ward => ward.wardAdmin?._id === session.user.id);
+      if (userWard) {
+        setSelectedWard(userWard._id);
+        setFormData(prev => ({
+          ...prev,
+          wardId: userWard._id
+        }));
+      } else {
+        setError('No ward assigned to your account. Please contact the system administrator.');
+      }
+    }
+  }, [session, wards, selectedWard, router.query.wardId]);
+
   const resetForm = () => {
     setFormData({
       name: '',
@@ -163,13 +182,18 @@ export default function Clusters() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
+      console.log('Creating cluster with data:', formData);
       const response = await axios.post('/api/clusters', formData);
+      console.log('Cluster created successfully:', response.data);
       setClusters([...clusters, response.data]);
       resetForm();
       setShowCreateModal(false);
       setError('');
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      console.error('Cluster creation error:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      console.error('Error message:', errorMessage);
+      setError(errorMessage);
     }
   };
 

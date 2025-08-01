@@ -52,23 +52,32 @@ export default async function handler(req, res) {
   }
   
   if (req.method === 'POST') {
-    // Only state admins and ward admins can create clusters
-    if (!['stateAdmin', 'wardAdmin'].includes(session.user.role)) {
-      return res.status(403).json({ message: 'Forbidden' });
+    // Only state admins, coordinators, and ward admins can create clusters
+    if (!['stateAdmin', 'coordinator', 'wardAdmin'].includes(session.user.role)) {
+      return res.status(403).json({ message: 'Forbidden - Invalid role' });
     }
     
     try {
-      const { name, clusterNumber, wardId, coordinator } = req.body;
+      let { name, clusterNumber, wardId, coordinator } = req.body;
+      
+      // For ward admins, auto-determine wardId from their assignment
+      if (session.user.role === 'wardAdmin' && !wardId) {
+        const userWard = await Ward.findOne({ wardAdmin: session.user.id });
+        if (!userWard) {
+          return res.status(403).json({ message: 'No ward assigned to this admin. Please contact system administrator.' });
+        }
+        wardId = userWard._id.toString();
+      }
       
       // Validate required fields
       if (!name || !clusterNumber || !wardId || !coordinator) {
         return res.status(400).json({ message: 'All fields are required' });
       }
       
-      // Coordinator name is optional
-      // if (!coordinator.name) {
-      //   return res.status(400).json({ message: 'Coordinator name is required' });
-      // }
+      // Coordinator name is required
+      if (!coordinator.name || !coordinator.name.trim()) {
+        return res.status(400).json({ message: 'Coordinator name is required' });
+      }
       
       // Validate mobile number if provided
       if (coordinator.mobileNumber && !/^\d{10}$/.test(coordinator.mobileNumber)) {
@@ -84,8 +93,16 @@ export default async function handler(req, res) {
       // Role-based ward access check
       if (session.user.role === 'wardAdmin') {
         const userWard = await Ward.findOne({ wardAdmin: session.user.id });
-        if (!userWard || userWard._id.toString() !== wardId) {
+        if (!userWard) {
+          return res.status(403).json({ message: 'No ward assigned to this admin. Please contact system administrator.' });
+        }
+        if (userWard._id.toString() !== wardId) {
           return res.status(403).json({ message: 'You can only create clusters in your assigned ward' });
+        }
+      } else if (session.user.role === 'coordinator') {
+        // Coordinators can create clusters in wards within their district
+        if (ward.district !== session.user.district) {
+          return res.status(403).json({ message: 'You can only create clusters in wards within your assigned district' });
         }
       }
       
