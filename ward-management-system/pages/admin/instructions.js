@@ -16,7 +16,13 @@ export default function AdminInstructions() {
   const [coordinators, setCoordinators] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [wardSearch, setWardSearch] = useState('');
+  const [coordinatorSearch, setCoordinatorSearch] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInstruction, setEditingInstruction] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingInstruction, setDeletingInstruction] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -24,6 +30,7 @@ export default function AdminInstructions() {
     targetAudience: 'all',
     targetWards: [],
     targetCoordinators: [],
+    targetGroups: null,
     isHighlighted: false,
     allowReplies: true,
     specificWardOrGroup: false
@@ -95,8 +102,21 @@ export default function AdminInstructions() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/instructions', formData);
-      setInstructions(prev => [response.data, ...prev]);
+      if (editingInstruction) {
+        // Update existing instruction
+        const response = await axios.put(`/api/instructions/${editingInstruction._id}`, formData);
+        setInstructions(prev => prev.map(inst => 
+          inst._id === editingInstruction._id ? response.data : inst
+        ));
+        setShowEditModal(false);
+        setEditingInstruction(null);
+      } else {
+        // Create new instruction
+        const response = await axios.post('/api/instructions', formData);
+        setInstructions(prev => [response.data, ...prev]);
+        setShowCreateModal(false);
+      }
+      
       setFormData({
         title: '',
         description: '',
@@ -104,16 +124,53 @@ export default function AdminInstructions() {
         targetAudience: 'all',
         targetWards: [],
         targetCoordinators: [],
+        targetGroups: null,
         isHighlighted: false,
         allowReplies: true,
         specificWardOrGroup: false
       });
-      setShowCreateModal(false);
       setError('');
     } catch (error) {
-      console.error('Error creating instruction:', error);
-      setError(error.response?.data?.error || 'Failed to create instruction');
+      console.error('Error saving instruction:', error);
+      setError(error.response?.data?.error || 'Failed to save instruction');
     }
+  };
+
+  const handleEdit = (instruction) => {
+    setEditingInstruction(instruction);
+    setFormData({
+      title: instruction.title,
+      description: instruction.description,
+      priority: instruction.priority,
+      targetAudience: instruction.targetAudience,
+      targetWards: instruction.targetWards?.map(w => w._id || w) || [],
+      targetCoordinators: instruction.targetCoordinators?.map(c => c._id || c) || [],
+      targetGroups: instruction.targetGroups || null,
+      isHighlighted: instruction.isHighlighted,
+      allowReplies: instruction.allowReplies,
+      specificWardOrGroup: false
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingInstruction) return;
+    
+    try {
+      await axios.delete(`/api/instructions/${deletingInstruction._id}`);
+      setInstructions(prev => prev.filter(inst => inst._id !== deletingInstruction._id));
+      setShowDeleteModal(false);
+      setDeletingInstruction(null);
+      setError('');
+    } catch (error) {
+      console.error('Error deleting instruction:', error);
+      setError(error.response?.data?.error || 'Failed to delete instruction');
+    }
+  };
+
+  const openDeleteModal = (instruction) => {
+    setDeletingInstruction(instruction);
+    setShowDeleteModal(true);
   };
 
   const getPriorityColor = (priority) => {
@@ -133,6 +190,19 @@ export default function AdminInstructions() {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
+
+  // Filter wards based on search
+  const filteredWards = wards.filter(ward =>
+    ward.name.toLowerCase().includes(wardSearch.toLowerCase()) ||
+    ward.panchayath.toLowerCase().includes(wardSearch.toLowerCase()) ||
+    ward.district.toLowerCase().includes(wardSearch.toLowerCase())
+  );
+
+  // Filter coordinators based on search
+  const filteredCoordinators = coordinators.filter(coordinator =>
+    coordinator.name.toLowerCase().includes(coordinatorSearch.toLowerCase()) ||
+    coordinator.district.toLowerCase().includes(coordinatorSearch.toLowerCase())
+  );
 
   if (status === 'loading' || isLoading) {
     return (
@@ -251,12 +321,38 @@ export default function AdminInstructions() {
                           instruction.targetAudience === 'coordinators' ? 'All Coordinators' :
                           instruction.targetAudience === 'ward_admins' ? 'All Ward Admins' :
                           instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
-                          instruction.targetAudience === 'specific_coordinators' ? `Specific Coordinators (${instruction.targetCoordinators?.length || 0})` :
+                          instruction.targetAudience === 'specific_coordinators' ? 
+                            `Specific Coordinators: ${instruction.targetCoordinators?.map(c => c.name || c).join(', ') || 'None selected'}` :
                           instruction.targetAudience === 'ward_or_group' ? `Ward/Group (${instruction.targetWards?.length || 0} wards)` :
                           'Unknown'
                         }
                       </span>
                     </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="mb-4 flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(instruction)}
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openDeleteModal(instruction)}
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete
+                    </Button>
                   </div>
 
                   {/* Replies Summary */}
@@ -296,11 +392,29 @@ export default function AdminInstructions() {
           )}
         </div>
 
-        {/* Create Instruction Modal */}
+        {/* Create/Edit Instruction Modal */}
         <Modal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          title="Create New Instruction"
+          isOpen={showCreateModal || showEditModal}
+          onClose={() => {
+            setShowCreateModal(false);
+            setShowEditModal(false);
+            setEditingInstruction(null);
+            setWardSearch('');
+            setCoordinatorSearch('');
+            setFormData({
+              title: '',
+              description: '',
+              priority: 'medium',
+              targetAudience: 'all',
+              targetWards: [],
+              targetCoordinators: [],
+              targetGroups: null,
+              isHighlighted: false,
+              allowReplies: true,
+              specificWardOrGroup: false
+            });
+          }}
+          title={editingInstruction ? "Edit Instruction" : "Create New Instruction"}
           size="lg"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -373,6 +487,7 @@ export default function AdminInstructions() {
                   <option value="ward_or_group">Specific Ward or Group of Wards</option>
                 </select>
               </div>
+
             </div>
 
             {/* Specific Wards Selection */}
@@ -381,8 +496,17 @@ export default function AdminInstructions() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Wards
                 </label>
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="Search wards..."
+                    value={wardSearch}
+                    onChange={(e) => setWardSearch(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
                 <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                  {wards.map(ward => (
+                  {filteredWards.map(ward => (
                     <label key={ward._id} className="flex items-center space-x-2 p-1">
                       <input
                         type="checkbox"
@@ -395,6 +519,9 @@ export default function AdminInstructions() {
                       </span>
                     </label>
                   ))}
+                  {filteredWards.length === 0 && (
+                    <div className="text-sm text-gray-500 p-2">No wards found matching your search.</div>
+                  )}
                 </div>
               </div>
             )}
@@ -405,8 +532,17 @@ export default function AdminInstructions() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Coordinators
                 </label>
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="Search coordinators..."
+                    value={coordinatorSearch}
+                    onChange={(e) => setCoordinatorSearch(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
                 <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                  {coordinators.map(coordinator => (
+                  {filteredCoordinators.map(coordinator => (
                     <label key={coordinator._id} className="flex items-center space-x-2 p-1">
                       <input
                         type="checkbox"
@@ -419,6 +555,9 @@ export default function AdminInstructions() {
                       </span>
                     </label>
                   ))}
+                  {filteredCoordinators.length === 0 && (
+                    <div className="text-sm text-gray-500 p-2">No coordinators found matching your search.</div>
+                  )}
                 </div>
               </div>
             )}
@@ -429,8 +568,17 @@ export default function AdminInstructions() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Ward or Group of Wards
                 </label>
+                <div className="mb-2">
+                  <input
+                    type="text"
+                    placeholder="Search wards..."
+                    value={wardSearch}
+                    onChange={(e) => setWardSearch(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  />
+                </div>
                 <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                  {wards.map(ward => (
+                  {filteredWards.map(ward => (
                     <label key={ward._id} className="flex items-center space-x-2 p-1">
                       <input
                         type="checkbox"
@@ -443,6 +591,9 @@ export default function AdminInstructions() {
                       </span>
                     </label>
                   ))}
+                  {filteredWards.length === 0 && (
+                    <div className="text-sm text-gray-500 p-2">No wards found matching your search.</div>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-2">
                   Select one or more wards to target this instruction specifically to those ward admins and their coordinators.
@@ -478,15 +629,73 @@ export default function AdminInstructions() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setShowEditModal(false);
+                  setEditingInstruction(null);
+                  setWardSearch('');
+                  setCoordinatorSearch('');
+                }}
               >
                 Cancel
               </Button>
               <Button type="submit">
-                Create Instruction
+                {editingInstruction ? 'Update Instruction' : 'Create Instruction'}
               </Button>
             </div>
           </form>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setDeletingInstruction(null);
+          }}
+          title="Delete Instruction"
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <svg className="h-10 w-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Are you sure you want to delete this instruction?
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  "{deletingInstruction?.title}"
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  This action cannot be undone. All replies and comments will also be deleted.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletingInstruction(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Delete Instruction
+              </Button>
+            </div>
+          </div>
         </Modal>
       </div>
     </Layout>

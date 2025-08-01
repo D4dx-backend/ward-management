@@ -12,6 +12,9 @@ export default function CoordinatorInstructions() {
   const [instructions, setInstructions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+  const [stats, setStats] = useState({ total: 0, read: 0, unread: 0 });
+  const [filteredInstructions, setFilteredInstructions] = useState([]);
 
   useEffect(() => {
     // Check if user is authenticated and is coordinator
@@ -21,6 +24,7 @@ export default function CoordinatorInstructions() {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchInstructions();
+      fetchStats();
     }
   }, [status, session, router]);
 
@@ -37,6 +41,64 @@ export default function CoordinatorInstructions() {
       setInstructions([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get('/api/instructions/stats');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  // Filter instructions based on active tab
+  useEffect(() => {
+    let filtered = instructions;
+    
+    if (activeTab === 'coordinator') {
+      filtered = instructions.filter(instruction => 
+        instruction.targetAudience === 'coordinators' ||
+        instruction.targetAudience === 'specific_coordinators' ||
+        instruction.targetGroups === 'all_coordinators' ||
+        instruction.targetGroups === 'specific_coordinators' ||
+        (instruction.targetCoordinators && instruction.targetCoordinators.includes(session?.user?.id))
+      );
+    } else if (activeTab === 'ward_admin') {
+      filtered = instructions.filter(instruction => 
+        instruction.targetAudience === 'ward_admins' ||
+        instruction.targetAudience === 'specific_wards' ||
+        instruction.targetAudience === 'ward_or_group' ||
+        instruction.targetGroups === 'all_ward_admins' ||
+        instruction.targetGroups === 'specific_ward_admins'
+      );
+    } else if (activeTab === 'unread') {
+      filtered = instructions.filter(instruction => !instruction.isRead);
+    } else if (activeTab === 'read') {
+      filtered = instructions.filter(instruction => instruction.isRead);
+    }
+    
+    setFilteredInstructions(filtered);
+  }, [instructions, activeTab, session]);
+
+  const markAsRead = async (instructionId) => {
+    try {
+      await axios.post(`/api/instructions/${instructionId}`, {
+        action: 'mark_read'
+      });
+      
+      // Update local state
+      setInstructions(prev => prev.map(instruction => 
+        instruction._id === instructionId 
+          ? { ...instruction, isRead: true }
+          : instruction
+      ));
+      
+      // Refresh stats
+      fetchStats();
+    } catch (error) {
+      console.error('Error marking as read:', error);
     }
   };
 
@@ -73,9 +135,68 @@ export default function CoordinatorInstructions() {
       </Head>
 
       <div className="space-y-6 overflow-hidden">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
-          <p className="mt-1 text-sm text-gray-600">Important instructions and announcements for coordinators</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Instructions</h1>
+            <p className="mt-1 text-sm text-gray-600">Important instructions and announcements for coordinators</p>
+          </div>
+          <div className="flex items-center space-x-4 text-sm">
+            <div className="bg-blue-50 px-3 py-1 rounded-full">
+              <span className="text-blue-700 font-medium">Total: {stats.total}</span>
+            </div>
+            <div className="bg-green-50 px-3 py-1 rounded-full">
+              <span className="text-green-700 font-medium">Read: {stats.read}</span>
+            </div>
+            <div className="bg-red-50 px-3 py-1 rounded-full">
+              <span className="text-red-700 font-medium">Unread: {stats.unread}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {[
+              { key: 'all', label: 'All Instructions', count: instructions.length },
+              { key: 'coordinator', label: 'For Coordinators', count: instructions.filter(i => 
+                i.targetAudience === 'coordinators' || 
+                i.targetAudience === 'specific_coordinators' ||
+                i.targetGroups === 'all_coordinators' ||
+                i.targetGroups === 'specific_coordinators' ||
+                (i.targetCoordinators && i.targetCoordinators.includes(session?.user?.id))
+              ).length },
+              { key: 'ward_admin', label: 'For Ward Admins', count: instructions.filter(i => 
+                i.targetAudience === 'ward_admins' || 
+                i.targetAudience === 'specific_wards' ||
+                i.targetAudience === 'ward_or_group' ||
+                i.targetGroups === 'all_ward_admins' ||
+                i.targetGroups === 'specific_ward_admins'
+              ).length },
+              { key: 'unread', label: 'Unread', count: stats.unread },
+              { key: 'read', label: 'Read', count: stats.read }
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                  activeTab === tab.key
+                    ? 'border-green-500 text-green-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span className={`ml-2 py-0.5 px-2 rounded-full text-xs ${
+                    activeTab === tab.key
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
         </div>
 
         {error && (
@@ -95,9 +216,9 @@ export default function CoordinatorInstructions() {
 
         {/* Dynamic Instructions */}
         <div className="space-y-6">
-          {instructions.length > 0 ? (
-            instructions.map((instruction) => (
-              <Card key={instruction._id} className={instruction.isHighlighted ? 'ring-2 ring-yellow-400' : ''}>
+          {filteredInstructions.length > 0 ? (
+            filteredInstructions.map((instruction) => (
+              <Card key={instruction._id} className={`${instruction.isHighlighted ? 'ring-2 ring-yellow-400' : ''} ${!instruction.isRead ? 'border-l-4 border-l-blue-500' : ''}`}>
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -119,6 +240,14 @@ export default function CoordinatorInstructions() {
                               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                             </svg>
                             Highlighted
+                          </span>
+                        )}
+                        {!instruction.isRead && (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                            New
                           </span>
                         )}
                       </div>
@@ -169,7 +298,17 @@ export default function CoordinatorInstructions() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-2">
+                      {!instruction.isRead && (
+                        <button
+                          onClick={() => markAsRead(instruction._id)}
+                          className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded transition-colors"
+                        >
+                          Mark as Read
+                        </button>
+                      )}
+                    </div>
                     <button
                       onClick={() => router.push(`/instructions/${instruction._id}`)}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"

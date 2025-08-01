@@ -61,15 +61,31 @@ export default function DynamicFormBuilder({ fields = [], onChange, formType = '
       ...field,
       options: field.options || [],
       validation: field.validation || {},
+      // Keep the original ID when editing, but it will be regenerated from label if label changes
     });
     setEditingField(index);
     setShowFieldModal(true);
   };
 
   const handleSaveField = () => {
+    // For new fields, always generate ID from label
+    // For existing fields, keep original ID unless label changed significantly
+    let fieldId;
+    if (editingField !== null) {
+      const originalField = fields[editingField];
+      const originalGeneratedId = generateFieldId(originalField.label);
+      const newGeneratedId = generateFieldId(fieldForm.label);
+      
+      // If the generated ID would be the same, keep the original ID
+      // Otherwise, use the new generated ID
+      fieldId = originalGeneratedId === newGeneratedId ? originalField.id : newGeneratedId;
+    } else {
+      fieldId = generateFieldId(fieldForm.label);
+    }
+
     const newField = {
       ...fieldForm,
-      id: fieldForm.id || generateFieldId(fieldForm.label),
+      id: fieldId,
       order: editingField !== null ? fields[editingField].order : fields.length + 1,
     };
 
@@ -111,7 +127,25 @@ export default function DynamicFormBuilder({ fields = [], onChange, formType = '
   };
 
   const generateFieldId = (label) => {
-    return label.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    if (!label) return '';
+    
+    // Convert to lowercase and replace non-alphanumeric characters with underscores
+    let id = label.toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')  // Replace non-alphanumeric with underscore
+      .replace(/_+/g, '_')         // Replace multiple underscores with single
+      .replace(/^_|_$/g, '');      // Remove leading/trailing underscores
+    
+    // Ensure it starts with a letter (add 'field_' prefix if it starts with number)
+    if (id && /^[0-9]/.test(id)) {
+      id = 'field_' + id;
+    }
+    
+    // Fallback if empty
+    if (!id) {
+      id = 'field_' + Date.now();
+    }
+    
+    return id;
   };
 
   const handleImportQuestions = () => {
@@ -175,8 +209,8 @@ export default function DynamicFormBuilder({ fields = [], onChange, formType = '
   const handleFieldFormChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    if (name === 'label' && !fieldForm.id) {
-      // Auto-generate ID from label
+    if (name === 'label') {
+      // Always auto-generate ID from label
       setFieldForm(prev => ({
         ...prev,
         [name]: type === 'checkbox' ? checked : value,
@@ -356,36 +390,24 @@ export default function DynamicFormBuilder({ fields = [], onChange, formType = '
         size="lg"
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Field Label *
-              </label>
-              <input
-                type="text"
-                name="label"
-                value={fieldForm.label}
-                onChange={handleFieldFormChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter field label"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Field ID *
-              </label>
-              <input
-                type="text"
-                name="id"
-                value={fieldForm.id}
-                onChange={handleFieldFormChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="field_id"
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Field Label *
+            </label>
+            <input
+              type="text"
+              name="label"
+              value={fieldForm.label}
+              onChange={handleFieldFormChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter field label"
+              required
+            />
+            {fieldForm.label && (
+              <p className="text-xs text-gray-500 mt-1">
+                Field ID will be: <code className="bg-gray-100 px-1 rounded">{generateFieldId(fieldForm.label)}</code>
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

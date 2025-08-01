@@ -48,6 +48,15 @@ export default async function handler(req, res) {
           break;
       }
 
+      // Mark as read if not already read
+      const hasRead = instruction.readBy.some(read => read.user.toString() === session.user.id);
+      if (!hasRead) {
+        instruction.readBy.push({
+          user: session.user.id,
+          readAt: new Date()
+        });
+      }
+
       await instruction.save();
 
       res.status(200).json(instruction);
@@ -62,23 +71,67 @@ export default async function handler(req, res) {
     }
 
     try {
-      const { title, description, fileUrl, fileName, fileSize, targetAudience, priority, isActive } = req.body;
+      const { 
+        title, 
+        description, 
+        fileUrl, 
+        fileName, 
+        fileSize, 
+        targetAudience, 
+        targetWards, 
+        targetCoordinators, 
+        targetGroups,
+        priority, 
+        isHighlighted, 
+        allowReplies,
+        isActive 
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !description) {
+        return res.status(400).json({ error: 'Title and description are required' });
+      }
+
+      // Sanitize input
+      const sanitizedTitle = typeof title === 'string' ? title.trim() : '';
+      const sanitizedDescription = typeof description === 'string' ? description.trim() : '';
+
+      if (!sanitizedTitle || !sanitizedDescription) {
+        return res.status(400).json({ error: 'Title and description must be valid strings' });
+      }
+
+      // Validate priority
+      const validPriorities = ['low', 'medium', 'high'];
+      const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
+
+      // Validate target audience
+      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'];
+      const validatedAudience = validAudiences.includes(targetAudience) ? targetAudience : 'all';
 
       const instruction = await Instruction.findByIdAndUpdate(
         id,
         {
-          title,
-          description,
-          fileUrl,
-          fileName,
-          fileSize,
-          targetAudience,
-          priority,
-          isActive,
+          title: sanitizedTitle,
+          description: sanitizedDescription,
+          fileUrl: fileUrl || null,
+          fileName: fileName || null,
+          fileSize: fileSize ? parseInt(fileSize) : null,
+          targetAudience: validatedAudience,
+          targetWards: targetWards || [],
+          targetCoordinators: targetCoordinators || [],
+          targetGroups: targetGroups || null,
+          priority: validatedPriority,
+          isHighlighted: Boolean(isHighlighted),
+          allowReplies: allowReplies !== false,
+          isActive: isActive !== false,
           updatedAt: Date.now()
         },
         { new: true }
-      ).populate('createdBy', 'name email');
+      ).populate([
+        { path: 'createdBy', select: 'name email' },
+        { path: 'targetWards', select: 'name wardNumber panchayath district' },
+        { path: 'targetCoordinators', select: 'name email district' }
+      ]);
 
       if (!instruction) {
         return res.status(404).json({ error: 'Instruction not found' });
@@ -92,7 +145,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'POST') {
     // Handle adding replies to instructions
     try {
-      const { message, action } = req.body;
+      const { message, action, commentType, isPrivate, parentReply } = req.body;
 
       if (action === 'reply') {
         if (!message || message.trim().length === 0) {
@@ -109,10 +162,13 @@ export default async function handler(req, res) {
           return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
         }
 
-        // Add the reply
+        // Add the reply with enhanced features
         instruction.replies.push({
           user: session.user.id,
           message: message.trim(),
+          commentType: commentType || 'thread',
+          isPrivate: Boolean(isPrivate),
+          parentReply: parentReply || null,
           createdAt: new Date()
         });
 
@@ -125,6 +181,24 @@ export default async function handler(req, res) {
         ]);
 
         res.status(200).json(instruction);
+      } else if (action === 'mark_read') {
+        const instruction = await Instruction.findById(id);
+
+        if (!instruction) {
+          return res.status(404).json({ error: 'Instruction not found' });
+        }
+
+        // Mark as read if not already read
+        const hasRead = instruction.readBy.some(read => read.user.toString() === session.user.id);
+        if (!hasRead) {
+          instruction.readBy.push({
+            user: session.user.id,
+            readAt: new Date()
+          });
+          await instruction.save();
+        }
+
+        res.status(200).json({ message: 'Marked as read' });
       } else {
         res.status(400).json({ error: 'Invalid action' });
       }
