@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin' }) => {
+const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'stateAdmin', onReportClick }) => {
   // Always show only the first 3 reports, full details available via "View all"
   const displayReports = reports.slice(0, 3);
   const formatTimeAgo = (timestamp) => {
@@ -61,8 +61,8 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
             </div>
           </div>
         ) : (
-          displayReports.map((report) => (
-            <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate || report.form?._id}?responseId=${report._id}`}>
+          displayReports.map((report) => {
+            const reportContent = (
               <div className="px-6 py-4 hover:bg-gray-50 cursor-pointer">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -100,8 +100,18 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
                   </div>
                 </div>
               </div>
-            </Link>
-          ))
+            );
+
+            return onReportClick ? (
+              <div key={report._id} onClick={() => onReportClick(report)}>
+                {reportContent}
+              </div>
+            ) : (
+              <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate || report.form?._id}?responseId=${report._id}`}>
+                {reportContent}
+              </Link>
+            );
+          })
         )}
       </div>
     </div>
