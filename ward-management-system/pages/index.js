@@ -8,6 +8,9 @@ import Button from '../components/Button';
 import RecentActivity from '../components/RecentActivity';
 import RecentReports from '../components/RecentReports';
 import DashboardLoginHistory from '../components/DashboardLoginHistory';
+import InstructionModal from '../components/InstructionModal';
+import ReportModal from '../components/ReportModal';
+import PendingFormModal from '../components/PendingFormModal';
 import axios from 'axios';
 
 export default function Home() {
@@ -28,6 +31,12 @@ export default function Home() {
   const [coordinatorWards, setCoordinatorWards] = useState([]);
   const [pendingReportsList, setPendingReportsList] = useState([]);
   const [userInfo, setUserInfo] = useState(null);
+  const [selectedInstruction, setSelectedInstruction] = useState(null);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedPendingForm, setSelectedPendingForm] = useState(null);
+  const [showInstructionModal, setShowInstructionModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showPendingFormModal, setShowPendingFormModal] = useState(false);
   const loading = status === 'loading';
 
   useEffect(() => {
@@ -82,6 +91,37 @@ export default function Home() {
     } catch (error) {
       console.error('Error fetching user info:', error);
     }
+  };
+
+  const handleInstructionClick = (instruction) => {
+    setSelectedInstruction(instruction);
+    setShowInstructionModal(true);
+  };
+
+  const handleReportClick = (report) => {
+    // Check if it's a pending form (has formType) or a submitted report
+    if (report.formType || (report.title && !report.form)) {
+      setSelectedPendingForm(report);
+      setShowPendingFormModal(true);
+    } else {
+      setSelectedReport(report);
+      setShowReportModal(true);
+    }
+  };
+
+  const closeInstructionModal = () => {
+    setShowInstructionModal(false);
+    setSelectedInstruction(null);
+  };
+
+  const closeReportModal = () => {
+    setShowReportModal(false);
+    setSelectedReport(null);
+  };
+
+  const closePendingFormModal = () => {
+    setShowPendingFormModal(false);
+    setSelectedPendingForm(null);
   };
 
   if (loading) {
@@ -211,7 +251,7 @@ export default function Home() {
         {/* Recent Activity and Reports */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <RecentActivity logs={recentLogs} userRole={session.user.role} />
-          <RecentReports reports={recentReports} userRole={session.user.role} />
+          <RecentReports reports={recentReports} userRole={session.user.role} onReportClick={handleReportClick} />
         </div>
 
         {/* Login History */}
@@ -321,7 +361,7 @@ export default function Home() {
                 <div className="space-y-3">
                   {pendingReportsList.map((report, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:bg-yellow-100 transition-colors"
-                         onClick={() => window.location.href = `/coordinator/ward-reports`}>
+                         onClick={() => handleReportClick(report)}>
                       <div>
                         <p className="font-medium text-gray-900">{report.wardName}</p>
                         <p className="text-sm text-gray-600">{report.formTitle}</p>
@@ -442,7 +482,7 @@ export default function Home() {
                   {pendingForms.map((form, index) => (
                     <div key={form._id || index} 
                          className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
-                         onClick={() => window.location.href = '/ward/reports/submit'}>
+                         onClick={() => handleReportClick(form)}>
                       <div>
                         <p className="font-medium text-gray-900">{form.title}</p>
                         <p className="text-sm text-gray-600">
@@ -483,7 +523,7 @@ export default function Home() {
                     .slice(0, 5)
                     .map((report, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
-                         onClick={() => window.location.href = '/ward/reports'}>
+                         onClick={() => handleReportClick(report)}>
                       <div className="flex items-center space-x-3">
                         <div className="flex-shrink-0">
                           <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -533,7 +573,7 @@ export default function Home() {
                            ? 'bg-yellow-50 border border-yellow-200 hover:bg-yellow-100' 
                            : 'bg-gray-50 hover:bg-gray-100'
                        }`}
-                       onClick={() => window.location.href = '/instructions'}>
+                       onClick={() => handleInstructionClick(instruction)}>
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         {instruction.isHighlighted ? (
@@ -591,6 +631,23 @@ export default function Home() {
       {session.user.role === 'stateAdmin' && renderStateAdminDashboard()}
       {session.user.role === 'coordinator' && renderCoordinatorDashboard()}
       {session.user.role === 'wardAdmin' && renderWardAdminDashboard()}
+      
+      {/* Modals */}
+      <InstructionModal
+        isOpen={showInstructionModal}
+        onClose={closeInstructionModal}
+        instruction={selectedInstruction}
+      />
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={closeReportModal}
+        report={selectedReport}
+      />
+      <PendingFormModal
+        isOpen={showPendingFormModal}
+        onClose={closePendingFormModal}
+        form={selectedPendingForm}
+      />
     </Layout>
   );
 }
