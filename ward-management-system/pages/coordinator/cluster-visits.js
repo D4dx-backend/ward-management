@@ -6,43 +6,50 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import Modal from '../../components/Modal';
 
-export default function AdminClusterVisits() {
+export default function CoordinatorClusterVisits() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [visitData, setVisitData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showVisitModal, setShowVisitModal] = useState(false);
+  const [selectedCluster, setSelectedCluster] = useState(null);
+  const [visitForm, setVisitForm] = useState({
+    purpose: '',
+    findings: '',
+    housesVisited: '',
+    issuesFound: '',
+    followUpRequired: false,
+    notes: ''
+  });
   
   // Filter states
   const [filters, setFilters] = useState({
-    district: 'all',
-    coordinator: 'all',
     ward: 'all',
     status: 'all',
     dateRange: 'all',
     visitStatus: 'all'
   });
   
-  const [districts, setDistricts] = useState([]);
-  const [coordinators, setCoordinators] = useState([]);
   const [wards, setWards] = useState([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
+    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchClusterVisitData();
-      fetchFilterData();
+      fetchWards();
     }
   }, [status, session, router]);
 
   const fetchClusterVisitData = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/admin/cluster-visits');
+      const response = await axios.get('/api/coordinator/cluster-visits');
       setVisitData(response.data.weeks || []);
       setError('');
     } catch (error) {
@@ -54,25 +61,27 @@ export default function AdminClusterVisits() {
     }
   };
 
-  const fetchFilterData = async () => {
-    // Fetch districts, coordinators, and wards for filters
-    // This would be actual API calls in production
+  const fetchWards = async () => {
+    try {
+      const response = await axios.get('/api/coordinator/wards');
+      setWards(response.data || []);
+    } catch (error) {
+      console.error('Error fetching wards:', error);
+      // Mock wards for coordinator's district
+      setWards(['Central Ward', 'East Ward', 'West Ward', 'North Ward']);
+    }
   };
 
   const generateMockData = () => {
-    const mockDistricts = ['Thiruvananthapuram', 'Kollam', 'Pathanamthitta', 'Alappuzha'];
-    const mockCoordinators = ['Priya Nair', 'Rajesh Kumar', 'Sunita Devi', 'Anil Sharma', 'Meera Pillai'];
-    const mockWards = ['Central Ward', 'East Ward', 'West Ward', 'North Ward', 'South Ward'];
-    
-    setDistricts(mockDistricts);
-    setCoordinators(mockCoordinators);
+    const mockWards = ['Central Ward', 'East Ward', 'West Ward', 'North Ward'];
     setWards(mockWards);
     
-    // Generate mock visit data for last 8 weeks
+    // Generate mock visit data for coordinator's district
     const weeks = [];
     const currentDate = new Date();
+    const coordinatorDistrict = session?.user?.district || 'Thiruvananthapuram';
     
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
       const weekStart = new Date(currentDate);
       weekStart.setDate(currentDate.getDate() - (i * 7));
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -83,32 +92,30 @@ export default function AdminClusterVisits() {
       const weekNumber = getWeekNumber(weekStart);
       const year = weekStart.getFullYear();
       
-      // Generate clusters for each district
-      const clusters = [];
-      mockDistricts.forEach((district, districtIndex) => {
-        mockWards.forEach((ward, wardIndex) => {
-          const clusterId = `${districtIndex}-${wardIndex}-${i}`;
-          const coordinator = mockCoordinators[wardIndex % mockCoordinators.length];
-          const visited = Math.random() > 0.3;
-          
-          clusters.push({
-            id: clusterId,
-            name: `${district} - ${ward} Cluster`,
-            district: district,
-            ward: ward,
-            coordinator: coordinator,
-            visited: visited,
-            visitDate: visited && Math.random() > 0.5 ? new Date(weekStart.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
-            visitDetails: visited ? {
-              purpose: 'Routine monitoring and data collection',
-              findings: Math.random() > 0.5 ? 'All systems functioning well' : 'Minor issues identified and resolved',
-              duration: Math.floor(Math.random() * 4) + 1 + ' hours',
-              housesVisited: Math.floor(Math.random() * 50) + 10,
-              issuesFound: Math.floor(Math.random() * 3),
-              followUpRequired: Math.random() > 0.7
-            } : null
-          });
-        });
+      // Generate clusters for coordinator's wards
+      const clusters = mockWards.map((ward, wardIndex) => {
+        const clusterId = `coord-${wardIndex}-${i}`;
+        const visited = Math.random() > 0.4; // Higher visit rate for coordinator view
+        
+        return {
+          id: clusterId,
+          name: `${coordinatorDistrict} - ${ward} Cluster`,
+          district: coordinatorDistrict,
+          ward: ward,
+          coordinator: session?.user?.name || 'Current User',
+          visited: visited,
+          visitDate: visited && Math.random() > 0.3 ? new Date(weekStart.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
+          canEdit: true, // Coordinator can edit their own visits
+          visitDetails: visited ? {
+            purpose: ['Routine monitoring', 'Data collection', 'Issue resolution', 'Community meeting'][Math.floor(Math.random() * 4)],
+            findings: ['All systems functioning well', 'Minor issues identified', 'Significant improvements needed', 'Excellent progress'][Math.floor(Math.random() * 4)],
+            duration: Math.floor(Math.random() * 4) + 1 + ' hours',
+            housesVisited: Math.floor(Math.random() * 50) + 10,
+            issuesFound: Math.floor(Math.random() * 5),
+            followUpRequired: Math.random() > 0.6,
+            notes: 'Additional observations and recommendations'
+          } : null
+        };
       });
       
       const visitedCount = clusters.filter(c => c.visited).length;
@@ -140,18 +147,17 @@ export default function AdminClusterVisits() {
     return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   };
 
-  // Filter logic
+  // Filter logic for coordinator view
   const getFilteredData = () => {
     if (!visitData || !Array.isArray(visitData)) return [];
     return visitData.map(week => ({
       ...week,
       clusters: (week.clusters || []).filter(cluster => {
-        if (filters.district !== 'all' && cluster.district !== filters.district) return false;
-        if (filters.coordinator !== 'all' && cluster.coordinator !== filters.coordinator) return false;
         if (filters.ward !== 'all' && cluster.ward !== filters.ward) return false;
         if (filters.visitStatus !== 'all') {
           if (filters.visitStatus === 'visited' && !cluster.visited) return false;
           if (filters.visitStatus === 'not_visited' && cluster.visited) return false;
+          if (filters.visitStatus === 'needs_followup' && (!cluster.visitDetails?.followUpRequired)) return false;
         }
         return true;
       })
@@ -162,9 +168,8 @@ export default function AdminClusterVisits() {
         const now = new Date();
         const daysDiff = Math.floor((now - weekDate) / (1000 * 60 * 60 * 24));
         
-        if (filters.dateRange === 'last_week' && daysDiff > 7) return false;
+        if (filters.dateRange === 'current_week' && daysDiff > 7) return false;
         if (filters.dateRange === 'last_month' && daysDiff > 30) return false;
-        if (filters.dateRange === 'last_quarter' && daysDiff > 90) return false;
       }
       return true;
     });
@@ -179,8 +184,6 @@ export default function AdminClusterVisits() {
 
   const clearFilters = () => {
     setFilters({
-      district: 'all',
-      coordinator: 'all',
       ward: 'all',
       status: 'all',
       dateRange: 'all',
@@ -188,45 +191,59 @@ export default function AdminClusterVisits() {
     });
   };
 
-  const exportData = () => {
-    const filteredData = getFilteredData();
-    const csvContent = generateCSV(filteredData);
-    downloadCSV(csvContent, 'cluster-visits-report.csv');
-  };
-
-  const generateCSV = (data) => {
-    const headers = ['Week', 'Year', 'Period', 'District', 'Ward', 'Cluster', 'Coordinator', 'Visited', 'Visit Date', 'Houses Visited', 'Issues Found'];
-    const rows = [];
-    
-    data.forEach(week => {
-      week.clusters.forEach(cluster => {
-        rows.push([
-          week.weekNumber,
-          week.year,
-          `${week.weekStart} to ${week.weekEnd}`,
-          cluster.district,
-          cluster.ward,
-          cluster.name,
-          cluster.coordinator,
-          cluster.visited ? 'Yes' : 'No',
-          cluster.visitDate ? new Date(cluster.visitDate).toLocaleDateString() : 'N/A',
-          cluster.visitDetails?.housesVisited || 'N/A',
-          cluster.visitDetails?.issuesFound || 'N/A'
-        ]);
+  const handleVisitClick = (cluster) => {
+    setSelectedCluster(cluster);
+    if (cluster.visited && cluster.visitDetails) {
+      setVisitForm({
+        purpose: cluster.visitDetails.purpose || '',
+        findings: cluster.visitDetails.findings || '',
+        housesVisited: cluster.visitDetails.housesVisited || '',
+        issuesFound: cluster.visitDetails.issuesFound || '',
+        followUpRequired: cluster.visitDetails.followUpRequired || false,
+        notes: cluster.visitDetails.notes || ''
       });
-    });
-    
-    return [headers, ...rows].map(row => row.join(',')).join('\n');
+    } else {
+      setVisitForm({
+        purpose: '',
+        findings: '',
+        housesVisited: '',
+        issuesFound: '',
+        followUpRequired: false,
+        notes: ''
+      });
+    }
+    setShowVisitModal(true);
   };
 
-  const downloadCSV = (content, filename) => {
-    const blob = new Blob([content], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    window.URL.revokeObjectURL(url);
+  const handleVisitSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // In production, this would be an API call
+      const updatedVisitData = visitData.map(week => ({
+        ...week,
+        clusters: week.clusters.map(cluster => {
+          if (cluster.id === selectedCluster.id) {
+            return {
+              ...cluster,
+              visited: true,
+              visitDate: new Date(),
+              visitDetails: {
+                ...visitForm,
+                housesVisited: parseInt(visitForm.housesVisited) || 0,
+                issuesFound: parseInt(visitForm.issuesFound) || 0
+              }
+            };
+          }
+          return cluster;
+        })
+      }));
+      
+      setVisitData(updatedVisitData);
+      setShowVisitModal(false);
+      setSelectedCluster(null);
+    } catch (error) {
+      console.error('Error saving visit data:', error);
+    }
   };
 
   const getStatusColor = (status) => {
@@ -249,6 +266,7 @@ export default function AdminClusterVisits() {
   const filteredData = getFilteredData() || [];
   const totalClusters = filteredData.reduce((sum, week) => sum + (week.clusters ? week.clusters.length : 0), 0);
   const totalVisited = filteredData.reduce((sum, week) => sum + (week.clusters ? week.clusters.filter(c => c && c.visited).length : 0), 0);
+  const totalFollowUps = filteredData.reduce((sum, week) => sum + (week.clusters ? week.clusters.filter(c => c && c.visitDetails?.followUpRequired).length : 0), 0);
   const overallPercentage = totalClusters > 0 ? Math.round((totalVisited / totalClusters) * 100) : 0;
 
   if (status === 'loading' || isLoading) {
@@ -262,24 +280,18 @@ export default function AdminClusterVisits() {
   return (
     <Layout>
       <Head>
-        <title>Cluster Visit Analysis - Ward Management System</title>
+        <title>My Cluster Visits - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cluster Visit Analysis</h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Cluster Visits</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Comprehensive analysis of cluster visits across all districts
+              Track and manage your cluster visits in {session?.user?.district || 'your district'}
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button onClick={exportData} variant="outline">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export Report
-            </Button>
             <Button onClick={clearFilters} variant="outline">
               Clear Filters
             </Button>
@@ -289,36 +301,8 @@ export default function AdminClusterVisits() {
         {/* Filter Section */}
         <Card>
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Filters & Analysis</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
-                <select
-                  value={filters.district}
-                  onChange={(e) => handleFilterChange('district', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">All Districts</option>
-                  {districts.map(district => (
-                    <option key={district} value={district}>{district}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Coordinator</label>
-                <select
-                  value={filters.coordinator}
-                  onChange={(e) => handleFilterChange('coordinator', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="all">All Coordinators</option>
-                  {coordinators.map(coordinator => (
-                    <option key={coordinator} value={coordinator}>{coordinator}</option>
-                  ))}
-                </select>
-              </div>
-              
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Filters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Ward</label>
                 <select
@@ -356,9 +340,8 @@ export default function AdminClusterVisits() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="all">All Time</option>
-                  <option value="last_week">Last Week</option>
+                  <option value="current_week">Current Week</option>
                   <option value="last_month">Last Month</option>
-                  <option value="last_quarter">Last Quarter</option>
                 </select>
               </div>
               
@@ -370,14 +353,15 @@ export default function AdminClusterVisits() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="all">All</option>
-                  <option value="visited">Visited Only</option>
-                  <option value="not_visited">Not Visited Only</option>
+                  <option value="visited">Visited</option>
+                  <option value="not_visited">Not Visited</option>
+                  <option value="needs_followup">Needs Follow-up</option>
                 </select>
               </div>
             </div>
           </div>
-        </Card>   
-     {/* Summary Statistics */}
+        </Card>  
+      {/* Summary Statistics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <div className="p-6">
@@ -390,7 +374,7 @@ export default function AdminClusterVisits() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-blue-600">Total Clusters</p>
+                  <p className="text-sm font-medium text-blue-600">My Clusters</p>
                   <p className="text-2xl font-bold text-blue-900">{totalClusters}</p>
                 </div>
               </div>
@@ -408,7 +392,7 @@ export default function AdminClusterVisits() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-green-600">Visited</p>
+                  <p className="text-sm font-medium text-green-600">Completed</p>
                   <p className="text-2xl font-bold text-green-900">{totalVisited}</p>
                 </div>
               </div>
@@ -419,15 +403,15 @@ export default function AdminClusterVisits() {
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                     </svg>
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-red-600">Not Visited</p>
-                  <p className="text-2xl font-bold text-red-900">{totalClusters - totalVisited}</p>
+                  <p className="text-sm font-medium text-orange-600">Follow-ups</p>
+                  <p className="text-2xl font-bold text-orange-900">{totalFollowUps}</p>
                 </div>
               </div>
             </div>
@@ -444,17 +428,17 @@ export default function AdminClusterVisits() {
                   </div>
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Overall Progress</p>
+                  <p className="text-sm font-medium text-gray-600">Completion Rate</p>
                   <p className="text-2xl font-bold text-gray-900">{overallPercentage}%</p>
                 </div>
               </div>
             </div>
           </Card>
-        </div>      
-  {/* Detailed Week-wise Data */}
+        </div>     
+   {/* Week-wise Cluster Data */}
         <Card>
           <div className="p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Week-wise Analysis</h2>
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Weekly Cluster Visits</h2>
             <div className="space-y-6">
               {filteredData && Array.isArray(filteredData) ? filteredData.map((week) => (
                 <div key={`${week.weekNumber}-${week.year}`} className="border border-gray-200 rounded-lg p-4">
@@ -492,43 +476,46 @@ export default function AdminClusterVisits() {
                     </div>
                   </div>
                   
-                  {/* Cluster Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Cluster Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {week.clusters && Array.isArray(week.clusters) ? week.clusters.map((cluster) => (
                       <div
                         key={cluster.id}
-                        className={`p-3 rounded-lg border ${
+                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${
                           cluster.visited ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                         }`}
+                        onClick={() => handleVisitClick(cluster)}
                       >
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
-                            <p className="text-xs text-gray-600">District: {cluster.district}</p>
                             <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
-                            <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator}</p>
                           </div>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {cluster.visited ? 'Visited' : 'Not Visited'}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {cluster.visited ? 'Visited' : 'Pending'}
+                            </span>
+                            {cluster.visitDetails?.followUpRequired && (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                Follow-up
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         {cluster.visited && cluster.visitDetails && (
-                          <div className="mt-2 space-y-1">
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-700">
+                              <span className="font-medium">Purpose:</span> {cluster.visitDetails.purpose}
+                            </p>
                             <p className="text-xs text-gray-700">
                               <span className="font-medium">Houses:</span> {cluster.visitDetails.housesVisited}
                             </p>
                             <p className="text-xs text-gray-700">
-                              <span className="font-medium">Duration:</span> {cluster.visitDetails.duration}
-                            </p>
-                            <p className="text-xs text-gray-700">
                               <span className="font-medium">Issues:</span> {cluster.visitDetails.issuesFound}
                             </p>
-                            {cluster.visitDetails.followUpRequired && (
-                              <p className="text-xs text-orange-600 font-medium">Follow-up required</p>
-                            )}
                           </div>
                         )}
                         
@@ -537,6 +524,12 @@ export default function AdminClusterVisits() {
                             Visited: {new Date(cluster.visitDate).toLocaleDateString()}
                           </p>
                         )}
+                        
+                        <div className="mt-3 flex justify-end">
+                          <Button size="sm" variant="outline">
+                            {cluster.visited ? 'Edit Visit' : 'Record Visit'}
+                          </Button>
+                        </div>
                       </div>
                     )) : []}
                   </div>
@@ -544,7 +537,106 @@ export default function AdminClusterVisits() {
               )) : []}
             </div>
           </div>
-        </Card>
+        </Card>        {
+/* Visit Recording Modal */}
+        <Modal
+          isOpen={showVisitModal}
+          onClose={() => setShowVisitModal(false)}
+          title={selectedCluster ? `${selectedCluster.visited ? 'Edit' : 'Record'} Visit - ${selectedCluster.name}` : ''}
+          size="lg"
+        >
+          {selectedCluster && (
+            <form onSubmit={handleVisitSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Purpose of Visit</label>
+                  <select
+                    value={visitForm.purpose}
+                    onChange={(e) => setVisitForm(prev => ({ ...prev, purpose: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    required
+                  >
+                    <option value="">Select purpose</option>
+                    <option value="Routine monitoring">Routine monitoring</option>
+                    <option value="Data collection">Data collection</option>
+                    <option value="Issue resolution">Issue resolution</option>
+                    <option value="Community meeting">Community meeting</option>
+                    <option value="Follow-up visit">Follow-up visit</option>
+                    <option value="Emergency response">Emergency response</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Houses Visited</label>
+                  <input
+                    type="number"
+                    value={visitForm.housesVisited}
+                    onChange={(e) => setVisitForm(prev => ({ ...prev, housesVisited: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Number of houses"
+                    min="0"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Issues Found</label>
+                  <input
+                    type="number"
+                    value={visitForm.issuesFound}
+                    onChange={(e) => setVisitForm(prev => ({ ...prev, issuesFound: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Number of issues"
+                    min="0"
+                  />
+                </div>
+                
+                <div className="flex items-center">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={visitForm.followUpRequired}
+                      onChange={(e) => setVisitForm(prev => ({ ...prev, followUpRequired: e.target.checked }))}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Follow-up required</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Findings & Observations</label>
+                <textarea
+                  value={visitForm.findings}
+                  onChange={(e) => setVisitForm(prev => ({ ...prev, findings: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  rows="3"
+                  placeholder="Describe your findings and observations"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+                <textarea
+                  value={visitForm.notes}
+                  onChange={(e) => setVisitForm(prev => ({ ...prev, notes: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  rows="2"
+                  placeholder="Any additional notes or recommendations"
+                />
+              </div>
+              
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <Button type="button" variant="outline" onClick={() => setShowVisitModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {selectedCluster.visited ? 'Update Visit' : 'Record Visit'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Modal>
       </div>
     </Layout>
   );

@@ -42,15 +42,24 @@ export default function ClusterVisitStatus() {
         const weekNumber = getWeekNumber(weekStart);
         const isCurrentWeek = i === 0;
         
-        // Mock cluster visit data
-        const clusters = [
-          { id: 1, name: 'Cluster A', coordinator: 'John Doe', visited: Math.random() > 0.3, visitDate: isCurrentWeek ? new Date() : null },
-          { id: 2, name: 'Cluster B', coordinator: 'Jane Smith', visited: Math.random() > 0.2, visitDate: isCurrentWeek ? new Date() : null },
-          { id: 3, name: 'Cluster C', coordinator: 'Mike Johnson', visited: Math.random() > 0.4, visitDate: isCurrentWeek ? new Date() : null },
-          { id: 4, name: 'Cluster D', coordinator: 'Sarah Wilson', visited: Math.random() > 0.3, visitDate: isCurrentWeek ? new Date() : null },
-          { id: 5, name: 'Cluster E', coordinator: 'David Brown', visited: Math.random() > 0.5, visitDate: isCurrentWeek ? new Date() : null },
-          { id: 6, name: 'Cluster F', coordinator: 'Lisa Davis', visited: Math.random() > 0.2, visitDate: isCurrentWeek ? new Date() : null },
-        ];
+        // Mock cluster visit data with proper names and assignments
+        const clusterNames = ['Anganwadi Center A', 'Health Sub-Center B', 'Community Hall C', 'School Cluster D', 'Panchayat Office E', 'Market Area F'];
+        const coordinatorNames = ['Priya Nair', 'Rajesh Kumar', 'Sunita Devi', 'Anil Sharma', 'Meera Pillai', 'Suresh Babu'];
+        const wardNames = ['Thiruvananthapuram Central', 'Pettah', 'Fort', 'Palayam', 'Statue', 'East Fort'];
+        
+        const clusters = clusterNames.map((name, index) => ({
+          id: index + 1,
+          name: name,
+          coordinator: coordinatorNames[index],
+          ward: wardNames[index],
+          visited: Math.random() > 0.3,
+          visitDate: isCurrentWeek && Math.random() > 0.5 ? new Date() : null,
+          visitDetails: Math.random() > 0.5 ? {
+            purpose: 'Routine inspection and data collection',
+            findings: 'All facilities functioning properly',
+            coordinator: coordinatorNames[index]
+          } : null
+        }));
         
         const visitedCount = clusters.filter(c => c.visited).length;
         const totalClusters = clusters.length;
@@ -182,20 +191,26 @@ export default function ClusterVisitStatus() {
           )}
 
           <div className="space-y-4">
-            {visitData.map((week, index) => (
-              <div
-                key={week.weekNumber}
-                className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
-                  week.isCurrentWeek ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => handleWeekClick(week)}
-              >
+            {visitData && Array.isArray(visitData) ? visitData.map((week, index) => {
+              // Ensure week is a valid object
+              if (!week || typeof week !== 'object') {
+                return null;
+              }
+              
+              return (
+                <div
+                  key={week.weekNumber || index}
+                  className={`border rounded-lg p-4 cursor-pointer transition-all duration-200 hover:shadow-md ${
+                    week.isCurrentWeek ? 'border-blue-300 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleWeekClick(week)}
+                >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
-                          Week {week.weekNumber} {week.year && `(${week.year})`} {week.isCurrentWeek && <span className="text-blue-600">(Current)</span>}
+                          Week {week.weekNumber || 'N/A'} {week.year ? `(${week.year})` : ''} {week.isCurrentWeek ? <span className="text-blue-600">(Current)</span> : ''}
                         </h3>
                         <p className="text-xs text-gray-500">
                           {formatDateRange(week.weekStart, week.weekEnd)}
@@ -210,13 +225,13 @@ export default function ClusterVisitStatus() {
                       <div className="flex items-center justify-between text-sm mb-1">
                         <span className="text-gray-600">Visit Progress</span>
                         <span className="font-medium text-gray-900">
-                          {week.visitedCount}/{week.totalClusters} ({week.visitPercentage}%)
+                          {week.visitedCount || 0}/{week.totalClusters || 0} ({week.visitPercentage || 0}%)
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(week.visitPercentage)}`}
-                          style={{ width: `${week.visitPercentage}%` }}
+                          style={{ width: `${week.visitPercentage || 0}%` }}
                         ></div>
                       </div>
                     </div>
@@ -229,7 +244,8 @@ export default function ClusterVisitStatus() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            }).filter(Boolean) : []}
           </div>
 
           {visitData.length === 0 && !error && (
@@ -247,7 +263,7 @@ export default function ClusterVisitStatus() {
       <Modal
         isOpen={showWeekModal}
         onClose={() => setShowWeekModal(false)}
-        title={selectedWeek ? `Week ${selectedWeek.weekNumber} - Cluster Visit Details` : ''}
+        title={selectedWeek ? `Week ${selectedWeek.weekNumber || 'N/A'} - Cluster Visit Details` : 'Cluster Visit Details'}
         size="lg"
       >
         {selectedWeek && (
@@ -269,21 +285,27 @@ export default function ClusterVisitStatus() {
                 <div>
                   <span className="text-gray-600">Visited:</span>
                   <span className="ml-2 font-medium">
-                    {selectedWeek.visitedCount}/{selectedWeek.totalClusters} clusters
+                    {selectedWeek.visitedCount || 0}/{selectedWeek.totalClusters || 0} clusters
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-600">Completion:</span>
-                  <span className="ml-2 font-medium">{selectedWeek.visitPercentage}%</span>
+                  <span className="ml-2 font-medium">{selectedWeek.visitPercentage || 0}%</span>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900">Cluster Details</h4>
-              {weekDetails.map((cluster) => (
+              {weekDetails && Array.isArray(weekDetails) ? weekDetails.map((cluster) => {
+              // Ensure cluster is a valid object
+              if (!cluster || typeof cluster !== 'object') {
+                return null;
+              }
+              
+              return (
                 <div
-                  key={cluster.id}
+                  key={cluster.id || Math.random()}
                   className={`p-3 rounded-lg border ${
                     cluster.visited ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
                   }`}
@@ -294,26 +316,26 @@ export default function ClusterVisitStatus() {
                         cluster.visited ? 'bg-green-500' : 'bg-red-500'
                       }`}></div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{cluster.name}</p>
-                        <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator}</p>
+                        <p className="text-sm font-medium text-gray-900">{cluster.name || 'Unknown Cluster'}</p>
+                        <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator || 'Not assigned'}</p>
                         {cluster.ward && (
-                          <p className="text-xs text-gray-600">Ward: {cluster.ward}</p>
+                          <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
                         )}
                         {cluster.visited && cluster.visitDetails && (
                           <div className="mt-2 space-y-1">
                             {cluster.visitDetails.purpose && (
                               <p className="text-xs text-gray-700">
-                                <span className="font-medium">Purpose:</span> {cluster.visitDetails.purpose}
+                                <span className="font-medium">Purpose:</span> {String(cluster.visitDetails.purpose)}
                               </p>
                             )}
                             {cluster.visitDetails.findings && (
                               <p className="text-xs text-gray-700">
-                                <span className="font-medium">Findings:</span> {cluster.visitDetails.findings}
+                                <span className="font-medium">Findings:</span> {String(cluster.visitDetails.findings)}
                               </p>
                             )}
                             {cluster.visitDetails.coordinator && (
                               <p className="text-xs text-gray-600">
-                                <span className="font-medium">Visited by:</span> {cluster.visitDetails.coordinator}
+                                <span className="font-medium">Visited by:</span> {String(cluster.visitDetails.coordinator)}
                               </p>
                             )}
                           </div>
@@ -336,7 +358,8 @@ export default function ClusterVisitStatus() {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            }).filter(Boolean) : []}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-gray-200">
