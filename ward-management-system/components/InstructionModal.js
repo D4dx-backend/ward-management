@@ -16,7 +16,12 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
   }, [isOpen, instruction]);
 
   const fetchReplies = async () => {
-    if (!instruction?._id) return;
+    if (!instruction?._id) {
+      // For sample data without real ID, show no replies
+      setReplies([]);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -24,6 +29,7 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
       setReplies(response.data.replies || []);
     } catch (error) {
       console.error('Error fetching replies:', error);
+      setReplies([]);
     } finally {
       setLoading(false);
     }
@@ -31,7 +37,12 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
 
   const handleSubmitReply = async (e) => {
     e.preventDefault();
-    if (!newReply.trim() || !instruction?._id) return;
+    if (!newReply.trim()) return;
+    
+    if (!instruction?._id) {
+      alert('Cannot reply to sample instruction. Please view actual instructions from the instructions page.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -64,7 +75,10 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm text-blue-600 font-medium">
-                  Posted on {new Date(instruction.createdAt).toLocaleDateString()}
+                  Posted on {instruction.createdAt ? 
+                    new Date(instruction.createdAt).toLocaleDateString() : 
+                    instruction.date || 'Date not available'
+                  }
                 </p>
                 {instruction.isHighlighted && (
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -73,7 +87,7 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
                 )}
               </div>
               <div className="text-gray-900 whitespace-pre-wrap">
-                {instruction.description || instruction.content}
+                {instruction.description || instruction.content || 'No description available'}
               </div>
             </div>
           </div>
@@ -124,35 +138,54 @@ const InstructionModal = ({ isOpen, onClose, instruction }) => {
         </div>
 
         {/* Reply Form */}
-        <form onSubmit={handleSubmitReply} className="border-t pt-4">
-          <div className="space-y-3">
-            <textarea
-              value={newReply}
-              onChange={(e) => setNewReply(e.target.value)}
-              placeholder="Write your reply..."
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              disabled={submitting}
-            />
-            <div className="flex justify-end space-x-3">
+        {!instruction?._id ? (
+          <div className="border-t pt-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+              <p className="text-sm text-yellow-800">
+                This is a sample instruction. To view and reply to actual instructions, please visit the Instructions page.
+              </p>
+            </div>
+            <div className="flex justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                disabled={submitting}
               >
                 Close
               </Button>
-              <Button
-                type="submit"
-                disabled={!newReply.trim() || submitting}
-                loading={submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Reply'}
-              </Button>
             </div>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmitReply} className="border-t pt-4">
+            <div className="space-y-3">
+              <textarea
+                value={newReply}
+                onChange={(e) => setNewReply(e.target.value)}
+                placeholder="Write your reply..."
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={submitting}
+              />
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={submitting}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!newReply.trim() || submitting}
+                  loading={submitting}
+                >
+                  {submitting ? 'Submitting...' : 'Submit Reply'}
+                </Button>
+              </div>
+            </div>
+          </form>
+        )}
       </div>
     </Modal>
   );

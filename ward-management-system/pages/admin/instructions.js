@@ -34,8 +34,6 @@ export default function AdminInstructions() {
     targetCoordinators: [],
     isHighlighted: false,
     allowReplies: true,
-    allowPrivateComments: true,
-    allowPublicComments: true,
     specificWardOrGroup: false
   });
 
@@ -98,14 +96,7 @@ export default function AdminInstructions() {
         [name]: type === 'checkbox' ? checked : value
       };
       
-      // If disabling comments entirely, reset comment type settings to default (both enabled)
-      if (name === 'allowReplies' && !checked) {
-        newData.allowPublicComments = true;
-        newData.allowPrivateComments = true;
-      }
-      
-      // Allow admin to disable both comment types if they want to
-      // This will create the scenario where comments are enabled but no comment types are allowed
+
       
       return newData;
     });
@@ -147,8 +138,6 @@ export default function AdminInstructions() {
         targetCoordinators: [],
         isHighlighted: false,
         allowReplies: true,
-        allowPrivateComments: true,
-        allowPublicComments: true,
         specificWardOrGroup: false
       });
       setError('');
@@ -170,8 +159,6 @@ export default function AdminInstructions() {
       ...(instruction.targetGroups && { targetGroups: instruction.targetGroups }),
       isHighlighted: instruction.isHighlighted,
       allowReplies: instruction.allowReplies,
-      allowPrivateComments: instruction.allowPrivateComments !== false,
-      allowPublicComments: instruction.allowPublicComments !== false,
       specificWardOrGroup: false
     });
     setShowEditModal(true);
@@ -379,30 +366,7 @@ export default function AdminInstructions() {
                     </div>
                   </div>
 
-                  {/* Comment Settings Info */}
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
-                      <span className="text-sm text-green-700 font-medium">Comment Settings:</span>
-                    </div>
-                    <div className="flex items-center space-x-4 text-xs">
-                      <span className={`px-2 py-1 rounded-full ${instruction.allowReplies ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {instruction.allowReplies ? '✓ Comments Enabled' : '✗ Comments Disabled'}
-                      </span>
-                      {instruction.allowReplies && (
-                        <>
-                          <span className={`px-2 py-1 rounded-full ${instruction.allowPublicComments ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
-                            {instruction.allowPublicComments ? '✓ Public' : '✗ Public'}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full ${instruction.allowPrivateComments ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'}`}>
-                            {instruction.allowPrivateComments ? '✓ Private' : '✗ Private'}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+
 
                   {/* Action Buttons */}
                   <div className="mb-4 flex justify-end space-x-2">
@@ -690,45 +654,7 @@ export default function AdminInstructions() {
                 </label>
               </div>
 
-              {/* Comment Settings - Only show if comments are allowed */}
-              {formData.allowReplies && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="text-sm font-medium text-blue-900 mb-3">Comment Settings</h4>
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="allowPublicComments"
-                        checked={formData.allowPublicComments}
-                        onChange={handleInputChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Allow public comments (everyone can see)
-                      </span>
-                    </label>
 
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="allowPrivateComments"
-                        checked={formData.allowPrivateComments}
-                        onChange={handleInputChange}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        Allow private comments (only coordinators & state admin can see)
-                      </span>
-                    </label>
-
-                    {!formData.allowPublicComments && !formData.allowPrivateComments && (
-                      <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
-                        ⚠️ Comments are enabled but no comment types are allowed. Users will see a message that comments are enabled but cannot post comments.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">

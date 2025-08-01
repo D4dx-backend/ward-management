@@ -117,58 +117,8 @@ export default function SubmitWardReport() {
   };
 
   const handleFormSelect = async (formId) => {
-    const form = activeForms.find(f => f._id === formId);
-    setSelectedForm(form);
-    setFormData({});
-    setSubmittedResponse(null);
-
-    // Check if user has already submitted this form for any of their wards
-    try {
-      const response = await axios.get('/api/responses', {
-        params: {
-          formType: 'wardReport',
-          weekNumber: form.weekNumber,
-          year: form.year
-        }
-      });
-
-      // Check if current user has already submitted this specific form
-      const existingSubmission = response.data.find(r =>
-        r.formTemplate === formId &&
-        r.respondent === session.user.id
-      );
-
-      if (existingSubmission) {
-        setSubmittedResponse(existingSubmission);
-        setSelectedWard(existingSubmission.ward || '');
-
-        // Pre-populate form with submitted data
-        const submittedData = {};
-        if (existingSubmission.responses) {
-          // Convert submitted responses back to form field format
-          form.fields.forEach((field, fieldIndex) => {
-            const fieldKey = `field_${fieldIndex}`;
-            if (existingSubmission.responses[field.label]) {
-              submittedData[fieldKey] = existingSubmission.responses[field.label];
-            }
-
-            // Handle sub-questions
-            if (field.subQuestions && field.subQuestions.length > 0) {
-              field.subQuestions.forEach((subQuestion, subIndex) => {
-                const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-                const submittedKey = `${field.label} - ${subQuestion.label}`;
-                if (existingSubmission.responses[submittedKey]) {
-                  submittedData[subKey] = existingSubmission.responses[submittedKey];
-                }
-              });
-            }
-          });
-        }
-        setFormData(submittedData);
-      }
-    } catch (error) {
-      console.error('Error checking existing submissions:', error);
-    }
+    // Navigate to the specific form submission page
+    router.push(`/ward/reports/submit/${formId}`);
   };
 
   const handleWardSelect = (wardId) => {
