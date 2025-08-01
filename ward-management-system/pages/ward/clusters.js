@@ -67,12 +67,14 @@ export default function WardClusters() {
   const fetchWardClusters = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/ward/clusters');
-      setClusters(response.data);
+      const response = await axios.get('/api/clusters');
+      setClusters(response.data || []);
       setError('');
     } catch (error) {
-      setError('Failed to fetch clusters');
-      console.error(error);
+      console.error('Fetch clusters error:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to fetch clusters';
+      setError(errorMessage);
+      setClusters([]);
     } finally {
       setIsLoading(false);
     }
@@ -122,12 +124,14 @@ export default function WardClusters() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('/api/ward/clusters', formData);
+      // Add ward ID to form data (will be auto-determined by API for ward admins)
+      const response = await axios.post('/api/clusters', formData);
       setClusters([...clusters, response.data]);
       resetForm();
       setShowCreateModal(false);
       setError('');
     } catch (error) {
+      console.error('Cluster creation error:', error);
       setError(error.response?.data?.message || error.message);
     }
   };
@@ -135,7 +139,7 @@ export default function WardClusters() {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.put(`/api/ward/clusters/${editingCluster._id}`, formData);
+      const response = await axios.put(`/api/clusters/${editingCluster._id}`, formData);
       const updatedClusters = clusters.map(cluster => 
         cluster._id === editingCluster._id ? response.data : cluster
       );
@@ -188,7 +192,7 @@ export default function WardClusters() {
     setDeleteModal(prev => ({ ...prev, isDeleting: true }));
 
     try {
-      await axios.delete(`/api/ward/clusters/${deleteModal.clusterId}`);
+      await axios.delete(`/api/clusters/${deleteModal.clusterId}`);
       const updatedClusters = clusters.filter(cluster => cluster._id !== deleteModal.clusterId);
       setClusters(updatedClusters);
       closeDeleteModal();
