@@ -9,6 +9,8 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import DynamicFormBuilder from '../../components/DynamicFormBuilder';
 import DynamicFormRenderer from '../../components/DynamicFormRenderer';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function WardBasicForms() {
   const { data: session, status } = useSession();
@@ -64,9 +66,9 @@ export default function WardBasicForms() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 

@@ -3,7 +3,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import StatsCard from '../../components/StatsCard';
@@ -13,22 +12,18 @@ import DashboardLoginHistory from '../../components/DashboardLoginHistory';
 import CoordinatorWardsList from '../../components/CoordinatorWardsList';
 import PendingReports from '../../components/PendingReports';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData, useDashboardData } from '../../hooks/useApiData';
 
 export default function CoordinatorDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    totalWards: 0,
-    activeWards: 0,
-    totalReports: 0,
-    pendingReports: 0
-  });
-  const [recentReports, setRecentReports] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
-  const [recentLogins, setRecentLogins] = useState([]);
   const [coordinatorWards, setCoordinatorWards] = useState([]);
   const [pendingReportsList, setPendingReportsList] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [recentLogins, setRecentLogins] = useState([]);
+
+  // Use the dashboard data hook with caching
+  const { stats, recentReports, recentActivity, loading, error, refetch } = useDashboardData('coordinator');
 
   useEffect(() => {
     // Check if user is authenticated and is coordinator
@@ -36,67 +31,31 @@ export default function CoordinatorDashboard() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchDashboardData();
     }
   }, [status, session, router]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch real dashboard data from API
-      const response = await axios.get(`/api/dashboard/stats?t=${Date.now()}`);
-      const { stats: apiStats, recentReports: apiReports, recentLogs: apiActivity, recentLogins: apiLogins } = response.data;
-      
-      // Update stats with real data
-      setStats({
-        totalWards: apiStats.totalWards || 0,
-        activeWards: apiStats.activeWards || 0,
-        totalReports: apiStats.totalReports || 0,
-        pendingReports: apiStats.pendingReports || 0
-      });
-      
-      // Set coordinator wards data
-      setCoordinatorWards(apiStats.coordinatorWards || []);
-      
-      // Set pending reports list
-      setPendingReportsList(apiStats.pendingReportsList || []);
-      
-      // Set recent reports with proper structure
-      setRecentReports(apiReports || []);
-      
-      // Set recent activity logs
-      setRecentActivity(apiActivity || []);
-      
-      // Set recent logins
-      setRecentLogins(apiLogins || []);
-      
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      
-      // Fallback to empty data on error
-      setStats({
-        totalWards: 0,
-        activeWards: 0,
-        totalReports: 0,
-        pendingReports: 0
-      });
-      setCoordinatorWards([]);
-      setPendingReportsList([]);
-      setRecentReports([]);
-      setRecentActivity([]);
-      setRecentLogins([]);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    // Set additional data from stats
+    if (stats) {
+      setCoordinatorWards(stats.coordinatorWards || []);
+      setPendingReportsList(stats.pendingReportsList || []);
+      setRecentLogins(stats.recentLogins || []);
     }
-  };
+  }, [stats]);
 
-  if (status === 'loading' || isLoading) {
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -120,28 +79,28 @@ export default function CoordinatorDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title="Total Wards"
-            value={stats.totalWards}
+            value={stats?.totalWards || 0}
             icon="building"
             color="blue"
             description="Wards under your supervision"
           />
           <StatsCard
             title="Active Wards"
-            value={stats.activeWards}
+            value={stats?.activeWards || 0}
             icon="check"
             color="green"
             description="Wards with assigned admins"
           />
           <StatsCard
             title="Total Reports"
-            value={stats.totalReports}
+            value={stats?.totalReports || 0}
             icon="document"
             color="purple"
             description="Reports submitted this month"
           />
           <StatsCard
             title="Pending Reports"
-            value={stats.pendingReports}
+            value={stats?.pendingReports || 0}
             icon="clock"
             color="yellow"
             description="Reports awaiting review"

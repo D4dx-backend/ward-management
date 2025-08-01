@@ -6,6 +6,8 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function TestDxingDirect() {
   const { data: session, status } = useSession();
@@ -14,8 +16,12 @@ export default function TestDxingDirect() {
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   if (status === 'unauthenticated') {

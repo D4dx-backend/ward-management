@@ -6,6 +6,8 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function Instructions() {
   const { data: session, status } = useSession();
@@ -22,6 +24,9 @@ export default function Instructions() {
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [markingAsRead, setMarkingAsRead] = useState({});
+  const [selectedInstructions, setSelectedInstructions] = useState([]);
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -161,6 +166,169 @@ export default function Instructions() {
     }));
   };
 
+  const handleMarkAsRead = async (instructionId) => {
+    console.log('Attempting to mark instruction as read:', instructionId);
+    setMarkingAsRead(prev => ({ ...prev, [instructionId]: true }));
+    
+    try {
+      const response = await axios.post(`/api/instructions/${instructionId}`, {
+        action: 'mark_read'
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Mark as read response:', response.data);
+
+      // Update the instruction in the local state
+      setInstructions(prev => prev.map(inst => 
+        inst._id === instructionId 
+          ? { ...inst, isRead: true }
+          : inst
+      ));
+      
+      setError('');
+    } catch (error) {
+      console.error('Error marking instruction as read:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      setError(error.response?.data?.error || error.message || 'Failed to mark instruction as read');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setMarkingAsRead(prev => ({ ...prev, [instructionId]: false }));
+    }
+  };
+
+  const handleMarkAsUnread = async (instructionId) => {
+    console.log('Attempting to mark instruction as unread:', instructionId);
+    setMarkingAsRead(prev => ({ ...prev, [instructionId]: true }));
+    
+    try {
+      const response = await axios.post(`/api/instructions/${instructionId}`, {
+        action: 'mark_unread'
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Mark as unread response:', response.data);
+
+      // Update the instruction in the local state
+      setInstructions(prev => prev.map(inst => 
+        inst._id === instructionId 
+          ? { ...inst, isRead: false }
+          : inst
+      ));
+      
+      setError('');
+    } catch (error) {
+      console.error('Error marking instruction as unread:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      setError(error.response?.data?.error || error.message || 'Failed to mark instruction as unread');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setMarkingAsRead(prev => ({ ...prev, [instructionId]: false }));
+    }
+  };
+
+  const handleBulkMarkAsRead = async () => {
+    if (selectedInstructions.length === 0) return;
+    
+    console.log('Bulk marking as read:', selectedInstructions);
+    setBulkActionLoading(true);
+    
+    try {
+      const promises = selectedInstructions.map(instructionId =>
+        axios.post(`/api/instructions/${instructionId}`, { action: 'mark_read' }, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      
+      const results = await Promise.allSettled(promises);
+      
+      // Check for any failures
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('Some bulk operations failed:', failures);
+        setError(`Failed to mark ${failures.length} instructions as read`);
+      } else {
+        // Update the instructions in the local state
+        setInstructions(prev => prev.map(inst => 
+          selectedInstructions.includes(inst._id) 
+            ? { ...inst, isRead: true }
+            : inst
+        ));
+        setSelectedInstructions([]);
+        setError('');
+      }
+    } catch (error) {
+      console.error('Error in bulk mark as read:', error);
+      setError('Failed to mark instructions as read');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleBulkMarkAsUnread = async () => {
+    if (selectedInstructions.length === 0) return;
+    
+    console.log('Bulk marking as unread:', selectedInstructions);
+    setBulkActionLoading(true);
+    
+    try {
+      const promises = selectedInstructions.map(instructionId =>
+        axios.post(`/api/instructions/${instructionId}`, { action: 'mark_unread' }, {
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      
+      const results = await Promise.allSettled(promises);
+      
+      // Check for any failures
+      const failures = results.filter(result => result.status === 'rejected');
+      if (failures.length > 0) {
+        console.error('Some bulk operations failed:', failures);
+        setError(`Failed to mark ${failures.length} instructions as unread`);
+      } else {
+        // Update the instructions in the local state
+        setInstructions(prev => prev.map(inst => 
+          selectedInstructions.includes(inst._id) 
+            ? { ...inst, isRead: false }
+            : inst
+        ));
+        setSelectedInstructions([]);
+        setError('');
+      }
+    } catch (error) {
+      console.error('Error in bulk mark as unread:', error);
+      setError('Failed to mark instructions as unread');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const toggleInstructionSelection = (instructionId) => {
+    setSelectedInstructions(prev => 
+      prev.includes(instructionId)
+        ? prev.filter(id => id !== instructionId)
+        : [...prev, instructionId]
+    );
+  };
+
+  const selectAllInstructions = () => {
+    const currentInstructions = activeTab === 'all' ? instructions : filteredInstructions;
+    setSelectedInstructions(currentInstructions.map(inst => inst._id));
+  };
+
+  const clearSelection = () => {
+    setSelectedInstructions([]);
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high':
@@ -192,8 +360,29 @@ export default function Instructions() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString) return 'Date not available';
+    
+    // Handle various date formats
+    let date;
+    if (typeof dateString === 'string') {
+      date = new Date(dateString);
+    } else if (dateString instanceof Date) {
+      date = dateString;
+    } else {
+      return 'Invalid date format';
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    try {
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Date formatting error';
+    }
   };
 
   // Filter replies based on privacy and user role
@@ -217,9 +406,9 @@ export default function Instructions() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -346,6 +535,96 @@ export default function Instructions() {
           </nav>
         </div>
 
+        {/* Bulk Actions */}
+        {(activeTab === 'all' ? instructions : filteredInstructions).length > 0 && (
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedInstructions.length === (activeTab === 'all' ? instructions : filteredInstructions).length && selectedInstructions.length > 0}
+                    onChange={(e) => e.target.checked ? selectAllInstructions() : clearSelection()}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-gray-700">
+                    {selectedInstructions.length > 0 
+                      ? `${selectedInstructions.length} selected`
+                      : 'Select all'
+                    }
+                  </span>
+                </div>
+                
+                {selectedInstructions.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      onClick={handleBulkMarkAsRead}
+                      disabled={bulkActionLoading}
+                      size="sm"
+                      variant="outline"
+                      className="text-green-600 border-green-300 hover:bg-green-50"
+                    >
+                      {bulkActionLoading ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </div>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Mark as Read
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={handleBulkMarkAsUnread}
+                      disabled={bulkActionLoading}
+                      size="sm"
+                      variant="outline"
+                      className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    >
+                      {bulkActionLoading ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 718-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </div>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Mark as Unread
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={clearSelection}
+                      size="sm"
+                      variant="outline"
+                    >
+                      Clear Selection
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-500">
+                {instructions.filter(i => !i.isRead).length} unread, {instructions.filter(i => i.isRead).length} read
+              </div>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
@@ -361,249 +640,156 @@ export default function Instructions() {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-3">
           {(activeTab === 'all' ? instructions : filteredInstructions).length > 0 ? (
             (activeTab === 'all' ? instructions : filteredInstructions).map((instruction) => (
-              <Card key={instruction._id} className={instruction.isHighlighted ? 'ring-2 ring-yellow-400' : ''}>
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          {instruction.title}
-                        </h2>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                          {instruction.priority}
-                        </span>
-                        {instruction.isHighlighted && (
-                          <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                            </svg>
-                            Highlighted
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
-                        <span>Created: {formatDate(instruction.createdAt)}</span>
-                        <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          Views: {instruction.viewCount || 0}
-                        </span>
-                        <span className="flex items-center">
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                          </svg>
-                          Comments: {instruction.replies?.length || 0}
-                        </span>
-                      </div>
+              <Card key={instruction._id} className={`transition-all duration-200 hover:shadow-md ${instruction.isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''} ${selectedInstructions.includes(instruction._id) ? 'ring-2 ring-blue-400 bg-blue-50' : ''} ${!instruction.isRead ? 'border-l-4 border-l-blue-500' : ''}`}>
+                <div className="p-4">
+                  <div className="flex items-start space-x-3">
+                    {/* Selection Checkbox */}
+                    <div className="flex-shrink-0 pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedInstructions.includes(instruction._id)}
+                        onChange={() => toggleInstructionSelection(instruction._id)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
                     </div>
-                  </div>
 
-                  <div className="prose max-w-none mb-4">
-                    <div className="text-gray-700 whitespace-pre-wrap break-words">
-                      {instruction.description}
-                    </div>
-                  </div>
-
-                  {/* Target Audience Info */}
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-center space-x-2">
-                      <svg className="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                      <span className="text-sm text-blue-700 font-medium">
-                        Target: {getTargetAudienceLabel(instruction.targetAudience)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Comments Section */}
-                  {instruction.allowReplies && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-gray-900">
-                          Comments ({getVisibleReplies(instruction.replies, session.user.role).length})
-                        </h3>
-                        {instruction.replies && instruction.replies.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleReplies(instruction._id)}
-                          >
-                            {expandedReplies[instruction._id] ? 'Hide' : 'Show'} Comments
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Reply Form - Only show if at least one comment type is allowed */}
-                      {(instruction.allowPublicComments || instruction.allowPrivateComments) && (
-                        <div className="mb-6 bg-gray-50 rounded-lg p-4">
-                          <div className="space-y-3">
-                            <textarea
-                              value={replyText[instruction._id] || ''}
-                              onChange={(e) => setReplyText(prev => ({ ...prev, [instruction._id]: e.target.value }))}
-                              placeholder="Share your thoughts or ask a question..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 resize-none"
-                              rows="3"
-                            />
-                            
-                            {/* Privacy Controls - Only show if both types are available */}
-                            {instruction.allowPublicComments && instruction.allowPrivateComments && (
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                  <label className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      name={`privacy-${instruction._id}`}
-                                      value="public"
-                                      checked={commentPrivacy[instruction._id] !== 'private'}
-                                      onChange={() => setCommentPrivacy(prev => ({ ...prev, [instruction._id]: 'public' }))}
-                                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">
-                                      Public (everyone can see)
-                                    </span>
-                                  </label>
-                                  <label className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      name={`privacy-${instruction._id}`}
-                                      value="private"
-                                      checked={commentPrivacy[instruction._id] === 'private'}
-                                      onChange={() => setCommentPrivacy(prev => ({ ...prev, [instruction._id]: 'private' }))}
-                                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">
-                                      Private (only coordinators & state admin can see)
-                                    </span>
-                                  </label>
-                                </div>
-                                
-                                <div className="flex space-x-2">
-                                  <Button
-                                    onClick={() => setReplyText(prev => ({ ...prev, [instruction._id]: '' }))}
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
-                                  >
-                                    Clear
-                                  </Button>
-                                  <Button
-                                    onClick={() => handleReplySubmit(instruction._id)}
-                                    disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
-                                    size="sm"
-                                  >
-                                    {submittingReply[instruction._id] ? 'Posting...' : 'Post Comment'}
-                                  </Button>
-                                </div>
-                              </div>
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0">
+                      {/* Header Row */}
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          {!instruction.isRead && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" title="Unread instruction"></div>
+                          )}
+                          <h3 className={`text-base font-semibold truncate ${instruction.isRead ? 'text-gray-900' : 'text-gray-900'}`}>
+                            {instruction.title}
+                          </h3>
+                          <div className="flex items-center space-x-1 flex-shrink-0">
+                            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${getPriorityColor(instruction.priority)}`}>
+                              {instruction.priority}
+                            </span>
+                            {instruction.isHighlighted && (
+                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                ⭐
+                              </span>
                             )}
-
-                            {/* Show single button row if only one comment type is allowed */}
-                            {(instruction.allowPublicComments && !instruction.allowPrivateComments) || (!instruction.allowPublicComments && instruction.allowPrivateComments) && (
-                              <div className="flex items-center justify-between">
-                                <div className="text-xs text-gray-600">
-                                  {instruction.allowPublicComments && !instruction.allowPrivateComments && 'Only public comments allowed'}
-                                  {!instruction.allowPublicComments && instruction.allowPrivateComments && 'Only private comments allowed'}
-                                </div>
-                                <div className="flex space-x-2">
-                                  <Button
-                                    onClick={() => setReplyText(prev => ({ ...prev, [instruction._id]: '' }))}
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
-                                  >
-                                    Clear
-                                  </Button>
-                                  <Button
-                                    onClick={() => handleReplySubmit(instruction._id)}
-                                    disabled={!replyText[instruction._id]?.trim() || submittingReply[instruction._id]}
-                                    size="sm"
-                                  >
-                                    {submittingReply[instruction._id] ? 'Posting...' : 'Post Comment'}
-                                  </Button>
-                                </div>
-                              </div>
+                            {instruction.isRead ? (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ✓
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                ●
+                              </span>
                             )}
                           </div>
                         </div>
-                      )}
+                      </div>
 
-                      {/* Show message if comments are disabled */}
-                      {!instruction.allowReplies && (
-                        <div className="mb-6 bg-gray-100 rounded-lg p-4 text-center">
-                          <p className="text-sm text-gray-600">Comments are disabled for this instruction</p>
-                        </div>
-                      )}
+                      {/* Description */}
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {instruction.description.length > 150 
+                            ? `${instruction.description.substring(0, 150)}...` 
+                            : instruction.description}
+                        </p>
+                      </div>
 
-                      {instruction.allowReplies && !instruction.allowPublicComments && !instruction.allowPrivateComments && (
-                        <div className="mb-6 bg-yellow-100 rounded-lg p-4 text-center">
-                          <p className="text-sm text-yellow-800">Comments are enabled but no comment types are allowed</p>
+                      {/* Meta Information */}
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                        <div className="flex items-center space-x-4">
+                          <span>{formatDate(instruction.createdAt)}</span>
+                          <span className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {instruction.viewCount || 0}
+                          </span>
+                          <span className="flex items-center">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01" />
+                            </svg>
+                            {instruction.replies?.length || 0}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex items-center space-x-1">
+                          <svg className="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                          <span className="text-blue-600 font-medium">{getTargetAudienceLabel(instruction.targetAudience)}</span>
+                        </div>
+                      </div>
 
-                      {/* Replies List */}
-                      {expandedReplies[instruction._id] && (
-                        <div className="space-y-4">
-                          {getVisibleReplies(instruction.replies, session.user.role)
-                            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                            .map((reply, replyIndex) => (
-                            <div key={replyIndex} className={`border rounded-lg p-4 ${reply.isPrivate ? 'bg-yellow-50 border-yellow-200' : 'bg-white border-gray-200'}`}>
-                              <div className="flex items-start space-x-3">
-                                <div className="flex-shrink-0">
-                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    reply.user?.role === 'stateAdmin' ? 'bg-red-500' :
-                                    reply.user?.role === 'coordinator' ? 'bg-green-500' :
-                                    'bg-blue-500'
-                                  }`}>
-                                    <span className="text-white text-sm font-semibold">
-                                      {reply.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-2">
-                                      <span className="text-sm font-semibold text-gray-900">
-                                        {reply.user?.name || 'Unknown User'}
-                                      </span>
-                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                        reply.user?.role === 'stateAdmin' ? 'bg-red-100 text-red-800' :
-                                        reply.user?.role === 'coordinator' ? 'bg-green-100 text-green-800' :
-                                        'bg-blue-100 text-blue-800'
-                                      }`}>
-                                        {reply.user?.role === 'stateAdmin' ? 'State Admin' :
-                                         reply.user?.role === 'coordinator' ? 'Coordinator' :
-                                         'Ward Admin'}
-                                      </span>
-                                      {reply.isPrivate && (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                          </svg>
-                                          Private
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                                      {formatDate(reply.createdAt)}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                                    {reply.message}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
+                      {/* Action Buttons */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          {!instruction.isRead ? (
+                            <button
+                              onClick={() => handleMarkAsRead(instruction._id)}
+                              disabled={markingAsRead[instruction._id]}
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-300 rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50"
+                            >
+                              {markingAsRead[instruction._id] ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 718-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Marking...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  Mark Read
+                                </>
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleMarkAsUnread(instruction._id)}
+                              disabled={markingAsRead[instruction._id]}
+                              className="inline-flex items-center px-3 py-1 text-xs font-medium text-orange-700 bg-orange-100 border border-orange-300 rounded-md hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+                            >
+                              {markingAsRead[instruction._id] ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 718-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Marking...
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Mark Unread
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
-                      )}
+                        
+                        <button
+                          onClick={() => {
+                            console.log('Navigating to instruction details:', instruction._id);
+                            router.push(`/instructions/${instruction._id}`);
+                          }}
+                          className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          View Details
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </Card>
             ))
@@ -615,7 +801,7 @@ export default function Instructions() {
                 </svg>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No instructions</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Check back later for important announcements and guidelines.
+                  No instructions found matching your criteria.
                 </p>
               </div>
             </Card>

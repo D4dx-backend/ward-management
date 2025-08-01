@@ -5,7 +5,13 @@ const PendingFormModal = ({ isOpen, onClose, form }) => {
   if (!form) return null;
 
   const handleSubmitForm = () => {
-    window.location.href = '/ward/reports/submit';
+    // Navigate to specific form submission page with form ID
+    if (form._id) {
+      window.location.href = `/ward/reports/submit/${form._id}`;
+    } else {
+      // Fallback to general submit page if no form ID
+      window.location.href = '/ward/reports/submit';
+    }
     onClose();
   };
 

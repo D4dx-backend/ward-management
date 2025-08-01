@@ -141,7 +141,7 @@ export default async function handler(req, res) {
           replies: obj.replies || [],
           readBy: obj.readBy || [],
           isRead: hasRead,
-          createdAt: obj.createdAt || new Date(),
+          createdAt: obj.createdAt && !isNaN(new Date(obj.createdAt).getTime()) ? obj.createdAt : new Date(),
           createdBy: obj.createdBy || null
         };
       });

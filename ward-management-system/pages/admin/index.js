@@ -3,24 +3,20 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData, useDashboardData } from '../../hooks/useApiData';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [dashboardStats, setDashboardStats] = useState({
-    totalWards: 0,
-    totalClusters: 0,
-    totalUsers: 0,
-    totalForms: 0,
-    recentActivities: []
-  });
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Use the dashboard data hook with caching
+  const { stats, loading, error: dataError, refetch } = useDashboardData('stateAdmin');
 
   useEffect(() => {
     // Check if user is authenticated and is admin
@@ -28,58 +24,28 @@ export default function AdminDashboard() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchDashboardData();
     }
   }, [status, session, router]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch dashboard statistics
-      const [wardsResponse, clustersResponse, usersResponse, formsResponse] = await Promise.all([
-        axios.get('/api/wards').catch(() => ({ data: [] })),
-        axios.get('/api/clusters').catch(() => ({ data: [] })),
-        axios.get('/api/users').catch(() => ({ data: [] })),
-        axios.get('/api/forms').catch(() => ({ data: [] }))
-      ]);
-      
-      setDashboardStats({
-        totalWards: wardsResponse.data.length || 0,
-        totalClusters: clustersResponse.data.length || 0,
-        totalUsers: usersResponse.data.length || 0,
-        totalForms: formsResponse.data.length || 0,
-        recentActivities: [
-          { id: 1, action: 'New ward created', time: '2 hours ago', type: 'ward' },
-          { id: 2, action: 'Form submitted', time: '4 hours ago', type: 'form' },
-          { id: 3, action: 'User registered', time: '6 hours ago', type: 'user' },
-          { id: 4, action: 'Cluster updated', time: '1 day ago', type: 'cluster' }
-        ]
-      });
-      setError('');
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+  useEffect(() => {
+    if (dataError) {
       setError('Failed to load dashboard data');
-      
-      // Set fallback data
-      setDashboardStats({
-        totalWards: 0,
-        totalClusters: 0,
-        totalUsers: 0,
-        totalForms: 0,
-        recentActivities: []
-      });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [dataError]);
 
-  if (status === 'loading' || isLoading) {
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -209,7 +175,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Wards</dt>
-                    <dd className="text-lg font-medium text-gray-900">{dashboardStats.totalWards}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalWards || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -229,7 +195,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Clusters</dt>
-                    <dd className="text-lg font-medium text-gray-900">{dashboardStats.totalClusters}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalClusters || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -249,7 +215,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                    <dd className="text-lg font-medium text-gray-900">{dashboardStats.totalUsers}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalUsers || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -269,7 +235,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Active Forms</dt>
-                    <dd className="text-lg font-medium text-gray-900">{dashboardStats.totalForms}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats.totalForms || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -310,8 +276,8 @@ export default function AdminDashboard() {
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activities</h3>
               <div className="space-y-3">
-                {dashboardStats.recentActivities.length > 0 ? (
-                  dashboardStats.recentActivities.map((activity) => (
+                {stats.recentActivities?.length > 0 ? (
+                  stats.recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-center space-x-3">
                       <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
                         activity.type === 'ward' ? 'bg-blue-500' :

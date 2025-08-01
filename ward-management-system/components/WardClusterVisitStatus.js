@@ -5,16 +5,21 @@ import Card from './Card';
 import Button from './Button';
 
 function WardClusterVisitStatusContent() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [survey, setSurvey] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (session?.user?.role === 'wardAdmin') {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && session?.user?.role === 'wardAdmin') {
       fetchSurveyData();
     }
-  }, [session]);
+  }, [session, mounted]);
 
   const fetchSurveyData = async () => {
     try {
@@ -94,6 +99,20 @@ function WardClusterVisitStatusContent() {
       return 0;
     }
   };
+
+  // Don't render until mounted
+  if (!mounted || status === 'loading') {
+    return (
+      <Card>
+        <div className="p-6">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   if (isLoading) {
     return (

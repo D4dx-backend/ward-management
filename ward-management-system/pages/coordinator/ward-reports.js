@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -8,7 +8,10 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { setCache, getCache } from '../../lib/simpleCache';
 import usePagination from '../../hooks/usePagination';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function CoordinatorWardReports() {
   const { data: session, status } = useSession();
@@ -24,18 +27,6 @@ export default function CoordinatorWardReports() {
     year: new Date().getFullYear(),
     status: ''
   });
-  
-  // Pagination using custom hook
-  const {
-    currentPage,
-    itemsPerPage,
-    paginatedData: paginatedReports,
-    totalPages,
-    totalItems,
-    handlePageChange,
-    handleItemsPerPageChange,
-    resetPagination,
-  } = usePagination(filteredReports, 10);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -46,6 +37,70 @@ export default function CoordinatorWardReports() {
       fetchWardReports();
     }
   }, [status, session, router]);
+
+  const fetchWardReports = async (useCache = true) => {
+    const cacheKey = 'coordinator_ward_reports';
+    
+    // Check cache first
+    if (useCache) {
+      const cachedData = getCache(cacheKey);
+      if (cachedData) {
+        setWardReports(cachedData);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await axios.get('/api/responses', {
+        params: {
+          formType: 'wardReport',
+          coordinatorOnly: 'true'
+        }
+      });
+
+      // Transform the response data to match the expected format
+      const transformedReports = response.data.map(report => ({
+        _id: report._id,
+        title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
+        type: report.formType,
+        weekNumber: report.weekNumber,
+        year: report.year,
+        status: 'submitted', // All fetched reports are submitted
+        submittedBy: report.respondent,
+        ward: report.ward,
+        submittedAt: report.submittedAt,
+        responses: report.responses,
+        formTemplate: report.formTemplate
+      }));
+      
+      // Cache the data for 5 minutes
+      setCache(cacheKey, transformedReports, 5 * 60 * 1000);
+      setWardReports(transformedReports);
+      setError('');
+    } catch (error) {
+      console.error('Error fetching ward reports:', error);
+      setError('Failed to fetch ward reports. Please try again.');
+      setWardReports([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Pagination using custom hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedReports,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    resetPagination,
+  } = usePagination(filteredReports, 10);
+
+
 
   useEffect(() => {
     let filtered = wardReports;
@@ -81,41 +136,7 @@ export default function CoordinatorWardReports() {
     resetPagination(); // Reset to first page when filters change
   }, [wardReports, searchTerm, filter, resetPagination]);
 
-  const fetchWardReports = async () => {
-    setIsLoading(true);
 
-    try {
-      const response = await axios.get('/api/responses', {
-        params: {
-          formType: 'wardReport',
-          coordinatorOnly: 'true'
-        }
-      });
-
-      // Transform the response data to match the expected format
-      const transformedReports = response.data.map(report => ({
-        _id: report._id,
-        title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
-        type: report.formType,
-        weekNumber: report.weekNumber,
-        year: report.year,
-        status: 'submitted', // All fetched reports are submitted
-        submittedBy: report.respondent,
-        ward: report.ward,
-        submittedAt: report.submittedAt,
-        responses: report.responses,
-        formTemplate: report.formTemplate
-      }));
-      setWardReports(transformedReports);
-      setError('');
-    } catch (error) {
-      console.error('Error fetching ward reports:', error);
-      setError('Failed to fetch ward reports. Please try again.');
-      setWardReports([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -160,14 +181,13 @@ export default function CoordinatorWardReports() {
       return acc;
     }, []);
 
-  if (status === 'loading' || isLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
-
 
   return (
     <Layout>
@@ -182,7 +202,7 @@ export default function CoordinatorWardReports() {
             <p className="mt-1 text-sm text-gray-600">Monitor ward progress reports from your district</p>
           </div>
           <Button
-            onClick={fetchWardReports}
+            onClick={() => fetchWardReports(false)}
             disabled={isLoading}
             className="flex items-center gap-2"
           >
@@ -263,29 +283,29 @@ export default function CoordinatorWardReports() {
 
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Week/Year
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Submitted By
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Submitted At
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Ward Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Week/Year
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Submitted By
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Submitted At
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedReports.map((report) => (
                   <tr key={report._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">

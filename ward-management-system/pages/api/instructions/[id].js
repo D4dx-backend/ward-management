@@ -1,28 +1,47 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import dbConnect from '../../../lib/mongodb';
+import connectToDatabase from '../../../lib/mongodb';
 import Instruction from '../../../models/Instruction';
 
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
+  console.log('API called:', req.method, req.url);
   
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  try {
+    const session = await getServerSession(req, res, authOptions);
+    
+    if (!session) {
+      console.log('No session found');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
-  const { id } = req.query;
+    console.log('Session found for user:', session.user.id, session.user.role);
+    const { id } = req.query;
+    console.log('Instruction ID:', id);
 
-  await dbConnect();
+    // Validate ObjectId format
+    if (!id || !id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('Invalid ObjectId format:', id);
+      return res.status(400).json({ error: 'Invalid instruction ID format' });
+    }
+
+    await connectToDatabase();
+    console.log('Database connected');
 
   if (req.method === 'GET') {
     try {
+      console.log('Fetching instruction:', id);
+      
+      // First, get the instruction without modifying it
       const instruction = await Instruction.findById(id)
         .populate('createdBy', 'name email')
         .populate('replies.user', 'name email role');
 
       if (!instruction) {
+        console.log('Instruction not found:', id);
         return res.status(404).json({ error: 'Instruction not found' });
       }
+
+      console.log('Instruction found, processing...');
 
       // Filter replies based on privacy and user role
       const filteredReplies = instruction.replies.filter(reply => {
@@ -39,48 +58,59 @@ export default async function handler(req, res) {
         return false;
       });
 
-      // Replace replies with filtered ones
-      instruction.replies = filteredReplies;
+      // Create the response object
+      const responseInstruction = instruction.toObject();
+      responseInstruction.replies = filteredReplies;
 
-      // Track view count and hierarchy stats
-      instruction.viewCount = (instruction.viewCount || 0) + 1;
-      
+      // Update view count and hierarchy stats using atomic operations
+      const updateFields = {
+        $inc: { viewCount: 1 }
+      };
+
       // Update hierarchy stats based on user role
-      if (!instruction.hierarchyStats) {
-        instruction.hierarchyStats = {
-          wardAdminViews: 0,
-          coordinatorViews: 0,
-          stateAdminViews: 0
-        };
-      }
-
       switch (session.user.role) {
         case 'wardAdmin':
-          instruction.hierarchyStats.wardAdminViews = (instruction.hierarchyStats.wardAdminViews || 0) + 1;
+          updateFields.$inc['hierarchyStats.wardAdminViews'] = 1;
           break;
         case 'coordinator':
-          instruction.hierarchyStats.coordinatorViews = (instruction.hierarchyStats.coordinatorViews || 0) + 1;
+          updateFields.$inc['hierarchyStats.coordinatorViews'] = 1;
           break;
         case 'stateAdmin':
-          instruction.hierarchyStats.stateAdminViews = (instruction.hierarchyStats.stateAdminViews || 0) + 1;
+          updateFields.$inc['hierarchyStats.stateAdminViews'] = 1;
           break;
       }
 
       // Mark as read if not already read
       const hasRead = instruction.readBy.some(read => read.user.toString() === session.user.id);
       if (!hasRead) {
-        instruction.readBy.push({
-          user: session.user.id,
-          readAt: new Date()
-        });
+        updateFields.$addToSet = {
+          readBy: {
+            user: session.user.id,
+            readAt: new Date()
+          }
+        };
       }
 
-      await instruction.save();
+      // Update the instruction atomically without validation
+      await Instruction.findByIdAndUpdate(
+        id,
+        updateFields,
+        { runValidators: false }
+      );
 
-      res.status(200).json(instruction);
+      console.log('Instruction updated successfully');
+      res.status(200).json(responseInstruction);
     } catch (error) {
       console.error('Error fetching instruction:', error);
-      res.status(500).json({ error: 'Failed to fetch instruction' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ 
+        error: 'Failed to fetch instruction',
+        details: error.message 
+      });
     }
   } else if (req.method === 'PUT') {
     // Only state admins can update instructions
@@ -167,6 +197,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'POST') {
     // Handle adding replies to instructions
     try {
+      console.log('POST request received:', { body: req.body, id, userId: session.user.id });
       const { message, action, commentType, isPrivate, parentReply } = req.body;
 
       if (action === 'reply') {
@@ -186,7 +217,7 @@ export default async function handler(req, res) {
 
         // Determine comment privacy based on user role and selection
         const isCommentPrivate = Boolean(isPrivate);
-        const validCommentType = ['public', 'private'].includes(commentType) ? commentType : 'public';
+        const validCommentType = ['public', 'private', 'thread', 'individual'].includes(commentType) ? commentType : 'public';
 
         // Check if the requested comment type is allowed by the instruction settings
         if (isCommentPrivate && !instruction.allowPrivateComments) {
@@ -217,29 +248,62 @@ export default async function handler(req, res) {
 
         res.status(200).json(instruction);
       } else if (action === 'mark_read') {
-        const instruction = await Instruction.findById(id);
+        console.log('Mark as read action for instruction:', id, 'by user:', session.user.id);
+        
+        // Use findByIdAndUpdate to avoid validation issues with existing data
+        const result = await Instruction.findByIdAndUpdate(
+          id,
+          {
+            $addToSet: {
+              readBy: {
+                user: session.user.id,
+                readAt: new Date()
+              }
+            }
+          },
+          { new: true, runValidators: false } // Skip validation to avoid issues with existing data
+        );
 
-        if (!instruction) {
+        if (!result) {
+          console.log('Instruction not found:', id);
           return res.status(404).json({ error: 'Instruction not found' });
         }
 
-        // Mark as read if not already read
-        const hasRead = instruction.readBy.some(read => read.user.toString() === session.user.id);
-        if (!hasRead) {
-          instruction.readBy.push({
-            user: session.user.id,
-            readAt: new Date()
-          });
-          await instruction.save();
+        console.log('Instruction marked as read successfully');
+        res.status(200).json({ message: 'Marked as read', success: true });
+      } else if (action === 'mark_unread') {
+        console.log('Mark as unread action for instruction:', id, 'by user:', session.user.id);
+        
+        // Use findByIdAndUpdate to avoid validation issues with existing data
+        const result = await Instruction.findByIdAndUpdate(
+          id,
+          {
+            $pull: {
+              readBy: { user: session.user.id }
+            }
+          },
+          { new: true, runValidators: false } // Skip validation to avoid issues with existing data
+        );
+
+        if (!result) {
+          console.log('Instruction not found:', id);
+          return res.status(404).json({ error: 'Instruction not found' });
         }
 
-        res.status(200).json({ message: 'Marked as read' });
+        console.log('Instruction marked as unread successfully');
+        res.status(200).json({ message: 'Marked as unread', success: true });
       } else {
+        console.log('Invalid action received:', action);
         res.status(400).json({ error: 'Invalid action' });
       }
     } catch (error) {
       console.error('Error handling instruction action:', error);
-      res.status(500).json({ error: 'Failed to process request' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ error: 'Failed to process request', details: error.message });
     }
   } else if (req.method === 'DELETE') {
     // Only state admins can delete instructions
@@ -262,5 +326,17 @@ export default async function handler(req, res) {
   } else {
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+  } catch (globalError) {
+    console.error('Global error in instructions API:', globalError);
+    console.error('Global error details:', {
+      message: globalError.message,
+      stack: globalError.stack,
+      name: globalError.name
+    });
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: globalError.message 
+    });
   }
 }

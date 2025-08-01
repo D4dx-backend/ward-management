@@ -11,6 +11,8 @@ import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import UserWardsModal from '../../../components/UserWardsModal';
 import Pagination from '../../../components/Pagination';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
+import { useApiData } from '../../../hooks/useApiData';
 import usePagination from '../../../hooks/usePagination';
 
 export default function Users() {
@@ -18,8 +20,20 @@ export default function Users() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Use cached API data
+  const { data: usersData, loading: usersLoading, error: usersError, refetch } = useApiData('/api/users', {
+    cacheKey: 'admin-users',
+    cacheTTL: 2 * 60 * 1000 // 2 minutes cache
+  });
+
+  const { data: wardsData, loading: wardsLoading } = useApiData('/api/wards', {
+    cacheKey: 'admin-wards',
+    cacheTTL: 5 * 60 * 1000 // 5 minutes cache
+  });
+
+  const isLoading = usersLoading || wardsLoading;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -67,10 +81,30 @@ export default function Users() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchUsers();
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    // Process users data when available
+    if (usersData && wardsData) {
+      const usersWithWardCounts = usersData.map(user => {
+        const coordinatorWards = wardsData.filter(ward => ward.coordinator?._id === user._id);
+        const wardAdminWards = wardsData.filter(ward => ward.wardAdmin?._id === user._id);
+        
+        return {
+          ...user,
+          wardCounts: {
+            coordinator: coordinatorWards.length,
+            wardAdmin: wardAdminWards.length,
+            total: coordinatorWards.length + wardAdminWards.length
+          }
+        };
+      });
+      
+      setUsers(usersWithWardCounts);
+      setFilteredUsers(usersWithWardCounts);
+    }
+  }, [usersData, wardsData]);
 
   useEffect(() => {
     // Filter users based on search term
@@ -89,44 +123,11 @@ export default function Users() {
     resetPagination(); // Reset to first page when search changes
   }, [users, searchTerm, resetPagination]);
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch users and wards in parallel
-      const [usersResponse, wardsResponse] = await Promise.all([
-        axios.get('/api/users'),
-        axios.get('/api/wards')
-      ]);
-      
-      const users = usersResponse.data;
-      const wards = wardsResponse.data;
-      
-      // Add ward counts to users
-      const usersWithWardCounts = users.map(user => {
-        const coordinatorWards = wards.filter(ward => ward.coordinator?._id === user._id);
-        const wardAdminWards = wards.filter(ward => ward.wardAdmin?._id === user._id);
-        
-        return {
-          ...user,
-          wardCounts: {
-            coordinator: coordinatorWards.length,
-            wardAdmin: wardAdminWards.length,
-            total: coordinatorWards.length + wardAdminWards.length
-          }
-        };
-      });
-      
-      setUsers(usersWithWardCounts);
-      setFilteredUsers(usersWithWardCounts);
-      setError('');
-    } catch (error) {
+  useEffect(() => {
+    if (usersError) {
       setError('Failed to fetch users');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [usersError]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -187,6 +188,9 @@ export default function Users() {
       setUsers(newUsers);
       setFilteredUsers(newUsers);
       
+      // Refresh cached data
+      refetch();
+      
       // Reset form and close modal
       resetForm();
       setShowCreateModal(false);
@@ -226,6 +230,9 @@ export default function Users() {
       );
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
+      
+      // Refresh cached data
+      refetch();
       
       // Reset form and close modal
       resetForm();
@@ -279,6 +286,9 @@ export default function Users() {
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
       closeDeleteModal();
+      
+      // Refresh cached data
+      refetch();
     } catch (error) {
       setError('Failed to delete user');
       console.error(error);
@@ -347,8 +357,20 @@ export default function Users() {
     }
   };
 
-  if (status === 'loading' || isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   const renderUserForm = (isEdit = false) => (
@@ -512,13 +534,7 @@ export default function Users() {
     </form>
   );
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
-    );
-  }
+
 
   return (
     <Layout>

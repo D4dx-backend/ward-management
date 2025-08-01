@@ -14,6 +14,8 @@ import DeleteModal from '../../../components/DeleteModal';
 import Pagination from '../../../components/Pagination';
 import usePagination from '../../../hooks/usePagination';
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
+import { useApiData } from '../../../hooks/useApiData';
 
 export default function AdminWards() {
   const { data: session, status } = useSession();
@@ -460,9 +462,9 @@ export default function AdminWards() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
