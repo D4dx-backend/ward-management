@@ -4,13 +4,19 @@ import dbConnect from '../../../lib/mongodb';
 import Document from '../../../models/Document';
 
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
-  
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
+  // Add cache control headers to prevent caching issues
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
-  await dbConnect();
+  try {
+    const session = await getServerSession(req, res, authOptions);
+    
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    await dbConnect();
 
   if (req.method === 'GET') {
     try {
@@ -101,5 +107,9 @@ export default async function handler(req, res) {
   } else {
     res.setHeader('Allow', ['GET', 'POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+  } catch (error) {
+    console.error('Error in documents API:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
