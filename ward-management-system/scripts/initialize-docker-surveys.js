@@ -2,6 +2,15 @@ import dbConnect from '../lib/mongodb.js';
 import DockerSurvey from '../models/DockerSurvey.js';
 import Ward from '../models/Ward.js';
 
+// Helper function to calculate week number from date (same as form creation logic)
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
 async function initializeDockerSurveys() {
   await dbConnect();
 
@@ -29,13 +38,67 @@ async function initializeDockerSurveys() {
       const Cluster = (await import('../models/Cluster.js')).default;
       const clusters = await Cluster.find({ ward: ward._id, isActive: true }).sort({ clusterNumber: 1 });
       
-      const clusterVisits = clusters.map(cluster => ({
-        clusterName: cluster.name,
-        week1: { houses: 0, days: 0 },
-        week2: { houses: 0, days: 0 },
-        week3: { houses: 0, days: 0 },
-        week4: { houses: 0, days: 0 }
-      }));
+      // Get form weeks from FormTemplate for dynamic structure
+      const FormTemplate = require('../models/FormTemplate').default;
+      const forms = await FormTemplate.find({})
+        .populate('createdBy', 'role')
+        .sort({ createdAt: -1 });
+
+      // Filter forms created by state admins with week numbers
+      const stateAdminForms = forms.filter(form => 
+        form.createdBy && 
+        form.createdBy.role === 'stateAdmin' && 
+        form.weekNumber && 
+        form.year
+      );
+
+      // Extract unique weeks
+      const formWeeks = new Set();
+      stateAdminForms.forEach(form => {
+        formWeeks.add(`${form.year}-${form.weekNumber}`);
+      });
+
+      // Convert to sorted array
+      const sortedFormWeeks = Array.from(formWeeks)
+        .map(weekKey => {
+          const [year, weekNumber] = weekKey.split('-').map(Number);
+          return { year, weekNumber };
+        })
+        .sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year;
+          return b.weekNumber - a.weekNumber;
+        });
+
+      // Fallback to current week if no forms found
+      if (sortedFormWeeks.length === 0) {
+        const currentDate = new Date();
+        const currentWeekNumber = getWeekNumber(currentDate);
+        const currentYear = currentDate.getFullYear();
+        sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
+      }
+
+      // Create dynamic cluster visits structure
+      const clusterVisits = clusters.map(cluster => {
+        const visitData = {
+          clusterId: cluster._id,
+          clusterName: cluster.name,
+          formWeeks: sortedFormWeeks,
+          weeklyData: {}
+        };
+
+        // Add data for each form week
+        sortedFormWeeks.forEach((week) => {
+          const weekKey = `${week.year}-${week.weekNumber}`;
+          visitData.weeklyData[weekKey] = {
+            houses: 0,
+            days: 0,
+            weekNumber: week.weekNumber,
+            year: week.year
+          };
+        });
+
+        return visitData;
+      });
 
       // Create survey with all questions initialized
       const initialQuestions = {

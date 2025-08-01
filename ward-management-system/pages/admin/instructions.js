@@ -104,7 +104,7 @@ export default function AdminInstructions() {
       if (editingInstruction) {
         // Update existing instruction
         const response = await axios.put(`/api/instructions/${editingInstruction._id}`, formData);
-        setInstructions(prev => prev.map(inst => 
+        setInstructions(prev => prev.map(inst =>
           inst._id === editingInstruction._id ? response.data : inst
         ));
         setShowEditModal(false);
@@ -115,7 +115,7 @@ export default function AdminInstructions() {
         setInstructions(prev => [response.data, ...prev]);
         setShowCreateModal(false);
       }
-      
+
       setFormData({
         title: '',
         description: '',
@@ -153,7 +153,7 @@ export default function AdminInstructions() {
 
   const handleDelete = async () => {
     if (!deletingInstruction) return;
-    
+
     try {
       await axios.delete(`/api/instructions/${deletingInstruction._id}`);
       setInstructions(prev => prev.filter(inst => inst._id !== deletingInstruction._id));
@@ -292,15 +292,15 @@ export default function AdminInstructions() {
                         </span>
                         {instruction.hierarchyStats && (
                           <span className="text-xs bg-blue-50 px-2 py-1 rounded">
-                            Ward: {instruction.hierarchyStats.wardAdminViews || 0} | 
-                            Coord: {instruction.hierarchyStats.coordinatorViews || 0} | 
+                            Ward: {instruction.hierarchyStats.wardAdminViews || 0} |
+                            Coord: {instruction.hierarchyStats.coordinatorViews || 0} |
                             State: {instruction.hierarchyStats.stateAdminViews || 0}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="prose max-w-none mb-4">
                     <div className="text-gray-700 whitespace-pre-wrap break-words">
                       {instruction.description}
@@ -316,13 +316,13 @@ export default function AdminInstructions() {
                       <span className="text-sm text-blue-700 font-medium">
                         Target: {
                           instruction.targetAudience === 'all' ? 'All Users' :
-                          instruction.targetAudience === 'coordinators' ? 'All Coordinators' :
-                          instruction.targetAudience === 'ward_admins' ? 'All Ward Admins' :
-                          instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
-                          instruction.targetAudience === 'specific_coordinators' ? 
-                            `Specific Coordinators: ${instruction.targetCoordinators?.map(c => c.name || c).join(', ') || 'None selected'}` :
-                          instruction.targetAudience === 'ward_or_group' ? `Ward/Group (${instruction.targetWards?.length || 0} wards)` :
-                          'Unknown'
+                            instruction.targetAudience === 'coordinators' ? 'All Coordinators' :
+                              instruction.targetAudience === 'ward_admins' ? 'All Ward Admins' :
+                                instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
+                                  instruction.targetAudience === 'specific_coordinators' ?
+                                    `Specific Coordinators: ${instruction.targetCoordinators?.map(c => c.name || c).join(', ') || 'None selected'}` :
+                                    instruction.targetAudience === 'ward_or_group' ? `Ward/Group (${instruction.targetWards?.length || 0} wards)` :
+                                      'Unknown'
                         }
                       </span>
                     </div>
@@ -672,7 +672,7 @@ export default function AdminInstructions() {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
               <Button
                 type="button"

@@ -32,36 +32,51 @@ export default async function handler(req, res) {
         form.createdBy && form.createdBy.role === 'stateAdmin'
       );
 
-      // Calculate weeks based on form creation dates
-      const weeks = [];
-      const currentDate = new Date();
-      
-      // Determine how many weeks to show
-      const weeksToShow = all === 'true' ? 12 : 4; // Show 12 weeks for 'all', 4 for recent
-      
-      for (let i = 0; i < weeksToShow; i++) {
-        const weekStart = new Date(currentDate);
-        weekStart.setDate(currentDate.getDate() - (i * 7));
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
-        
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6); // End of week (Saturday)
-        
-        const weekNumber = getWeekNumber(weekStart);
-        const isCurrentWeek = i === 0;
-        
-        // Get forms created in this week
-        const weekForms = stateAdminForms.filter(form => {
-          const formDate = new Date(form.createdAt);
-          return formDate >= weekStart && formDate <= weekEnd;
+      // Get unique week numbers and years from forms created by state admins
+      const formWeeks = new Set();
+      stateAdminForms.forEach(form => {
+        if (form.weekNumber && form.year) {
+          formWeeks.add(`${form.year}-${form.weekNumber}`);
+        }
+      });
+
+      // Convert to array and sort by year and week number (most recent first)
+      const sortedFormWeeks = Array.from(formWeeks)
+        .map(weekKey => {
+          const [year, weekNumber] = weekKey.split('-').map(Number);
+          return { year, weekNumber };
+        })
+        .sort((a, b) => {
+          if (a.year !== b.year) return b.year - a.year; // Most recent year first
+          return b.weekNumber - a.weekNumber; // Most recent week first
         });
 
-        // Get responses for cluster visits in this week
+      // Limit the number of weeks to show
+      const maxWeeks = all === 'true' ? 20 : 8; // Show more weeks when requested
+      const weeksToProcess = sortedFormWeeks.slice(0, maxWeeks);
+
+      const weeks = [];
+      const currentDate = new Date();
+      const currentWeekNumber = getWeekNumber(currentDate);
+      const currentYear = currentDate.getFullYear();
+
+      for (const { year, weekNumber } of weeksToProcess) {
+        // Calculate week start and end dates from week number
+        const weekStart = getDateFromWeekNumber(weekNumber, year);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        
+        const isCurrentWeek = (year === currentYear && weekNumber === currentWeekNumber);
+        
+        // Get forms created for this specific week number and year
+        const weekForms = stateAdminForms.filter(form => {
+          return form.weekNumber === weekNumber && form.year === year;
+        });
+
+        // Get responses for cluster visits in this week (by week number and year)
         const responses = await Response.find({
-          submittedAt: {
-            $gte: weekStart,
-            $lte: weekEnd
-          }
+          weekNumber: weekNumber,
+          year: year
         }).populate('ward', 'name district')
           .populate('respondent', 'name role')
           .catch(() => []);
@@ -82,14 +97,16 @@ export default async function handler(req, res) {
           }
         });
 
-        // Get all wards to calculate total clusters
-        const allWards = await Ward.find({ isActive: { $ne: false } }).catch(() => []);
-        const totalClusters = allWards.length || 10; // Fallback to 10 if no wards found
+        // Get all clusters to calculate total clusters (not wards)
+        const Cluster = require('../../../models/Cluster').default;
+        const allClusters = await Cluster.find({ isActive: { $ne: false } }).catch(() => []);
+        const totalClusters = allClusters.length || 0;
         const visitedCount = Object.keys(clusterVisits).length;
         const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClusters) * 100) : 0;
 
         weeks.push({
-          weekNumber,
+          weekNumber: weekNumber,
+          year: year,
           weekStart: weekStart.toISOString().split('T')[0],
           weekEnd: weekEnd.toISOString().split('T')[0],
           isCurrentWeek,
@@ -97,6 +114,7 @@ export default async function handler(req, res) {
           totalClusters,
           visitPercentage,
           formsCreated: weekForms.length,
+          formTitles: weekForms.map(f => f.title), // Add form titles for reference
           clusters: Object.values(clusterVisits),
           status: visitPercentage >= 80 ? 'excellent' : 
                   visitPercentage >= 60 ? 'good' : 
@@ -121,4 +139,13 @@ function getWeekNumber(date) {
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+function getDateFromWeekNumber(weekNumber, year) {
+  const jan1 = new Date(year, 0, 1);
+  const jan1Day = jan1.getDay() || 7; // Make Sunday = 7
+  const firstMonday = new Date(year, 0, 1 + (8 - jan1Day) % 7);
+  const targetDate = new Date(firstMonday);
+  targetDate.setDate(firstMonday.getDate() + (weekNumber - 1) * 7);
+  return targetDate;
 }

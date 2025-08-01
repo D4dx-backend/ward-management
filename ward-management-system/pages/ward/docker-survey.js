@@ -65,8 +65,10 @@ export default function DockerSurvey() {
       
       // Try the my-ward endpoint first (simpler and more direct)
       console.log('Fetching survey from my-ward endpoint...');
-      const response = await axios.get('/api/docker-survey/my-ward');
+      const response = await axios.get(`/api/docker-survey/my-ward?t=${Date.now()}`);
       console.log('Survey response:', response.data);
+      console.log('Cluster visits count:', response.data?.clusterVisits?.length);
+      console.log('First cluster visit data:', response.data?.clusterVisits?.[0]);
       setSurvey(response.data);
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -313,14 +315,10 @@ export default function DockerSurvey() {
               Basic Survey
             </button>
             <button
-              onClick={() => setActiveTab('cluster')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'cluster'
-                  ? 'border-green-500 text-green-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              onClick={() => window.location.href = '/ward/cluster-visits'}
+              className="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-blue-600 hover:text-blue-800 hover:border-blue-300"
             >
-              Cluster Visits
+              Cluster Visits →
             </button>
           </nav>
         </div>
@@ -447,15 +445,54 @@ export default function DockerSurvey() {
           <Card>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                Cluster Visit Status (Recent 4 Weeks)
+                Cluster Visit Status (Form Periods)
               </h2>
-              <Button
-                onClick={() => updateClusterVisits(survey?.clusterVisits || [])}
-                disabled={saving}
-                size="sm"
-              >
-                {saving ? 'Saving...' : 'Save Changes'}
-              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={async () => {
+                    try {
+                      setSaving(true);
+                      setError(null);
+                      console.log('Force refreshing survey data...');
+                      
+                      // Force refresh by calling the API with cache buster
+                      const response = await axios.get(`/api/docker-survey/my-ward?t=${Date.now()}`);
+                      console.log('Fresh survey data:', response.data);
+                      console.log('First cluster structure:', response.data?.clusterVisits?.[0]);
+                      
+                      setSurvey(response.data);
+                      
+                      // Check if we got the new structure
+                      if (response.data?.clusterVisits?.[0]?.formWeeks) {
+                        alert(`✅ Success! Found ${response.data.clusterVisits[0].formWeeks.length} form weeks: ${response.data.clusterVisits[0].formWeeks.map(w => `Week ${w.weekNumber}, ${w.year}`).join(', ')}`);
+                      } else if (response.data?.clusterVisits?.[0]?.week1) {
+                        alert('⚠️ Still getting old structure. API might need more time to update.');
+                      } else {
+                        alert('❌ Unexpected structure received.');
+                      }
+                      
+                    } catch (error) {
+                      console.error('Error refreshing:', error);
+                      setError('Failed to refresh: ' + (error.response?.data?.message || error.message));
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                >
+                  {saving ? 'Refreshing...' : 'Force Refresh'}
+                </Button>
+                <Button
+                  onClick={() => updateClusterVisits(survey?.clusterVisits || [])}
+                  disabled={saving}
+                  size="sm"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
             </div>
             
             {survey?.clusterVisits && survey.clusterVisits.length > 0 ? (
@@ -466,18 +503,29 @@ export default function DockerSurvey() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cluster
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Week 1
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Week 2
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Week 3
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Week 4
-                      </th>
+                      {/* Dynamic week headers based on actual form periods */}
+                      {survey.clusterVisits[0]?.formWeeks?.map((week, index) => (
+                        <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Week {week.weekNumber}, {week.year}
+                        </th>
+                      )) || 
+                      /* Fallback for old structure */
+                      (survey.clusterVisits[0]?.week1 ? (
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Old Structure - Click Reset
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Old Structure - Click Reset
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Old Structure - Click Reset
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Old Structure - Click Reset
+                          </th>
+                        </>
+                      ) : null)}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -486,53 +534,81 @@ export default function DockerSurvey() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {cluster.clusterName}
                         </td>
-                        {['week1', 'week2', 'week3', 'week4'].map((week) => (
-                          <td key={week} className="px-6 py-4 whitespace-nowrap">
-                            <div className="space-y-2">
-                              <div className="flex items-center space-x-2">
-                                <label className="text-xs text-gray-500 w-12">Houses:</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={cluster[week]?.houses || 0}
-                                  onChange={(e) => {
-                                    const newClusterVisits = [...survey.clusterVisits];
-                                    newClusterVisits[clusterIndex][week] = {
-                                      ...newClusterVisits[clusterIndex][week],
-                                      houses: parseInt(e.target.value) || 0
-                                    };
-                                    setSurvey({
-                                      ...survey,
-                                      clusterVisits: newClusterVisits
-                                    });
-                                  }}
-                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                                />
+                        {/* Dynamic week data based on actual form periods */}
+                        {cluster.formWeeks?.map((week, weekIndex) => {
+                          const weekKey = `${week.year}-${week.weekNumber}`;
+                          const weekData = cluster.weeklyData?.[weekKey] || { houses: 0, days: 0 };
+                          
+                          return (
+                            <td key={weekIndex} className="px-6 py-4 whitespace-nowrap">
+                              <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <label className="text-xs text-gray-500 w-12">Houses:</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={weekData.houses || 0}
+                                    onChange={(e) => {
+                                      const newClusterVisits = [...survey.clusterVisits];
+                                      if (!newClusterVisits[clusterIndex].weeklyData) {
+                                        newClusterVisits[clusterIndex].weeklyData = {};
+                                      }
+                                      newClusterVisits[clusterIndex].weeklyData[weekKey] = {
+                                        ...newClusterVisits[clusterIndex].weeklyData[weekKey],
+                                        houses: parseInt(e.target.value) || 0,
+                                        weekNumber: week.weekNumber,
+                                        year: week.year
+                                      };
+                                      setSurvey({
+                                        ...survey,
+                                        clusterVisits: newClusterVisits
+                                      });
+                                    }}
+                                    className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <label className="text-xs text-gray-500 w-12">Days:</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="7"
+                                    value={weekData.days || 0}
+                                    onChange={(e) => {
+                                      const newClusterVisits = [...survey.clusterVisits];
+                                      if (!newClusterVisits[clusterIndex].weeklyData) {
+                                        newClusterVisits[clusterIndex].weeklyData = {};
+                                      }
+                                      newClusterVisits[clusterIndex].weeklyData[weekKey] = {
+                                        ...newClusterVisits[clusterIndex].weeklyData[weekKey],
+                                        days: parseInt(e.target.value) || 0,
+                                        weekNumber: week.weekNumber,
+                                        year: week.year
+                                      };
+                                      setSurvey({
+                                        ...survey,
+                                        clusterVisits: newClusterVisits
+                                      });
+                                    }}
+                                    className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <label className="text-xs text-gray-500 w-12">Days:</label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max="7"
-                                  value={cluster[week]?.days || 0}
-                                  onChange={(e) => {
-                                    const newClusterVisits = [...survey.clusterVisits];
-                                    newClusterVisits[clusterIndex][week] = {
-                                      ...newClusterVisits[clusterIndex][week],
-                                      days: parseInt(e.target.value) || 0
-                                    };
-                                    setSurvey({
-                                      ...survey,
-                                      clusterVisits: newClusterVisits
-                                    });
-                                  }}
-                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                                />
+                            </td>
+                          );
+                        }) || 
+                        /* Fallback for old structure */
+                        (cluster.week1 ? (
+                          ['week1', 'week2', 'week3', 'week4'].map((week) => (
+                            <td key={week} className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-center text-red-600 text-xs">
+                                Old Structure<br/>
+                                Click "Reset Structure"<br/>
+                                to see form periods
                               </div>
-                            </div>
-                          </td>
-                        ))}
+                            </td>
+                          ))
+                        ) : null)}
                       </tr>
                     ))}
                   </tbody>

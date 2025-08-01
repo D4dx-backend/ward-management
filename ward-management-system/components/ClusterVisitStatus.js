@@ -153,7 +153,7 @@ export default function ClusterVisitStatus() {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-lg font-medium text-gray-900">Cluster Visit Status</h2>
-              <p className="text-sm text-gray-600">Recent 4 weeks cluster visit tracking</p>
+              <p className="text-sm text-gray-600">Cluster visit tracking based on form creation weeks</p>
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-1 text-xs text-gray-500">
@@ -195,7 +195,7 @@ export default function ClusterVisitStatus() {
                     <div className="flex items-center space-x-3">
                       <div>
                         <h3 className="text-sm font-medium text-gray-900">
-                          Week {week.weekNumber} {week.isCurrentWeek && <span className="text-blue-600">(Current)</span>}
+                          Week {week.weekNumber} {week.year && `(${week.year})`} {week.isCurrentWeek && <span className="text-blue-600">(Current)</span>}
                         </h3>
                         <p className="text-xs text-gray-500">
                           {formatDateRange(week.weekStart, week.weekEnd)}

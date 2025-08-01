@@ -54,6 +54,7 @@ const Layout = ({ children }) => {
       { name: 'Ward Visits Record', href: '/ward/ward-visits', icon: '🚶' },
       { name: 'Ward Profile', href: '/ward/profile', icon: '📋' },
       { name: 'Manage Clusters', href: '/ward/clusters', icon: '🏢' },
+      { name: 'Cluster Visits', href: '/ward/cluster-visits', icon: '📍' },
       { name: 'Survey', href: '/ward/docker-survey', icon: '🗂️' },
       { name: 'Instructions', href: '/instructions', icon: '📋' },
       { name: 'Documents', href: '/documents', icon: '📄' },
