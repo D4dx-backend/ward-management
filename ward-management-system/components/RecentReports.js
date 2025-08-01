@@ -102,12 +102,24 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
               </div>
             );
 
+            const getReportLink = () => {
+              switch (userRole) {
+                case 'wardAdmin':
+                  return `/ward/reports/view/${report._id}`;
+                case 'coordinator':
+                  return `/coordinator/reports/view/${report._id}`;
+                case 'stateAdmin':
+                default:
+                  return `/admin/forms/responses/${report.formTemplate?._id || report.formTemplate || report.form?._id}?responseId=${report._id}&direct=true`;
+              }
+            };
+
             return onReportClick ? (
               <div key={report._id} onClick={() => onReportClick(report)}>
                 {reportContent}
               </div>
             ) : (
-              <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate?._id || report.formTemplate || report.form?._id}?responseId=${report._id}&direct=true`}>
+              <Link key={report._id} href={getReportLink()}>
                 {reportContent}
               </Link>
             );

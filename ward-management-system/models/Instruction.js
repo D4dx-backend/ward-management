@@ -13,7 +13,7 @@ const instructionReplySchema = new mongoose.Schema({
   },
   commentType: {
     type: String,
-    enum: ['public', 'private'],
+    enum: ['public', 'private', 'thread', 'individual'],
     default: 'public'
   },
   // For private comments - only visible to state admin and coordinators

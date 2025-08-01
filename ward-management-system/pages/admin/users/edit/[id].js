@@ -4,6 +4,9 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import axios from 'axios';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../../components/Shimmer';
+import { useApiData } from '../../../../hooks/useApiData';
+import Layout from '../../../../components/Layout';
 
 export default function EditUser() {
   const { data: session, status } = useSession();
@@ -121,8 +124,12 @@ export default function EditUser() {
     }
   };
 
-  if (status === 'loading' || isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   return (

@@ -1,103 +1,63 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo, useCallback, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Logo from './Logo';
+import MenuManager from './MenuManager';
 
-const Layout = ({ children }) => {
-  const { data: session } = useSession();
+const Layout = memo(({ children }) => {
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleMenuItemClick = useCallback((item) => {
+    // Close sidebar on mobile after clicking menu item
+    setSidebarOpen(false);
+  }, []);
+
+  const handleSidebarToggle = useCallback(() => {
+    setSidebarOpen(prev => !prev);
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    signOut();
+  }, []);
+
+  // Don't render anything until mounted (prevents SSR issues)
+  if (!mounted) {
+    return null;
+  }
+
+  // Show loading state while session is loading
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   if (!session) {
     return <div>{children}</div>;
   }
 
-  const navigation = {
-    stateAdmin: [
-      { name: 'Dashboard', href: '/', icon: '📊' },
-      { name: 'Users', href: '/admin/users', icon: '👤' },
-      { name: 'Wards', href: '/admin/wards', icon: '🏘️' },
-      { name: 'Ward Status', href: '/admin/ward-status', icon: '🔍' },
-      { name: 'Ward Visits', href: '/admin/ward-visits', icon: '🚶' },
-      { name: 'Clusters', href: '/admin/clusters', icon: '🏢' },
-      { name: 'Cluster Visits', href: '/admin/cluster-visits', icon: '📍' },
-      { name: 'Surveys', href: '/admin/docker-surveys', icon: '🗂️' },
-      { name: 'Forms', href: '/admin/forms', icon: '📝' },
-      { name: 'Ward Advance Data', href: '/admin/ward-basic-forms', icon: '📋' },
-      { name: 'Recurring Questions', href: '/admin/recurring-questions', icon: '🔄' },
-      { name: 'Reports', href: '/admin/reports', icon: '📈' },
-      { name: 'Recurring Exports', href: '/admin/recurring-exports', icon: '📤' },
-      { name: 'Activity Logs', href: '/admin/logs', icon: '📋' },
-      { name: 'Instructions', href: '/admin/instructions', icon: '📋' },
-      { name: 'Documents', href: '/admin/documents', icon: '📄' },
-      { name: 'System Status', href: '/admin/system-status', icon: '⚡' },
-      { name: 'Reset Password', href: '/reset-password', icon: '🔐' },
-    ],
-    coordinator: [
-      { name: 'Dashboard', href: '/', icon: '📊' },
-      { name: 'Submit Reports', href: '/coordinator/reports/submit', icon: '📝' },
-      { name: 'My Reports', href: '/coordinator/reports', icon: '📈' },
-      { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
-      { name: 'Ward Status', href: '/coordinator/ward-status', icon: '🔍' },
-      { name: 'Ward Profile', href: '/coordinator/wards', icon: '🏘️' },
-      { name: 'Ward Visits', href: '/coordinator/ward-visits', icon: '🚶' },
-      { name: 'Clusters', href: '/coordinator/clusters', icon: '🏢' },
-      { name: 'Cluster Visits', href: '/coordinator/cluster-visits', icon: '📍' },
-      { name: 'Surveys', href: '/coordinator/docker-surveys', icon: '🗂️' },
-      { name: 'Instructions', href: '/instructions', icon: '📋' },
-      { name: 'Documents', href: '/documents', icon: '📄' },
-      { name: 'Reset PIN', href: '/reset-password', icon: '🔐' },
-    ],
-    wardAdmin: [
-      { name: 'Dashboard', href: '/', icon: '📊' },
-      { name: 'Submit Reports', href: '/ward/reports/submit', icon: '📝' },
-      { name: 'My Reports', href: '/ward/reports', icon: '📈' },
-      { name: 'Ward Visits Record', href: '/ward/ward-visits', icon: '🚶' },
-      { name: 'Ward Profile', href: '/ward/profile', icon: '📋' },
-      { name: 'Manage Clusters', href: '/ward/clusters', icon: '🏢' },
-      { name: 'Cluster Visits', href: '/ward/cluster-visits', icon: '📍' },
-      { name: 'Survey', href: '/ward/docker-survey', icon: '🗂️' },
-      { name: 'Instructions', href: '/instructions', icon: '📋' },
-      { name: 'Documents', href: '/documents', icon: '📄' },
-      { name: 'Reset PIN', href: '/reset-password', icon: '🔐' },
-    ],
-  };
-
-  const userNavigation = navigation[session.user.role] || [];
-
-  const isCurrentPath = (href) => {
-    return router.pathname === href;
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:relative lg:flex lg:flex-col`}>
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:relative lg:flex lg:flex-col`}>
         <div className="flex items-center justify-center h-16 px-4 bg-green-600">
           <Logo size="md" showText={true} />
         </div>
         
-        <nav className="mt-8">
-          <div className="px-4 mb-6">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Navigation</p>
-          </div>
-          
-          {userNavigation.map((navItem) => (
-            <Link
-              key={navItem.name}
-              href={navItem.href}
-              className={`flex items-center px-6 py-3 text-sm font-medium transition-colors duration-150 hover:bg-gray-50 hover:text-green-600 ${
-                isCurrentPath(navItem.href)
-                  ? 'bg-green-50 text-green-600 border-r-2 border-green-600'
-                  : 'text-gray-700'
-              }`}
-            >
-              <span className="mr-3">{navItem.icon}</span>
-              {navItem.name}
-            </Link>
-          ))}
-        </nav>
+        <MenuManager 
+          userRole={session?.user?.role} 
+          onItemClick={handleMenuItemClick}
+        />
       </div>
 
       {/* Main content */}
@@ -106,8 +66,8 @@ const Layout = ({ children }) => {
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           <button
             type="button"
-            className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="-m-2.5 p-2.5 text-gray-700 hover:text-gray-900 transition-colors lg:hidden"
+            onClick={handleSidebarToggle}
           >
             <span className="sr-only">Open sidebar</span>
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
@@ -149,8 +109,8 @@ const Layout = ({ children }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => signOut()}
-                    className="ml-4 text-sm text-gray-500 hover:text-gray-700"
+                    onClick={handleSignOut}
+                    className="ml-4 px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     Sign out
                   </button>
@@ -175,8 +135,11 @@ const Layout = ({ children }) => {
           onClick={() => setSidebarOpen(false)}
         />
       )}
+
     </div>
   );
-};
+});
+
+Layout.displayName = 'Layout';
 
 export default Layout;

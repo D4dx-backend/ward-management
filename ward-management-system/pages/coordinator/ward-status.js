@@ -6,6 +6,8 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function CoordinatorWardStatus() {
   const { data: session, status } = useSession();
@@ -329,12 +331,10 @@ export default function CoordinatorWardStatus() {
     return summary;
   };
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
+        <ShimmerDashboard />
       </Layout>
     );
   }

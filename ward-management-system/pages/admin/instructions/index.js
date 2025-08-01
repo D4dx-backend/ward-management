@@ -7,6 +7,8 @@ import FileUpload from '../../../components/FileUpload';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Modal from '../../../components/Modal';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
+import { useApiData } from '../../../hooks/useApiData';
 
 export default function AdminInstructions() {
   const { data: session, status } = useSession();
@@ -212,9 +214,7 @@ export default function AdminInstructions() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-        </div>
+        <ShimmerDashboard />
       </Layout>
     );
   }

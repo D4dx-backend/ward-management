@@ -8,6 +8,8 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import DeleteModal from '../../components/DeleteModal';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
@@ -244,9 +246,9 @@ export default function RecurringQuestions() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 

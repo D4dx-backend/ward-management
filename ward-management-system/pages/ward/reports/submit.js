@@ -9,6 +9,8 @@ import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import FormRenderer from '../../../components/FormRenderer';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
+import { useApiData } from '../../../hooks/useApiData';
 
 
 export default function SubmitWardReport() {
@@ -329,8 +331,12 @@ export default function SubmitWardReport() {
 
 
 
-  if (status === 'loading' || isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (isLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   return (

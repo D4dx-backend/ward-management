@@ -1,5 +1,8 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
+import Layout from '../../components/Layout';
 
 export default function CoordinatorInstructionsRedirect() {
   const router = useRouter();
@@ -9,8 +12,8 @@ export default function CoordinatorInstructionsRedirect() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-    </div>
-  );
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
 }

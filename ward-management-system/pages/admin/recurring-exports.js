@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/Layout';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function RecurringExports() {
   const { data: session, status } = useSession();
@@ -96,12 +98,10 @@ export default function RecurringExports() {
     }
   };
 
-  if (status === 'loading' || loading) {
+  if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-        </div>
+        <ShimmerDashboard />
       </Layout>
     );
   }

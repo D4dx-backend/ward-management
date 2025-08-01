@@ -6,6 +6,8 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function InstructionDetail() {
   const { data: session, status } = useSession();
@@ -28,15 +30,42 @@ export default function InstructionDetail() {
     }
   }, [status, id, router]);
 
+  // Set default comment type based on admin settings
+  useEffect(() => {
+    if (instruction) {
+      // If only private comments are allowed, force individual + private
+      if (!instruction.allowPublicComments && instruction.allowPrivateComments) {
+        setCommentType('individual');
+        setIsPrivate(true);
+      }
+      // If only public comments are allowed, force thread (public)
+      else if (instruction.allowPublicComments && !instruction.allowPrivateComments) {
+        setCommentType('thread');
+        setIsPrivate(false);
+      }
+      // If both are allowed, default to thread (public) but user can choose
+      else if (instruction.allowPublicComments && instruction.allowPrivateComments) {
+        setCommentType('thread');
+        setIsPrivate(false);
+      }
+    }
+  }, [instruction]);
+
+
+
   const fetchInstruction = async () => {
+    console.log('Fetching instruction with ID:', id);
     setIsLoading(true);
     try {
       const response = await axios.get(`/api/instructions/${id}`);
+      console.log('Instruction fetched successfully:', response.data);
       setInstruction(response.data);
       setError('');
     } catch (error) {
       console.error('Error fetching instruction:', error);
-      setError('Failed to fetch instruction');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      setError(error.response?.data?.error || error.message || 'Failed to fetch instruction');
     } finally {
       setIsLoading(false);
     }
@@ -46,19 +75,46 @@ export default function InstructionDetail() {
     e.preventDefault();
     if (!replyMessage.trim()) return;
 
+    // Determine final comment type and privacy based on admin settings
+    let finalCommentType = commentType;
+    let finalIsPrivate = isPrivate;
+
+    // Force settings based on what admin allows
+    if (!instruction.allowPublicComments && instruction.allowPrivateComments) {
+      // Only private allowed - force individual + private
+      finalCommentType = 'individual';
+      finalIsPrivate = true;
+    } else if (instruction.allowPublicComments && !instruction.allowPrivateComments) {
+      // Only public allowed - force thread + public
+      finalCommentType = 'thread';
+      finalIsPrivate = false;
+    }
+    // If both are allowed, use user's selection
+
     setIsSubmittingReply(true);
     try {
       const response = await axios.post(`/api/instructions/${id}`, {
         action: 'reply',
         message: replyMessage.trim(),
-        commentType,
-        isPrivate,
+        commentType: finalCommentType,
+        isPrivate: finalIsPrivate,
         parentReply: replyingTo
       });
       setInstruction(response.data);
       setReplyMessage('');
-      setCommentType('thread');
-      setIsPrivate(false);
+      
+      // Reset to appropriate default based on admin settings
+      if (!instruction.allowPublicComments && instruction.allowPrivateComments) {
+        setCommentType('individual');
+        setIsPrivate(true);
+      } else if (instruction.allowPublicComments && !instruction.allowPrivateComments) {
+        setCommentType('thread');
+        setIsPrivate(false);
+      } else {
+        setCommentType('thread');
+        setIsPrivate(false);
+      }
+      
       setReplyingTo(null);
       setError('');
     } catch (error) {
@@ -82,12 +138,14 @@ export default function InstructionDetail() {
   };
 
   const canSeePrivateComment = (reply) => {
+    // Public comments are visible to everyone
     if (!reply.isPrivate) return true;
     
-    // Admin can see all private comments
-    if (session?.user?.role === 'stateAdmin') return true;
-    
-    // User can see their own private comments
+    // Private comments are visible to:
+    // - State admins (can see all)
+    // - Coordinators (can see all) - as per admin settings
+    // - The comment author (can see their own)
+    if (session?.user?.role === 'stateAdmin' || session?.user?.role === 'coordinator') return true;
     if (reply.user?._id === session?.user?.id) return true;
     
     return false;
@@ -107,15 +165,36 @@ export default function InstructionDetail() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString) return 'Date not available';
+    
+    // Handle various date formats
+    let date;
+    if (typeof dateString === 'string') {
+      date = new Date(dateString);
+    } else if (dateString instanceof Date) {
+      date = dateString;
+    } else {
+      return 'Invalid date format';
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    try {
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Date formatting error';
+    }
   };
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -283,15 +362,16 @@ export default function InstructionDetail() {
               )}
             </div>
 
-            {/* Replies Section */}
+            {/* Replies Section - Only show if comments are allowed */}
             {instruction.allowReplies && (
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">
                   Comments & Replies ({instruction.replies?.length || 0})
                 </h3>
 
-                {/* Reply Form */}
-                <form onSubmit={handleReplySubmit} className="mb-6">
+                {/* Show comment form only if at least one comment type is allowed */}
+                {(instruction.allowPublicComments || instruction.allowPrivateComments) ? (
+                  <form onSubmit={handleReplySubmit} className="mb-6">
                   {replyingTo && (
                     <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <div className="flex justify-between items-center">
@@ -324,53 +404,82 @@ export default function InstructionDetail() {
                     />
                   </div>
 
-                  {/* Comment Options */}
+                  {/* Comment Options - Dynamically shown based on Admin Settings */}
                   <div className="mb-4 space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Comment Type
-                      </label>
-                      <div className="flex space-x-4">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="commentType"
-                            value="thread"
-                            checked={commentType === 'thread'}
-                            onChange={(e) => setCommentType(e.target.value)}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Thread Reply (Public)</span>
-                        </label>
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="commentType"
-                            value="individual"
-                            checked={commentType === 'individual'}
-                            onChange={(e) => setCommentType(e.target.value)}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">Individual Comment</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    {commentType === 'individual' && (
+                    {/* Show comment type selection only if user has choices */}
+                    {(instruction.allowPublicComments && instruction.allowPrivateComments) ? (
+                      /* Both public and private are allowed - show all options */
                       <div>
-                        <label className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={isPrivate}
-                            onChange={(e) => setIsPrivate(e.target.checked)}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">
-                            Private comment (only visible to admin and you)
-                          </span>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Comment Type
                         </label>
+                        <div className="flex space-x-4">
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="commentType"
+                              value="thread"
+                              checked={commentType === 'thread'}
+                              onChange={(e) => setCommentType(e.target.value)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Thread Reply (Public)</span>
+                          </label>
+                          <label className="flex items-center">
+                            <input
+                              type="radio"
+                              name="commentType"
+                              value="individual"
+                              checked={commentType === 'individual'}
+                              onChange={(e) => setCommentType(e.target.value)}
+                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">Individual Comment</span>
+                          </label>
+                        </div>
+                        
+                        {/* Show private checkbox for individual comments */}
+                        {commentType === 'individual' && (
+                          <div className="mt-2">
+                            <label className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={isPrivate}
+                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">
+                                Private comment (only coordinators & state admin can see)
+                              </span>
+                            </label>
+                          </div>
+                        )}
+                        
+                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          ✓ Both public and private comments are allowed
+                        </div>
                       </div>
-                    )}
+                    ) : instruction.allowPublicComments && !instruction.allowPrivateComments ? (
+                      /* Only public comments allowed */
+                      <div>
+                        <div className="text-sm text-gray-700 mb-2">
+                          <span className="font-medium">Comment Type:</span> Public (everyone can see)
+                        </div>
+                        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                          ℹ️ Only public comments are allowed for this instruction
+                        </div>
+                      </div>
+                    ) : !instruction.allowPublicComments && instruction.allowPrivateComments ? (
+                      /* Only private comments allowed */
+                      <div>
+                        <div className="text-sm text-gray-700 mb-2">
+                          <span className="font-medium">Comment Type:</span> Private (only coordinators & state admin can see)
+                        </div>
+                        <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                          🔒 Only private comments are allowed for this instruction
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex space-x-3">
@@ -409,6 +518,20 @@ export default function InstructionDetail() {
                     )}
                   </div>
                 </form>
+                ) : (
+                  /* Show message when comments are enabled but no comment types are allowed */
+                  <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-center">
+                    <div className="flex items-center justify-center mb-2">
+                      <svg className="w-5 h-5 text-yellow-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <span className="text-sm font-medium text-yellow-800">Comments Restricted</span>
+                    </div>
+                    <p className="text-sm text-yellow-700">
+                      Comments are enabled for this instruction, but the administrator has not allowed any comment types.
+                    </p>
+                  </div>
+                )}
 
                 {/* Existing Replies */}
                 <div className="space-y-4">
@@ -545,6 +668,8 @@ export default function InstructionDetail() {
                 </div>
               </div>
             )}
+
+            {/* Comment section is hidden when comments are restricted */}
           </div>
         </Card>
       </div>

@@ -7,6 +7,8 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import DragDropField from '../../../components/DragDropField';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
+import { useApiData } from '../../../hooks/useApiData';
 
 export default function CreateForm() {
   const { data: session, status } = useSession();
@@ -387,7 +389,11 @@ export default function CreateForm() {
   };
 
   if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   return (

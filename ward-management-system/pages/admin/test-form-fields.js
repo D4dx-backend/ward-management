@@ -5,6 +5,8 @@ import Head from 'next/head';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function TestFormFields() {
   const { data: session, status } = useSession();
@@ -19,7 +21,11 @@ export default function TestFormFields() {
   });
 
   if (status === 'loading') {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
   }
 
   if (status === 'unauthenticated') {

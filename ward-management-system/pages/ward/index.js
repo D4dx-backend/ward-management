@@ -3,7 +3,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
@@ -13,23 +12,37 @@ import PendingReports from '../../components/PendingReports';
 import InstructionModal from '../../components/InstructionModal';
 import ReportModal from '../../components/ReportModal';
 import PendingFormModal from '../../components/PendingFormModal';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData, useDashboardData } from '../../hooks/useApiData';
 
 export default function WardAdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [stats, setStats] = useState({
-    reportsSubmitted: 0,
-    pendingReports: 0,
-    totalClusters: 0,
-    instructions: 0
-  });
-  const [recentReports, setRecentReports] = useState([]);
   const [pendingReportsList, setPendingReportsList] = useState([]);
   const [recentInstructions, setRecentInstructions] = useState([]);
-  const [userInfo, setUserInfo] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   
+  // Use the dashboard data hook with caching
+  const { stats, recentReports, loading, error: dataError, refetch } = useDashboardData('wardAdmin');
+  
+  // Fetch user info with caching
+  const { data: userInfo, loading: userLoading } = useApiData(
+    session?.user?.id ? `/api/users/${session.user.id}` : null,
+    {
+      cacheKey: `user-${session?.user?.id}`,
+      enabled: !!session?.user?.id
+    }
+  );
+
+  // Fetch instructions with caching
+  const { data: instructionsData, loading: instructionsLoading } = useApiData(
+    '/api/instructions?limit=5',
+    {
+      cacheKey: 'recent-instructions',
+      cacheTTL: 10 * 60 * 1000 // 10 minutes
+    }
+  );
+
   // Modal states
   const [selectedInstruction, setSelectedInstruction] = useState(null);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -44,8 +57,14 @@ export default function WardAdminDashboard() {
   };
 
   const handleRecentReportClick = (report) => {
-    setSelectedReport(report);
-    setShowReportModal(true);
+    // Navigate to the report view page instead of opening a modal
+    if (report._id) {
+      router.push(`/ward/reports/view/${report._id}`);
+    } else {
+      // For sample data without real IDs, still show modal
+      setSelectedReport(report);
+      setShowReportModal(true);
+    }
   };
 
   const handleInstructionClick = (instruction) => {
@@ -79,70 +98,44 @@ export default function WardAdminDashboard() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchDashboardData();
     }
   }, [status, session, router]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch dashboard statistics, reports, instructions and user info
-      const [statsResponse, reportsResponse, userResponse, instructionsResponse] = await Promise.all([
-        axios.get('/api/dashboard/stats').catch(() => ({ data: { stats: {} } })),
-        axios.get('/api/responses?limit=5').catch(() => ({ data: [] })),
-        axios.get(`/api/users/${session.user.id}`).catch(() => ({ data: {} })),
-        axios.get('/api/instructions?limit=5').catch(() => ({ data: [] }))
-      ]);
-      
-      const apiStats = statsResponse.data.stats || statsResponse.data;
-      const pendingForms = apiStats.pendingReportsList || apiStats.pendingFormsList || [];
-      const recentReportsData = statsResponse.data.recentReports || reportsResponse.data || [];
-      
-      // Filter pending reports for ward admin
+  useEffect(() => {
+    if (dataError) {
+      setError('Failed to load dashboard data');
+    }
+  }, [dataError]);
+
+  useEffect(() => {
+    // Set additional data from stats and instructions
+    if (stats) {
+      const pendingForms = stats.pendingReportsList || stats.pendingFormsList || [];
       const wardPendingReports = pendingForms.filter(form => 
         form.formType === 'wardReport' && 
-        (!form.responses || !form.responses.some(r => r.respondent === session.user.id))
+        (!form.responses || !form.responses.some(r => r.respondent === session?.user?.id))
       );
-      
-      setStats({
-        reportsSubmitted: apiStats.totalReports || apiStats.reports || recentReportsData.length || 0,
-        pendingReports: wardPendingReports.length,
-        totalClusters: userResponse.data.ward?.clusters?.length || apiStats.clusters || 4,
-        instructions: apiStats.instructions || 7
-      });
-      
-      setRecentReports(recentReportsData);
       setPendingReportsList(wardPendingReports);
-      setRecentInstructions(instructionsResponse.data || []);
-      setUserInfo(userResponse.data);
-      setError('');
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
-      
-      // Set fallback data
-      setStats({
-        reportsSubmitted: 0,
-        pendingReports: 0,
-        totalClusters: 4,
-        instructions: 7
-      });
-      setRecentReports([]);
-      setPendingReportsList([]);
-      setRecentInstructions([]);
-      setUserInfo(null);
-    } finally {
-      setIsLoading(false);
     }
-  };
+    
+    if (instructionsData) {
+      setRecentInstructions(instructionsData);
+    }
+  }, [stats, instructionsData, session?.user?.id]);
 
-  if (status === 'loading' || isLoading) {
+  if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
+    );
+  }
+
+  if (loading || userLoading || instructionsLoading) {
+    return (
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -285,7 +278,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Submitted</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.reportsSubmitted}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats?.reportsSubmitted || stats?.totalReports || recentReports?.length || 0}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -305,7 +298,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Pending Reports</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.pendingReports}</p>
+                <p className="text-2xl font-bold text-gray-900">{pendingReportsList?.length || 0}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -325,7 +318,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Total Clusters</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalClusters}</p>
+                <p className="text-2xl font-bold text-gray-900">{userInfo?.ward?.clusters?.length || stats?.totalClusters || 4}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -345,7 +338,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Instructions</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats.instructions}</p>
+                <p className="text-2xl font-bold text-gray-900">{recentInstructions?.length || stats?.instructions || 7}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

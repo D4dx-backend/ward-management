@@ -7,6 +7,8 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 export default function AdminInstructions() {
   const { data: session, status } = useSession();
@@ -96,19 +98,14 @@ export default function AdminInstructions() {
         [name]: type === 'checkbox' ? checked : value
       };
       
-      // If disabling comments, reset comment type settings
+      // If disabling comments entirely, reset comment type settings to default (both enabled)
       if (name === 'allowReplies' && !checked) {
         newData.allowPublicComments = true;
         newData.allowPrivateComments = true;
       }
       
-      // If disabling both comment types, enable public comments
-      if (name === 'allowPublicComments' && !checked && !prev.allowPrivateComments) {
-        newData.allowPrivateComments = true;
-      }
-      if (name === 'allowPrivateComments' && !checked && !prev.allowPublicComments) {
-        newData.allowPublicComments = true;
-      }
+      // Allow admin to disable both comment types if they want to
+      // This will create the scenario where comments are enabled but no comment types are allowed
       
       return newData;
     });
@@ -214,8 +211,29 @@ export default function AdminInstructions() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString) return 'Date not available';
+    
+    // Handle various date formats
+    let date;
+    if (typeof dateString === 'string') {
+      date = new Date(dateString);
+    } else if (dateString instanceof Date) {
+      date = dateString;
+    } else {
+      return 'Invalid date format';
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date';
+    }
+    
+    try {
+      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Date formatting error';
+    }
   };
 
   // Filter wards based on search
@@ -233,9 +251,9 @@ export default function AdminInstructions() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-      </div>
+      <Layout>
+        <ShimmerDashboard />
+      </Layout>
     );
   }
 
@@ -704,8 +722,8 @@ export default function AdminInstructions() {
                     </label>
 
                     {!formData.allowPublicComments && !formData.allowPrivateComments && (
-                      <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
-                        ⚠️ At least one comment type should be enabled if comments are allowed
+                      <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+                        ⚠️ Comments are enabled but no comment types are allowed. Users will see a message that comments are enabled but cannot post comments.
                       </div>
                     )}
                   </div>

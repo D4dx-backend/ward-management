@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import Button from './Button';
 
-export default function ClusterTableManager({ wardId, onSave, initialClusters = [] }) {
+const ClusterTableManager = memo(({ wardId, onSave, initialClusters = [] }) => {
   const [clusters, setClusters] = useState(
     initialClusters.length > 0 
       ? initialClusters 
@@ -9,61 +9,67 @@ export default function ClusterTableManager({ wardId, onSave, initialClusters = 
   );
   const [errors, setErrors] = useState({});
 
-  const addCluster = () => {
-    setClusters([
-      ...clusters,
+  const addCluster = useCallback(() => {
+    setClusters(prev => [
+      ...prev,
       { name: '', clusterNumber: '', coordinator: { name: '', mobileNumber: '' }, isActive: true }
     ]);
-  };
+  }, []);
 
-  const removeCluster = (index) => {
+  const removeCluster = useCallback((index) => {
     if (clusters.length > 1) {
-      const newClusters = clusters.filter((_, i) => i !== index);
-      setClusters(newClusters);
+      setClusters(prev => prev.filter((_, i) => i !== index));
       
       // Remove errors for this index
-      const newErrors = { ...errors };
-      Object.keys(newErrors).forEach(key => {
-        if (key.startsWith(`${index}.`)) {
-          delete newErrors[key];
-        }
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        Object.keys(newErrors).forEach(key => {
+          if (key.startsWith(`${index}.`)) {
+            delete newErrors[key];
+          }
+        });
+        return newErrors;
       });
-      setErrors(newErrors);
     }
-  };
+  }, [clusters.length]);
 
-  const updateCluster = (index, field, value) => {
-    const newClusters = [...clusters];
-    
-    if (field.includes('.')) {
-      // Handle nested fields like coordinator.name
-      const [parent, child] = field.split('.');
-      newClusters[index] = {
-        ...newClusters[index],
-        [parent]: {
-          ...newClusters[index][parent],
-          [child]: value
-        }
-      };
-    } else {
-      newClusters[index] = {
-        ...newClusters[index],
-        [field]: value
-      };
-    }
-    
-    setClusters(newClusters);
+  const updateCluster = useCallback((index, field, value) => {
+    setClusters(prev => {
+      const newClusters = [...prev];
+      
+      if (field.includes('.')) {
+        // Handle nested fields like coordinator.name
+        const [parent, child] = field.split('.');
+        newClusters[index] = {
+          ...newClusters[index],
+          [parent]: {
+            ...newClusters[index][parent],
+            [child]: value
+          }
+        };
+      } else {
+        newClusters[index] = {
+          ...newClusters[index],
+          [field]: value
+        };
+      }
+      
+      return newClusters;
+    });
     
     // Clear error for this field
     const errorKey = `${index}.${field}`;
-    if (errors[errorKey]) {
-      const newErrors = { ...errors };
-      delete newErrors[errorKey];
-      setErrors(newErrors);
-    }
-  };
+    setErrors(prev => {
+      if (prev[errorKey]) {
+        const newErrors = { ...prev };
+        delete newErrors[errorKey];
+        return newErrors;
+      }
+      return prev;
+    });
+  }, []);
 
-  const validateClusters = () => {
+  const validateClusters = useCallback(() => {
     const newErrors = {};
     let isValid = true;
 
@@ -79,19 +85,11 @@ export default function ClusterTableManager({ wardId, onSave, initialClusters = 
         isValid = false;
       }
       
-      // Coordinator name is now optional
-      // if (!cluster.coordinator.name.trim()) {
-      //   newErrors[`${index}.coordinator.name`] = 'Coordinator name is required';
-      //   isValid = false;
-      // }
-      
       // Validate mobile number (10 digits)
       if (cluster.coordinator.mobileNumber && !/^\d{10}$/.test(cluster.coordinator.mobileNumber)) {
         newErrors[`${index}.coordinator.mobileNumber`] = 'Mobile number must be exactly 10 digits';
         isValid = false;
       }
-      
-      // Email field removed - no validation needed
     });
 
     // Check for duplicate cluster numbers
@@ -109,30 +107,36 @@ export default function ClusterTableManager({ wardId, onSave, initialClusters = 
 
     setErrors(newErrors);
     return isValid;
-  };
+  }, [clusters]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (validateClusters()) {
       const validClusters = clusters.filter(cluster => 
         cluster.name.trim() && cluster.clusterNumber.trim()
       );
       onSave(validClusters);
     }
-  };
+  }, [validateClusters, clusters, onSave]);
 
-  const getErrorMessage = (index, field) => {
+  const getErrorMessage = useCallback((index, field) => {
     return errors[`${index}.${field}`];
-  };
+  }, [errors]);
+
+  const hasErrors = useMemo(() => Object.keys(errors).length > 0, [errors]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-gray-900">Cluster Management</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Cluster Management</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            Add and configure clusters for this ward
+          </p>
+        </div>
         <Button
           type="button"
           variant="outline"
           onClick={addCluster}
-          className="flex items-center"
         >
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -274,7 +278,7 @@ export default function ClusterTableManager({ wardId, onSave, initialClusters = 
         </Button>
       </div>
 
-      {Object.keys(errors).length > 0 && (
+      {hasErrors && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -290,4 +294,8 @@ export default function ClusterTableManager({ wardId, onSave, initialClusters = 
       )}
     </div>
   );
-}
+});
+
+ClusterTableManager.displayName = 'ClusterTableManager';
+
+export default ClusterTableManager;

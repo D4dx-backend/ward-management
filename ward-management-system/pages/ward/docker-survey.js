@@ -5,6 +5,8 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import axios from 'axios';
+import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { useApiData } from '../../hooks/useApiData';
 
 const questionLabels = {
   populationCensus: 'ജനസംഖ്യാഗമാസ്ത്രം',
@@ -187,9 +189,7 @@ export default function DockerSurvey() {
   if (loading) {
     return (
       <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-        </div>
+        <ShimmerDashboard />
       </Layout>
     );
   }
