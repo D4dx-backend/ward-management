@@ -10,6 +10,7 @@ import Button from '../../../components/Button';
 import FormRenderer from '../../../components/FormRenderer';
 import { motion, AnimatePresence } from 'framer-motion';
 
+
 export default function SubmitWardReport() {
   const { data: session, status } = useSession();
   const router = useRouter();
