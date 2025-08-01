@@ -11,6 +11,22 @@ const instructionReplySchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  commentType: {
+    type: String,
+    enum: ['thread', 'individual'],
+    default: 'thread'
+  },
+  // For individual comments - only visible to admin and specific user
+  isPrivate: {
+    type: Boolean,
+    default: false
+  },
+  // Parent reply for threading
+  parentReply: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InstructionReply',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -89,6 +105,23 @@ const instructionSchema = new mongoose.Schema({
   allowReplies: {
     type: Boolean,
     default: true
+  },
+  // Read tracking for users
+  readBy: [{
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    readAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  // Enhanced targeting options
+  targetGroups: {
+    type: String,
+    enum: ['all_coordinators', 'all_ward_admins', 'specific_coordinators', 'specific_ward_admins', 'individual_user'],
+    default: null
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

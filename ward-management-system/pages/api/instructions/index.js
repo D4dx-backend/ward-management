@@ -28,7 +28,10 @@ export default async function handler(req, res) {
           { targetAudience: 'coordinators' },
           { targetCoordinators: session.user.id },
           { targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } },
-          { targetAudience: 'ward_or_group', targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } }
+          { targetAudience: 'ward_or_group', targetWards: { $in: await Ward.find({ coordinator: session.user.id }).distinct('_id') } },
+          { targetGroups: 'all_coordinators' },
+          { targetGroups: 'specific_coordinators', targetCoordinators: session.user.id },
+          { targetGroups: 'individual_user', targetCoordinators: session.user.id }
         ];
       } else if (session.user.role === 'wardAdmin') {
         const user = await User.findById(session.user.id);
@@ -37,7 +40,10 @@ export default async function handler(req, res) {
           { targetAudience: 'all' },
           { targetAudience: 'ward_admins' },
           { targetWards: ward ? ward._id : null },
-          { targetAudience: 'ward_or_group', targetWards: ward ? ward._id : null }
+          { targetAudience: 'ward_or_group', targetWards: ward ? ward._id : null },
+          { targetGroups: 'all_ward_admins' },
+          { targetGroups: 'specific_ward_admins', targetWards: ward ? ward._id : null },
+          { targetGroups: 'individual_user', targetCoordinators: session.user.id }
         ].filter(condition => condition.targetWards !== null);
       } else if (targetAudience && targetAudience !== 'all') {
         query.targetAudience = targetAudience;
@@ -98,6 +104,9 @@ export default async function handler(req, res) {
           }
         }
         
+        // Check if user has read this instruction
+        const hasRead = obj.readBy && obj.readBy.some(read => read.user.toString() === session.user.id);
+        
         return {
           _id: obj._id || `fallback-${index}`,
           title: cleanTitle,
@@ -106,6 +115,7 @@ export default async function handler(req, res) {
           targetAudience: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
           targetWards: obj.targetWards || [],
           targetCoordinators: obj.targetCoordinators || [],
+          targetGroups: obj.targetGroups || null,
           fileUrl: obj.fileUrl || null,
           fileName: obj.fileName || null,
           isHighlighted: Boolean(obj.isHighlighted),
@@ -117,6 +127,8 @@ export default async function handler(req, res) {
             stateAdminViews: 0
           },
           replies: obj.replies || [],
+          readBy: obj.readBy || [],
+          isRead: hasRead,
           createdAt: obj.createdAt || new Date(),
           createdBy: obj.createdBy || null
         };
@@ -180,6 +192,7 @@ export default async function handler(req, res) {
         targetAudience, 
         targetWards, 
         targetCoordinators, 
+        targetGroups,
         priority, 
         isHighlighted, 
         allowReplies 
@@ -215,6 +228,7 @@ export default async function handler(req, res) {
         targetAudience: validatedAudience,
         targetWards: targetWards || [],
         targetCoordinators: targetCoordinators || [],
+        targetGroups: targetGroups || null,
         priority: validatedPriority,
         isHighlighted: Boolean(isHighlighted),
         allowReplies: allowReplies !== false,

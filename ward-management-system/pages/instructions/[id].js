@@ -16,6 +16,9 @@ export default function InstructionDetail() {
   const [error, setError] = useState('');
   const [replyMessage, setReplyMessage] = useState('');
   const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+  const [commentType, setCommentType] = useState('thread');
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -47,10 +50,16 @@ export default function InstructionDetail() {
     try {
       const response = await axios.post(`/api/instructions/${id}`, {
         action: 'reply',
-        message: replyMessage.trim()
+        message: replyMessage.trim(),
+        commentType,
+        isPrivate,
+        parentReply: replyingTo
       });
       setInstruction(response.data);
       setReplyMessage('');
+      setCommentType('thread');
+      setIsPrivate(false);
+      setReplyingTo(null);
       setError('');
     } catch (error) {
       console.error('Error submitting reply:', error);
@@ -58,6 +67,30 @@ export default function InstructionDetail() {
     } finally {
       setIsSubmittingReply(false);
     }
+  };
+
+  const handleReplyToComment = (replyId) => {
+    setReplyingTo(replyId);
+    setCommentType('thread');
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+    setReplyMessage('');
+    setCommentType('thread');
+    setIsPrivate(false);
+  };
+
+  const canSeePrivateComment = (reply) => {
+    if (!reply.isPrivate) return true;
+    
+    // Admin can see all private comments
+    if (session?.user?.role === 'stateAdmin') return true;
+    
+    // User can see their own private comments
+    if (reply.user?._id === session?.user?.id) return true;
+    
+    return false;
   };
 
   const getPriorityColor = (priority) => {
@@ -238,9 +271,26 @@ export default function InstructionDetail() {
 
                 {/* Reply Form */}
                 <form onSubmit={handleReplySubmit} className="mb-6">
+                  {replyingTo && (
+                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-blue-700">
+                          Replying to a comment
+                        </span>
+                        <button
+                          type="button"
+                          onClick={cancelReply}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="mb-3">
                     <label htmlFor="reply" className="block text-sm font-medium text-gray-700 mb-1">
-                      Add a comment or reply
+                      {replyingTo ? 'Reply to comment' : 'Add a comment or reply'}
                     </label>
                     <textarea
                       id="reply"
@@ -252,51 +302,184 @@ export default function InstructionDetail() {
                       required
                     />
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={isSubmittingReply || !replyMessage.trim()}
-                    size="sm"
-                  >
-                    {isSubmittingReply ? (
-                      <div className="flex items-center">
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Submitting...
+
+                  {/* Comment Options */}
+                  <div className="mb-4 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Comment Type
+                      </label>
+                      <div className="flex space-x-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="commentType"
+                            value="thread"
+                            checked={commentType === 'thread'}
+                            onChange={(e) => setCommentType(e.target.value)}
+                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Thread Reply (Public)</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="commentType"
+                            value="individual"
+                            checked={commentType === 'individual'}
+                            onChange={(e) => setCommentType(e.target.value)}
+                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Individual Comment</span>
+                        </label>
                       </div>
-                    ) : (
-                      <>
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                        </svg>
-                        Submit Reply
-                      </>
+                    </div>
+
+                    {commentType === 'individual' && (
+                      <div>
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={isPrivate}
+                            onChange={(e) => setIsPrivate(e.target.checked)}
+                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">
+                            Private comment (only visible to admin and you)
+                          </span>
+                        </label>
+                      </div>
                     )}
-                  </Button>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <Button
+                      type="submit"
+                      disabled={isSubmittingReply || !replyMessage.trim()}
+                      size="sm"
+                    >
+                      {isSubmittingReply ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Submitting...
+                        </div>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                          </svg>
+                          Submit {commentType === 'individual' && isPrivate ? 'Private ' : ''}Comment
+                        </>
+                      )}
+                    </Button>
+                    
+                    {replyingTo && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelReply}
+                        size="sm"
+                      >
+                        Cancel Reply
+                      </Button>
+                    )}
+                  </div>
                 </form>
 
                 {/* Existing Replies */}
                 <div className="space-y-4">
                   {instruction.replies && instruction.replies.length > 0 ? (
-                    instruction.replies.map((reply, index) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-medium text-gray-900">{reply.user?.name || 'Anonymous'}</span>
-                          <span className="text-xs text-gray-500">
-                            {reply.user?.role && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                {reply.user.role === 'wardAdmin' ? 'Ward Admin' : 
-                                 reply.user.role === 'coordinator' ? 'Coordinator' : 
-                                 reply.user.role === 'stateAdmin' ? 'State Admin' : reply.user.role}
+                    instruction.replies
+                      .filter(reply => canSeePrivateComment(reply))
+                      .map((reply, index) => (
+                      <div 
+                        key={index} 
+                        className={`p-4 rounded-lg ${
+                          reply.isPrivate 
+                            ? 'bg-yellow-50 border border-yellow-200' 
+                            : reply.commentType === 'individual' 
+                              ? 'bg-blue-50 border border-blue-200'
+                              : 'bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-gray-900">{reply.user?.name || 'Anonymous'}</span>
+                            <span className="text-xs text-gray-500">
+                              {reply.user?.role && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
+                                  {reply.user.role === 'wardAdmin' ? 'Ward Admin' : 
+                                   reply.user.role === 'coordinator' ? 'Coordinator' : 
+                                   reply.user.role === 'stateAdmin' ? 'State Admin' : reply.user.role}
+                                </span>
+                              )}
+                              {formatDate(reply.createdAt)}
+                            </span>
+                            {reply.isPrivate && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                </svg>
+                                Private
                               </span>
                             )}
-                            {formatDate(reply.createdAt)}
-                          </span>
+                            {reply.commentType === 'individual' && !reply.isPrivate && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                Individual
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            {!reply.parentReply && (
+                              <button
+                                onClick={() => handleReplyToComment(reply._id)}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Reply
+                              </button>
+                            )}
+                          </div>
                         </div>
+                        
                         <div className="text-gray-700 whitespace-pre-wrap break-words">
                           {reply.message}
                         </div>
+
+                        {/* Show threaded replies */}
+                        {instruction.replies
+                          .filter(r => r.parentReply === reply._id && canSeePrivateComment(r))
+                          .map((threadReply, threadIndex) => (
+                          <div key={`thread-${threadIndex}`} className="mt-3 ml-6 p-3 bg-white border-l-2 border-gray-200 rounded">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="font-medium text-gray-900 text-sm">{threadReply.user?.name || 'Anonymous'}</span>
+                              <span className="text-xs text-gray-500">
+                                {threadReply.user?.role && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1">
+                                    {threadReply.user.role === 'wardAdmin' ? 'Ward Admin' : 
+                                     threadReply.user.role === 'coordinator' ? 'Coordinator' : 
+                                     threadReply.user.role === 'stateAdmin' ? 'State Admin' : threadReply.user.role}
+                                  </span>
+                                )}
+                                {formatDate(threadReply.createdAt)}
+                              </span>
+                              {threadReply.isPrivate && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Private
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-gray-700 text-sm whitespace-pre-wrap break-words">
+                              {threadReply.message}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))
                   ) : (
