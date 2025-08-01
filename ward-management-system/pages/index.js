@@ -99,11 +99,13 @@ export default function Home() {
   };
 
   const handleReportClick = (report) => {
-    // Check if it's a pending form (has formType) or a submitted report
-    if (report.formType || (report.title && !report.form)) {
+    // Check if it's a pending form (no submittedAt) or a submitted report (has submittedAt)
+    if (!report.submittedAt && (report.formType || report.title)) {
+      // This is a pending form
       setSelectedPendingForm(report);
       setShowPendingFormModal(true);
     } else {
+      // This is a submitted report
       setSelectedReport(report);
       setShowReportModal(true);
     }
