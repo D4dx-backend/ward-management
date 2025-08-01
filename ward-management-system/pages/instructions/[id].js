@@ -153,18 +153,39 @@ export default function InstructionDetail() {
       </Head>
 
       <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Instruction Details</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="outline"
+              onClick={() => router.back()}
+              className="hover:bg-gray-50"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Instruction Details</h1>
+              <p className="text-sm text-gray-600 mt-1">View and interact with this instruction</p>
+            </div>
+          </div>
+          
+          {/* Quick Actions */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{instruction?.viewCount || 0} views</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              <span>{instruction?.replies?.length || 0} comments</span>
+            </div>
           </div>
         </div>
 
@@ -394,58 +415,71 @@ export default function InstructionDetail() {
                   {instruction.replies && instruction.replies.length > 0 ? (
                     instruction.replies
                       .filter(reply => canSeePrivateComment(reply))
+                      .filter(reply => !reply.parentReply) // Only show top-level replies first
                       .map((reply, index) => (
                       <div 
-                        key={index} 
-                        className={`p-4 rounded-lg ${
+                        key={reply._id || index} 
+                        className={`p-4 rounded-lg border transition-all duration-200 ${
                           reply.isPrivate 
-                            ? 'bg-yellow-50 border border-yellow-200' 
+                            ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200 shadow-sm' 
                             : reply.commentType === 'individual' 
-                              ? 'bg-blue-50 border border-blue-200'
-                              : 'bg-gray-50'
+                              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-sm'
+                              : 'bg-white border-gray-200 shadow-sm hover:shadow-md'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-gray-900">{reply.user?.name || 'Anonymous'}</span>
-                            <span className="text-xs text-gray-500">
-                              {reply.user?.role && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                  {reply.user.role === 'wardAdmin' ? 'Ward Admin' : 
-                                   reply.user.role === 'coordinator' ? 'Coordinator' : 
-                                   reply.user.role === 'stateAdmin' ? 'State Admin' : reply.user.role}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-sm font-semibold">
+                                {reply.user?.name?.charAt(0) || 'A'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900">{reply.user?.name || 'Anonymous'}</span>
+                              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                                {reply.user?.role && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800">
+                                    {reply.user.role === 'wardAdmin' ? 'Ward Admin' : 
+                                     reply.user.role === 'coordinator' ? 'Coordinator' : 
+                                     reply.user.role === 'stateAdmin' ? 'State Admin' : reply.user.role}
+                                  </span>
+                                )}
+                                <span>{formatDate(reply.createdAt)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {reply.isPrivate && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800">
+                                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                                  </svg>
+                                  Private
                                 </span>
                               )}
-                              {formatDate(reply.createdAt)}
-                            </span>
-                            {reply.isPrivate && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                                </svg>
-                                Private
-                              </span>
-                            )}
-                            {reply.commentType === 'individual' && !reply.isPrivate && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                Individual
-                              </span>
-                            )}
+                              {reply.commentType === 'individual' && !reply.isPrivate && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800">
+                                  Individual
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="flex items-center space-x-2">
                             {!reply.parentReply && (
                               <button
                                 onClick={() => handleReplyToComment(reply._id)}
-                                className="text-xs text-blue-600 hover:text-blue-800"
+                                className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
                               >
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
                                 Reply
                               </button>
                             )}
                           </div>
                         </div>
                         
-                        <div className="text-gray-700 whitespace-pre-wrap break-words">
+                        <div className="text-gray-700 whitespace-pre-wrap break-words leading-relaxed">
                           {reply.message}
                         </div>
 
@@ -453,12 +487,19 @@ export default function InstructionDetail() {
                         {instruction.replies
                           .filter(r => r.parentReply === reply._id && canSeePrivateComment(r))
                           .map((threadReply, threadIndex) => (
-                          <div key={`thread-${threadIndex}`} className="mt-3 ml-6 p-3 bg-white border-l-2 border-gray-200 rounded">
+                          <div key={threadReply._id || `thread-${threadIndex}`} className="mt-3 ml-6 p-3 bg-white border-l-4 border-blue-200 rounded-lg shadow-sm">
                             <div className="flex items-center space-x-2 mb-2">
-                              <span className="font-medium text-gray-900 text-sm">{threadReply.user?.name || 'Anonymous'}</span>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-xs font-semibold">
+                                    {threadReply.user?.name?.charAt(0) || 'A'}
+                                  </span>
+                                </div>
+                                <span className="font-medium text-gray-900 text-sm">{threadReply.user?.name || 'Anonymous'}</span>
+                              </div>
                               <span className="text-xs text-gray-500">
                                 {threadReply.user?.role && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 mr-2">
                                     {threadReply.user.role === 'wardAdmin' ? 'Ward Admin' : 
                                      threadReply.user.role === 'coordinator' ? 'Coordinator' : 
                                      threadReply.user.role === 'stateAdmin' ? 'State Admin' : threadReply.user.role}
@@ -467,7 +508,7 @@ export default function InstructionDetail() {
                                 {formatDate(threadReply.createdAt)}
                               </span>
                               {threadReply.isPrivate && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800">
                                   <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                                   </svg>
@@ -475,7 +516,7 @@ export default function InstructionDetail() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-gray-700 text-sm whitespace-pre-wrap break-words">
+                            <div className="text-gray-700 text-sm whitespace-pre-wrap break-words leading-relaxed">
                               {threadReply.message}
                             </div>
                           </div>

@@ -76,16 +76,16 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2">
                         <p className="text-sm font-medium text-gray-900 truncate">
-                          {report.form?.title || 'Unknown Form'}
+                          {report.formTemplate?.title || report.form?.title || 'Unknown Form'}
                         </p>
                         <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                           Submitted
                         </span>
                       </div>
                       <p className="text-sm text-gray-500">
-                        by {report.user?.name || 'Unknown User'}
-                        {report.user?.role && (
-                          <span className="text-gray-400"> ({report.user.role.replace('Admin', ' Admin')})</span>
+                        by {report.respondent?.name || report.user?.name || 'Unknown User'}
+                        {(report.respondent?.role || report.user?.role) && (
+                          <span className="text-gray-400"> ({(report.respondent?.role || report.user?.role).replace('Admin', ' Admin')})</span>
                         )}
                       </p>
                       {report.ward && (
@@ -107,7 +107,7 @@ const RecentReports = ({ reports = [], title = "Recent Reports", userRole = 'sta
                 {reportContent}
               </div>
             ) : (
-              <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate || report.form?._id}?responseId=${report._id}`}>
+              <Link key={report._id} href={`/admin/forms/responses/${report.formTemplate?._id || report.formTemplate || report.form?._id}?responseId=${report._id}&direct=true`}>
                 {reportContent}
               </Link>
             );

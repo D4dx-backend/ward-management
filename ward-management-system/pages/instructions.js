@@ -39,7 +39,20 @@ export default function Instructions() {
       setError('');
     } catch (error) {
       console.error('Error fetching instructions:', error);
-      setError('Failed to fetch instructions');
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      
+      let errorMessage = 'Failed to fetch instructions';
+      if (error.response?.data?.details) {
+        errorMessage += `: ${error.response.data.details}`;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setError(errorMessage);
       setInstructions([]);
     } finally {
       setIsLoading(false);
@@ -94,8 +107,24 @@ export default function Instructions() {
       
     } catch (error) {
       console.error('Error submitting reply:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to submit reply';
+      let errorMessage = 'Failed to submit reply';
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to reply to this instruction';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Instruction not found';
+      } else if (error.response?.status === 400) {
+        errorMessage = 'Invalid reply message';
+      } else if (error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      }
+      
       setError(errorMessage);
+      
+      // Clear error after 5 seconds
+      setTimeout(() => setError(''), 5000);
     } finally {
       setSubmittingReply(prev => ({ ...prev, [instructionId]: false }));
     }
@@ -179,30 +208,109 @@ export default function Instructions() {
           </div>
         )}
 
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200">
+            <div className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-blue-600">Total Instructions</p>
+                  <p className="text-2xl font-bold text-blue-900">{instructions.length}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-100 border-green-200">
+            <div className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-green-600">Total Views</p>
+                  <p className="text-2xl font-bold text-green-900">
+                    {instructions.reduce((sum, inst) => sum + (inst.viewCount || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-purple-50 to-violet-100 border-purple-200">
+            <div className="p-6">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-purple-600">Total Comments</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {instructions.reduce((sum, inst) => sum + (inst.replies?.length || 0), 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
         <div className="space-y-6">
           {instructions.length > 0 ? (
-            instructions.slice(0, 3).map((instruction, index) => (
-              <Card key={instruction._id} className={instruction.isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50' : ''}>
-                <div className="p-6">
+            instructions.map((instruction, index) => (
+              <Card key={instruction._id} className={`transition-all duration-200 hover:shadow-lg ${instruction.isHighlighted ? 'ring-2 ring-yellow-400 bg-gradient-to-br from-yellow-50 to-amber-50' : 'hover:shadow-md'}`}>
+                <div className="p-6 relative">
+                  {/* Priority indicator */}
+                  {instruction.priority === 'high' && (
+                    <div className="absolute top-4 right-4">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    </div>
+                  )}
+                  
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h2 className="text-lg font-semibold text-gray-900">
-                          {instruction.title}
-                        </h2>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
-                          {instruction.priority}
-                        </span>
-                        {instruction.isHighlighted && (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            New
+                      <div className="flex items-center space-x-3 mb-3">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            instruction.priority === 'high' ? 'bg-red-500' :
+                            instruction.priority === 'medium' ? 'bg-yellow-500' :
+                            'bg-green-500'
+                          }`}></div>
+                          <h2 className="text-xl font-bold text-gray-900">
+                            {instruction.title}
+                          </h2>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
+                            <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
+                            </svg>
+                            {instruction.priority}
                           </span>
-                        )}
-                        {index < 3 && (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                            Recent
-                          </span>
-                        )}
+                          {instruction.isHighlighted && (
+                            <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 text-white animate-pulse">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                              </svg>
+                              New
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                         <span>Created: {formatDate(instruction.createdAt)}</span>

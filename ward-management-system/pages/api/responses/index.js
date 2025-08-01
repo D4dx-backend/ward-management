@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   
   if (req.method === 'GET') {
     try {
-      const { formType, weekNumber, year, wardId, coordinatorId, coordinatorOnly } = req.query;
+      const { formType, weekNumber, year, wardId, coordinatorId, coordinatorOnly, formTemplate } = req.query;
       
       // Build query
       const query = {};
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
       if (year) query.year = parseInt(year);
       if (wardId) query.ward = wardId;
       if (coordinatorId) query.respondent = coordinatorId;
+      if (formTemplate) query.formTemplate = formTemplate;
       
       // Filter based on user role
       if (session.user.role === 'coordinator') {

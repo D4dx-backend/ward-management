@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import dbConnect from '../../../lib/mongodb';
+import connectToDatabase from '../../../lib/mongodb';
 import Instruction from '../../../models/Instruction';
 import User from '../../../models/User';
 import Ward from '../../../models/Ward';
@@ -12,13 +12,19 @@ export default async function handler(req, res) {
   res.setHeader('Expires', '0');
 
   try {
+    console.log(`Instructions API called: ${req.method} ${req.url}`);
+    
     const session = await getServerSession(req, res, authOptions);
     
     if (!session) {
+      console.log('No session found for instructions API');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    await dbConnect();
+    console.log(`User ${session.user.id} (${session.user.role}) accessing instructions API`);
+
+    await connectToDatabase();
+    console.log('Database connected successfully');
 
   if (req.method === 'GET') {
     try {
@@ -121,7 +127,7 @@ export default async function handler(req, res) {
           targetAudience: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
           targetWards: obj.targetWards || [],
           targetCoordinators: obj.targetCoordinators || [],
-          targetGroups: obj.targetGroups || null,
+          ...(obj.targetGroups && { targetGroups: obj.targetGroups }),
           fileUrl: obj.fileUrl || null,
           fileName: obj.fileName || null,
           isHighlighted: Boolean(obj.isHighlighted),
@@ -142,29 +148,15 @@ export default async function handler(req, res) {
 
       const total = await Instruction.countDocuments(query);
 
-      // If all instructions are corrupted, provide a clean sample
-      if (cleanInstructions.length === 0 || cleanInstructions.every(inst => 
-        inst.description.includes('currently unavailable due to data corruption'))) {
-        
-        const sampleInstructions = [{
-          _id: 'sample-1',
-          title: 'System Notice',
-          description: 'The instructions system is currently being updated. Please check back later for important announcements.',
-          priority: 'medium',
-          targetAudience: 'all',
-          fileUrl: null,
-          fileName: null,
-          createdAt: new Date(),
-          createdBy: null
-        }];
-        
+      // If no instructions found, return empty array
+      if (cleanInstructions.length === 0) {
         return res.status(200).json({
-          instructions: sampleInstructions,
+          instructions: [],
           pagination: {
-            page: 1,
+            page: parseInt(page),
             limit: parseInt(limit),
-            total: 1,
-            pages: 1
+            total: 0,
+            pages: 0
           }
         });
       }
@@ -180,7 +172,15 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       console.error('Error fetching instructions:', error);
-      res.status(500).json({ error: 'Failed to fetch instructions' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ 
+        error: 'Failed to fetch instructions',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   } else if (req.method === 'POST') {
     // Only state admins can create instructions
@@ -217,6 +217,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Title and description must be valid strings' });
       }
 
+      if (sanitizedTitle.length > 200) {
+        return res.status(400).json({ error: 'Title must be less than 200 characters' });
+      }
+
+      if (sanitizedDescription.length > 5000) {
+        return res.status(400).json({ error: 'Description must be less than 5000 characters' });
+      }
+
       // Validate priority
       const validPriorities = ['low', 'medium', 'high'];
       const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
@@ -234,7 +242,7 @@ export default async function handler(req, res) {
         targetAudience: validatedAudience,
         targetWards: targetWards || [],
         targetCoordinators: targetCoordinators || [],
-        targetGroups: targetGroups || null,
+        ...(targetGroups && { targetGroups }),
         priority: validatedPriority,
         isHighlighted: Boolean(isHighlighted),
         allowReplies: allowReplies !== false,
@@ -251,7 +259,15 @@ export default async function handler(req, res) {
       res.status(201).json(instruction);
     } catch (error) {
       console.error('Error creating instruction:', error);
-      res.status(500).json({ error: 'Failed to create instruction' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ 
+        error: 'Failed to create instruction',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   } else {
     res.setHeader('Allow', ['GET', 'POST']);
@@ -259,6 +275,16 @@ export default async function handler(req, res) {
   }
   } catch (error) {
     console.error('Error in instructions API:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      method: req.method,
+      url: req.url
+    });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }

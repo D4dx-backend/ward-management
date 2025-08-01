@@ -81,6 +81,22 @@ export default function CreateInstruction() {
         throw new Error('Please fill in all required fields');
       }
 
+      if (formData.title.trim().length < 3) {
+        throw new Error('Title must be at least 3 characters long');
+      }
+
+      if (formData.title.trim().length > 200) {
+        throw new Error('Title must be less than 200 characters');
+      }
+
+      if (formData.description.trim().length < 10) {
+        throw new Error('Description must be at least 10 characters long');
+      }
+
+      if (formData.description.trim().length > 5000) {
+        throw new Error('Description must be less than 5000 characters');
+      }
+
       let fileData = null;
       
       // Upload file if selected
@@ -100,8 +116,13 @@ export default function CreateInstruction() {
       };
 
       // Submit form
-      await axios.post('/api/instructions', submissionData);
-      router.push('/admin/instructions');
+      const response = await axios.post('/api/instructions', submissionData);
+      
+      if (response.status === 201) {
+        router.push('/admin/instructions');
+      } else {
+        throw new Error('Failed to create instruction');
+      }
     } catch (error) {
       setError(error.response?.data?.message || error.message);
     } finally {
@@ -148,7 +169,7 @@ export default function CreateInstruction() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Title *
+                Title * ({formData.title.length}/200)
               </label>
               <input
                 type="text"
@@ -156,10 +177,18 @@ export default function CreateInstruction() {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                maxLength={200}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  formData.title.length > 180 ? 'border-yellow-300' : 'border-gray-300'
+                }`}
                 placeholder="Enter instruction title"
                 required
               />
+              {formData.title.length > 180 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  {200 - formData.title.length} characters remaining
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -202,18 +231,26 @@ export default function CreateInstruction() {
 
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
+                Description * ({formData.description.length}/5000)
               </label>
               <textarea
                 id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                maxLength={5000}
+                className={`w-full px-3 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  formData.description.length > 4500 ? 'border-yellow-300' : 'border-gray-300'
+                }`}
                 rows="6"
                 placeholder="Enter the instruction description"
                 required
               />
+              {formData.description.length > 4500 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  {5000 - formData.description.length} characters remaining
+                </p>
+              )}
             </div>
 
             <div className="border-t border-gray-200 pt-6">
