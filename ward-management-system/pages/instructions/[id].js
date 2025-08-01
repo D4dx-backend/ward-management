@@ -404,83 +404,7 @@ export default function InstructionDetail() {
                     />
                   </div>
 
-                  {/* Comment Options - Dynamically shown based on Admin Settings */}
-                  <div className="mb-4 space-y-3">
-                    {/* Show comment type selection only if user has choices */}
-                    {(instruction.allowPublicComments && instruction.allowPrivateComments) ? (
-                      /* Both public and private are allowed - show all options */
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Comment Type
-                        </label>
-                        <div className="flex space-x-4">
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              name="commentType"
-                              value="thread"
-                              checked={commentType === 'thread'}
-                              onChange={(e) => setCommentType(e.target.value)}
-                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Thread Reply (Public)</span>
-                          </label>
-                          <label className="flex items-center">
-                            <input
-                              type="radio"
-                              name="commentType"
-                              value="individual"
-                              checked={commentType === 'individual'}
-                              onChange={(e) => setCommentType(e.target.value)}
-                              className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">Individual Comment</span>
-                          </label>
-                        </div>
-                        
-                        {/* Show private checkbox for individual comments */}
-                        {commentType === 'individual' && (
-                          <div className="mt-2">
-                            <label className="flex items-center">
-                              <input
-                                type="checkbox"
-                                checked={isPrivate}
-                                onChange={(e) => setIsPrivate(e.target.checked)}
-                                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">
-                                Private comment (only coordinators & state admin can see)
-                              </span>
-                            </label>
-                          </div>
-                        )}
-                        
-                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                          ✓ Both public and private comments are allowed
-                        </div>
-                      </div>
-                    ) : instruction.allowPublicComments && !instruction.allowPrivateComments ? (
-                      /* Only public comments allowed */
-                      <div>
-                        <div className="text-sm text-gray-700 mb-2">
-                          <span className="font-medium">Comment Type:</span> Public (everyone can see)
-                        </div>
-                        <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                          ℹ️ Only public comments are allowed for this instruction
-                        </div>
-                      </div>
-                    ) : !instruction.allowPublicComments && instruction.allowPrivateComments ? (
-                      /* Only private comments allowed */
-                      <div>
-                        <div className="text-sm text-gray-700 mb-2">
-                          <span className="font-medium">Comment Type:</span> Private (only coordinators & state admin can see)
-                        </div>
-                        <div className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
-                          🔒 Only private comments are allowed for this instruction
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
+
 
                   <div className="flex space-x-3">
                     <Button
@@ -501,7 +425,7 @@ export default function InstructionDetail() {
                           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                           </svg>
-                          Submit {commentType === 'individual' && isPrivate ? 'Private ' : ''}Comment
+                          Submit Comment
                         </>
                       )}
                     </Button>
