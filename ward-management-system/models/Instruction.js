@@ -13,10 +13,10 @@ const instructionReplySchema = new mongoose.Schema({
   },
   commentType: {
     type: String,
-    enum: ['thread', 'individual'],
-    default: 'thread'
+    enum: ['public', 'private'],
+    default: 'public'
   },
-  // For individual comments - only visible to admin and specific user
+  // For private comments - only visible to state admin and coordinators
   isPrivate: {
     type: Boolean,
     default: false
@@ -43,6 +43,7 @@ const instructionSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Optional attachment fields - not required
   fileUrl: {
     type: String,
     required: false
@@ -57,7 +58,7 @@ const instructionSchema = new mongoose.Schema({
   },
   targetAudience: {
     type: String,
-    enum: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'],
+    enum: ['all', 'ward_admins', 'coordinators', 'state_admins', 'specific_wards', 'specific_coordinators'],
     default: 'all'
   },
   // For specific targeting
@@ -103,6 +104,15 @@ const instructionSchema = new mongoose.Schema({
   },
   replies: [instructionReplySchema],
   allowReplies: {
+    type: Boolean,
+    default: true
+  },
+  // Comment type settings controlled by state admin
+  allowPublicComments: {
+    type: Boolean,
+    default: true
+  },
+  allowPrivateComments: {
     type: Boolean,
     default: true
   },

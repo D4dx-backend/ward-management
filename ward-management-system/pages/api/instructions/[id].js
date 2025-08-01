@@ -24,6 +24,24 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Instruction not found' });
       }
 
+      // Filter replies based on privacy and user role
+      const filteredReplies = instruction.replies.filter(reply => {
+        // Public comments are visible to everyone
+        if (!reply.isPrivate) return true;
+        
+        // Private comments are visible to:
+        // - State admins (can see all)
+        // - Coordinators (can see all)
+        // - The comment author
+        if (session.user.role === 'stateAdmin' || session.user.role === 'coordinator') return true;
+        if (reply.user._id.toString() === session.user.id) return true;
+        
+        return false;
+      });
+
+      // Replace replies with filtered ones
+      instruction.replies = filteredReplies;
+
       // Track view count and hierarchy stats
       instruction.viewCount = (instruction.viewCount || 0) + 1;
       
@@ -84,6 +102,8 @@ export default async function handler(req, res) {
         priority, 
         isHighlighted, 
         allowReplies,
+        allowPublicComments,
+        allowPrivateComments,
         isActive 
       } = req.body;
 
@@ -105,7 +125,7 @@ export default async function handler(req, res) {
       const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
 
       // Validate target audience
-      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'];
+      const validAudiences = ['all', 'ward_admins', 'coordinators', 'state_admins', 'specific_wards', 'specific_coordinators'];
       const validatedAudience = validAudiences.includes(targetAudience) ? targetAudience : 'all';
 
       const instruction = await Instruction.findByIdAndUpdate(
@@ -123,6 +143,8 @@ export default async function handler(req, res) {
           priority: validatedPriority,
           isHighlighted: Boolean(isHighlighted),
           allowReplies: allowReplies !== false,
+          allowPublicComments: allowPublicComments !== false,
+          allowPrivateComments: allowPrivateComments !== false,
           isActive: isActive !== false,
           updatedAt: Date.now()
         },
@@ -159,15 +181,28 @@ export default async function handler(req, res) {
         }
 
         if (!instruction.allowReplies) {
-          return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
+          return res.status(403).json({ error: 'Comments are not allowed for this instruction' });
         }
 
-        // Add the reply with enhanced features
+        // Determine comment privacy based on user role and selection
+        const isCommentPrivate = Boolean(isPrivate);
+        const validCommentType = ['public', 'private'].includes(commentType) ? commentType : 'public';
+
+        // Check if the requested comment type is allowed by the instruction settings
+        if (isCommentPrivate && !instruction.allowPrivateComments) {
+          return res.status(403).json({ error: 'Private comments are not allowed for this instruction' });
+        }
+        
+        if (!isCommentPrivate && !instruction.allowPublicComments) {
+          return res.status(403).json({ error: 'Public comments are not allowed for this instruction' });
+        }
+
+        // Add the reply with enhanced privacy features
         instruction.replies.push({
           user: session.user.id,
           message: message.trim(),
-          commentType: commentType || 'thread',
-          isPrivate: Boolean(isPrivate),
+          commentType: validCommentType,
+          isPrivate: isCommentPrivate,
           parentReply: parentReply || null,
           createdAt: new Date()
         });

@@ -124,7 +124,7 @@ export default async function handler(req, res) {
           title: cleanTitle,
           description: cleanDescription,
           priority: ['low', 'medium', 'high'].includes(obj.priority) ? obj.priority : 'medium',
-          targetAudience: ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
+          targetAudience: ['all', 'ward_admins', 'coordinators', 'state_admins', 'specific_wards', 'specific_coordinators'].includes(obj.targetAudience) ? obj.targetAudience : 'all',
           targetWards: obj.targetWards || [],
           targetCoordinators: obj.targetCoordinators || [],
           ...(obj.targetGroups && { targetGroups: obj.targetGroups }),
@@ -201,7 +201,9 @@ export default async function handler(req, res) {
         targetGroups,
         priority, 
         isHighlighted, 
-        allowReplies 
+        allowReplies,
+        allowPublicComments,
+        allowPrivateComments
       } = req.body;
 
       // Validate required fields
@@ -230,7 +232,7 @@ export default async function handler(req, res) {
       const validatedPriority = validPriorities.includes(priority) ? priority : 'medium';
 
       // Validate target audience
-      const validAudiences = ['all', 'coordinators', 'ward_admins', 'specific_wards', 'specific_coordinators', 'ward_or_group'];
+      const validAudiences = ['all', 'ward_admins', 'coordinators', 'state_admins', 'specific_wards', 'specific_coordinators'];
       const validatedAudience = validAudiences.includes(targetAudience) ? targetAudience : 'all';
 
       const instruction = new Instruction({
@@ -246,6 +248,8 @@ export default async function handler(req, res) {
         priority: validatedPriority,
         isHighlighted: Boolean(isHighlighted),
         allowReplies: allowReplies !== false,
+        allowPublicComments: allowPublicComments !== false,
+        allowPrivateComments: allowPrivateComments !== false,
         createdBy: session.user.id
       });
 

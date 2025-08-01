@@ -241,7 +241,7 @@ export default function CoordinatorDashboard() {
               </Card>
             </Link>
 
-            <Link href="/admin/cluster-visits">
+            <Link href="/coordinator/cluster-visits">
               <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
                 <div className="p-4">
                   <div className="flex items-center">

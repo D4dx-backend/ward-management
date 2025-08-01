@@ -32,6 +32,8 @@ export default function AdminInstructions() {
     targetCoordinators: [],
     isHighlighted: false,
     allowReplies: true,
+    allowPrivateComments: true,
+    allowPublicComments: true,
     specificWardOrGroup: false
   });
 
@@ -74,19 +76,42 @@ export default function AdminInstructions() {
 
   const fetchCoordinators = async () => {
     try {
-      const response = await axios.get('/api/users?role=coordinator');
-      setCoordinators(response.data.users || []);
+      const response = await axios.get('/api/users');
+      // Filter coordinators from all users since the API doesn't support role filtering
+      const allUsers = response.data || [];
+      const coordinatorUsers = allUsers.filter(user => user.role === 'coordinator');
+      setCoordinators(coordinatorUsers);
     } catch (error) {
       console.error('Error fetching coordinators:', error);
+      setCoordinators([]);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+      
+      // If disabling comments, reset comment type settings
+      if (name === 'allowReplies' && !checked) {
+        newData.allowPublicComments = true;
+        newData.allowPrivateComments = true;
+      }
+      
+      // If disabling both comment types, enable public comments
+      if (name === 'allowPublicComments' && !checked && !prev.allowPrivateComments) {
+        newData.allowPrivateComments = true;
+      }
+      if (name === 'allowPrivateComments' && !checked && !prev.allowPublicComments) {
+        newData.allowPublicComments = true;
+      }
+      
+      return newData;
+    });
   };
 
   const handleMultiSelectChange = (name, value) => {
@@ -125,6 +150,8 @@ export default function AdminInstructions() {
         targetCoordinators: [],
         isHighlighted: false,
         allowReplies: true,
+        allowPrivateComments: true,
+        allowPublicComments: true,
         specificWardOrGroup: false
       });
       setError('');
@@ -146,6 +173,8 @@ export default function AdminInstructions() {
       ...(instruction.targetGroups && { targetGroups: instruction.targetGroups }),
       isHighlighted: instruction.isHighlighted,
       allowReplies: instruction.allowReplies,
+      allowPrivateComments: instruction.allowPrivateComments !== false,
+      allowPublicComments: instruction.allowPublicComments !== false,
       specificWardOrGroup: false
     });
     setShowEditModal(true);
@@ -223,6 +252,10 @@ export default function AdminInstructions() {
             <p className="mt-1 text-sm text-gray-600">
               Create and manage instructions for coordinators and ward admins
             </p>
+            {/* Debug info */}
+            <div className="text-xs text-gray-500 mt-1">
+              Loaded: {instructions.length} instructions, {wards.length} wards, {coordinators.length} coordinators
+            </div>
           </div>
           <Button onClick={() => setShowCreateModal(true)}>
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,15 +349,40 @@ export default function AdminInstructions() {
                       <span className="text-sm text-blue-700 font-medium">
                         Target: {
                           instruction.targetAudience === 'all' ? 'All Users' :
-                            instruction.targetAudience === 'coordinators' ? 'All Coordinators' :
-                              instruction.targetAudience === 'ward_admins' ? 'All Ward Admins' :
-                                instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
-                                  instruction.targetAudience === 'specific_coordinators' ?
-                                    `Specific Coordinators: ${instruction.targetCoordinators?.map(c => c.name || c).join(', ') || 'None selected'}` :
-                                    instruction.targetAudience === 'ward_or_group' ? `Ward/Group (${instruction.targetWards?.length || 0} wards)` :
+                            instruction.targetAudience === 'ward_admins' ? 'Ward Admins' :
+                              instruction.targetAudience === 'coordinators' ? 'Coordinators' :
+                                instruction.targetAudience === 'state_admins' ? 'State Admins' :
+                                  instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
+                                    instruction.targetAudience === 'specific_coordinators' ?
+                                      `Specific Coordinators: ${instruction.targetCoordinators?.map(c => c.name || c).join(', ') || 'None selected'}` :
                                       'Unknown'
                         }
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Comment Settings Info */}
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      <span className="text-sm text-green-700 font-medium">Comment Settings:</span>
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs">
+                      <span className={`px-2 py-1 rounded-full ${instruction.allowReplies ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {instruction.allowReplies ? '✓ Comments Enabled' : '✗ Comments Disabled'}
+                      </span>
+                      {instruction.allowReplies && (
+                        <>
+                          <span className={`px-2 py-1 rounded-full ${instruction.allowPublicComments ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {instruction.allowPublicComments ? '✓ Public' : '✗ Public'}
+                          </span>
+                          <span className={`px-2 py-1 rounded-full ${instruction.allowPrivateComments ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-600'}`}>
+                            {instruction.allowPrivateComments ? '✓ Private' : '✗ Private'}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -477,12 +535,18 @@ export default function AdminInstructions() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="all">All Users</option>
-                  <option value="coordinators">All Coordinators</option>
-                  <option value="ward_admins">All Ward Admins</option>
+                  <option value="ward_admins">Ward Admins</option>
+                  <option value="coordinators">Coordinators</option>
+                  <option value="state_admins">State Admins</option>
                   <option value="specific_wards">Specific Wards</option>
                   <option value="specific_coordinators">Specific Coordinators</option>
-                  <option value="ward_or_group">Specific Ward or Group of Wards</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formData.targetAudience === 'coordinators' && 'This will send to all coordinators in the system'}
+                  {formData.targetAudience === 'specific_coordinators' && 'Select individual coordinators below'}
+                  {formData.targetAudience === 'ward_admins' && 'This will send to all ward admins in the system'}
+                  {formData.targetAudience === 'specific_wards' && 'Select specific wards below'}
+                </p>
               </div>
 
             </div>
@@ -539,87 +603,114 @@ export default function AdminInstructions() {
                   />
                 </div>
                 <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                  {filteredCoordinators.map(coordinator => (
-                    <label key={coordinator._id} className="flex items-center space-x-2 p-1">
-                      <input
-                        type="checkbox"
-                        checked={formData.targetCoordinators.includes(coordinator._id)}
-                        onChange={() => handleMultiSelectChange('targetCoordinators', coordinator._id)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {coordinator.name} - {coordinator.district}
-                      </span>
-                    </label>
-                  ))}
-                  {filteredCoordinators.length === 0 && (
-                    <div className="text-sm text-gray-500 p-2">No coordinators found matching your search.</div>
+                  {coordinators.length === 0 ? (
+                    <div className="text-sm text-gray-500 p-2">Loading coordinators...</div>
+                  ) : filteredCoordinators.length === 0 ? (
+                    <div className="text-sm text-gray-500 p-2">
+                      No coordinators found matching your search. 
+                      {coordinatorSearch && (
+                        <button 
+                          onClick={() => setCoordinatorSearch('')}
+                          className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Clear search
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredCoordinators.map(coordinator => (
+                      <label key={coordinator._id} className="flex items-center space-x-2 p-1">
+                        <input
+                          type="checkbox"
+                          checked={formData.targetCoordinators.includes(coordinator._id)}
+                          onChange={() => handleMultiSelectChange('targetCoordinators', coordinator._id)}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {coordinator.name} - {coordinator.district || 'No district'}
+                        </span>
+                      </label>
+                    ))
                   )}
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
+                  <span>Total coordinators: {coordinators.length} | Filtered: {filteredCoordinators.length}</span>
+                  <button
+                    onClick={fetchCoordinators}
+                    className="text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Refresh
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* Ward or Group Selection */}
-            {formData.targetAudience === 'ward_or_group' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Ward or Group of Wards
-                </label>
-                <div className="mb-2">
+
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-6">
+                <label className="flex items-center">
                   <input
-                    type="text"
-                    placeholder="Search wards..."
-                    value={wardSearch}
-                    onChange={(e) => setWardSearch(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    type="checkbox"
+                    name="isHighlighted"
+                    checked={formData.isHighlighted}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                   />
-                </div>
-                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-2">
-                  {filteredWards.map(ward => (
-                    <label key={ward._id} className="flex items-center space-x-2 p-1">
+                  <span className="ml-2 text-sm text-gray-700">Highlight this instruction</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    name="allowReplies"
+                    checked={formData.allowReplies}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Allow comments</span>
+                </label>
+              </div>
+
+              {/* Comment Settings - Only show if comments are allowed */}
+              {formData.allowReplies && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-3">Comment Settings</h4>
+                  <div className="space-y-3">
+                    <label className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={formData.targetWards.includes(ward._id)}
-                        onChange={() => handleMultiSelectChange('targetWards', ward._id)}
-                        className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        name="allowPublicComments"
+                        checked={formData.allowPublicComments}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <span className="text-sm text-gray-700">
-                        {ward.name} - {ward.panchayath}, {ward.district}
+                      <span className="ml-2 text-sm text-gray-700">
+                        Allow public comments (everyone can see)
                       </span>
                     </label>
-                  ))}
-                  {filteredWards.length === 0 && (
-                    <div className="text-sm text-gray-500 p-2">No wards found matching your search.</div>
-                  )}
+
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="allowPrivateComments"
+                        checked={formData.allowPrivateComments}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        Allow private comments (only coordinators & state admin can see)
+                      </span>
+                    </label>
+
+                    {!formData.allowPublicComments && !formData.allowPrivateComments && (
+                      <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                        ⚠️ At least one comment type should be enabled if comments are allowed
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Select one or more wards to target this instruction specifically to those ward admins and their coordinators.
-                </p>
-              </div>
-            )}
-
-            <div className="flex items-center space-x-6">
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="isHighlighted"
-                  checked={formData.isHighlighted}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Highlight this instruction</span>
-              </label>
-
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  name="allowReplies"
-                  checked={formData.allowReplies}
-                  onChange={handleInputChange}
-                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                />
-                <span className="ml-2 text-sm text-gray-700">Allow replies</span>
-              </label>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">

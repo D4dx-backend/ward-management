@@ -9,7 +9,7 @@ import Cluster from '../../../models/Cluster';
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
   
-  if (!session || session.user.role !== 'stateAdmin') {
+  if (!session || session.user.role !== 'coordinator') {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -17,7 +17,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const { all } = req.query;
+      // Get coordinator's district/area
+      const coordinatorDistrict = session.user.district || 'Unknown';
       
       // Get all forms created by state admins to determine weeks
       const forms = await FormTemplate.find({ 
@@ -52,9 +53,8 @@ export default async function handler(req, res) {
           return b.weekNumber - a.weekNumber; // Most recent week first
         });
 
-      // Limit the number of weeks to show
-      const maxWeeks = all === 'true' ? 20 : 8; // Show more weeks when requested
-      const weeksToProcess = sortedFormWeeks.slice(0, maxWeeks);
+      // Limit to 6 weeks for coordinator view
+      const weeksToProcess = sortedFormWeeks.slice(0, 6);
 
       const weeks = [];
       const currentDate = new Date();
@@ -69,9 +69,19 @@ export default async function handler(req, res) {
         
         const isCurrentWeek = (year === currentYear && weekNumber === currentWeekNumber);
         
-        // Get forms created for this specific week number and year
-        const weekForms = stateAdminForms.filter(form => {
-          return form.weekNumber === weekNumber && form.year === year;
+        // Get clusters in coordinator's area
+        const coordinatorClusters = await Cluster.find({ 
+          isActive: { $ne: false }
+        })
+        .populate('ward', 'name district')
+        .catch(() => []);
+
+        // Filter clusters by coordinator's district if available
+        const filteredClusters = coordinatorClusters.filter(cluster => {
+          if (cluster.ward && cluster.ward.district) {
+            return cluster.ward.district === coordinatorDistrict;
+          }
+          return true; // Include all if no district info
         });
 
         // Get responses for cluster visits in this week (by week number and year)
@@ -82,21 +92,14 @@ export default async function handler(req, res) {
           .populate('respondent', 'name role')
           .catch(() => []);
 
-        // Get all clusters with populated ward data
-        const allClusters = await Cluster.find({ isActive: { $ne: false } })
-          .populate('ward', 'name district')
-          .catch(() => []);
-
-        // Group responses by ward/cluster
+        // Group responses by cluster
         const clusterVisits = {};
         responses.forEach(response => {
           if (response.ward) {
             const wardKey = response.ward._id.toString();
             if (!clusterVisits[wardKey]) {
               clusterVisits[wardKey] = {
-                wardId: response.ward._id.toString(),
-                wardName: response.ward.name,
-                district: response.ward.district,
+                ward: response.ward,
                 visits: [],
                 visited: true
               };
@@ -105,32 +108,33 @@ export default async function handler(req, res) {
           }
         });
 
-        // Create cluster data with proper string values
-        const clusters = allClusters.map((cluster, index) => {
+        // Create cluster data for coordinator view
+        const clusters = filteredClusters.map(cluster => {
           const wardKey = cluster.ward ? cluster.ward._id.toString() : null;
           const hasVisit = wardKey && clusterVisits[wardKey];
           
           return {
             id: cluster._id.toString(),
             name: cluster.name,
-            district: cluster.ward ? cluster.ward.district : 'Unknown',
+            district: cluster.ward ? cluster.ward.district : coordinatorDistrict,
             ward: cluster.ward ? cluster.ward.name : 'Unknown Ward',
-            coordinator: 'System Coordinator', // Default coordinator
+            coordinator: session.user.name,
             visited: !!hasVisit,
             visitDate: hasVisit ? new Date() : null,
+            canEdit: true, // Coordinator can edit their own visits
             visitDetails: hasVisit ? {
               purpose: 'Data collection and monitoring',
               findings: 'Visit completed successfully',
-              duration: '2 hours',
               housesVisited: Math.floor(Math.random() * 50) + 10,
               issuesFound: Math.floor(Math.random() * 3),
-              followUpRequired: Math.random() > 0.7
+              followUpRequired: Math.random() > 0.7,
+              notes: 'Regular monitoring visit'
             } : null
           };
         });
 
-        const totalClusters = clusters.length;
         const visitedCount = clusters.filter(c => c.visited).length;
+        const totalClusters = clusters.length;
         const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClusters) * 100) : 0;
 
         weeks.push({
@@ -142,9 +146,7 @@ export default async function handler(req, res) {
           visitedCount,
           totalClusters,
           visitPercentage,
-          formsCreated: weekForms.length,
-          formTitles: weekForms.map(f => f.title), // Add form titles for reference
-          clusters: clusters,
+          clusters,
           status: visitPercentage >= 80 ? 'excellent' : 
                   visitPercentage >= 60 ? 'good' : 
                   visitPercentage >= 40 ? 'average' : 'poor'
@@ -153,7 +155,7 @@ export default async function handler(req, res) {
 
       res.status(200).json({ weeks });
     } catch (error) {
-      console.error('Error fetching cluster visit data:', error);
+      console.error('Error fetching coordinator cluster visit data:', error);
       res.status(500).json({ error: 'Failed to fetch cluster visit data' });
     }
   } else {
