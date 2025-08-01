@@ -8,7 +8,7 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import RecentReports from '../../components/RecentReports';
-import ClusterVisitStatus from '../../components/ClusterVisitStatus';
+import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import PendingReports from '../../components/PendingReports';
 import InstructionModal from '../../components/InstructionModal';
 import ReportModal from '../../components/ReportModal';
@@ -353,6 +353,9 @@ export default function WardAdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Cluster Visit Status - Recent 4 Weeks */}
+        <WardClusterVisitStatus />
 
         {/* Main Content - Three Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

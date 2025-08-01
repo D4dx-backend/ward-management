@@ -149,7 +149,7 @@ export default function ClusterVisits() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Cluster Visits</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Monitor cluster visit status and track coordinator activities
+              Monitor cluster visit status based on form creation weeks
             </p>
           </div>
           
@@ -163,7 +163,7 @@ export default function ClusterVisits() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Recent 4 Weeks
+                Recent Form Weeks
               </button>
               <button
                 onClick={() => setViewMode('all')}
@@ -173,7 +173,7 @@ export default function ClusterVisits() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                All Weeks
+                All Form Weeks
               </button>
             </div>
           </div>
@@ -235,7 +235,7 @@ export default function ClusterVisits() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">
-                      Week {week.weekNumber}
+                      Week {week.weekNumber} {week.year && `(${week.year})`}
                       {week.isCurrentWeek && (
                         <span className="ml-2 inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                           Current

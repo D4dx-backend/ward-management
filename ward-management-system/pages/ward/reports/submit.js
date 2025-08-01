@@ -406,119 +406,98 @@ export default function SubmitWardReport() {
             </div>
           </Card>
         ) : !selectedForm ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Card className="overflow-hidden shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold">Select Report Form</h2>
-                    <p className="text-blue-100 mt-1">Choose the form you want to submit</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8">
-                <div className="grid gap-6">
-                  <AnimatePresence>
-                    {activeForms.map((form, index) => (
-                      <motion.div
-                        key={form._id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${form.isSubmitted
-                          ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-green-50 cursor-default'
-                          : 'border-gray-200 bg-white hover:border-blue-300 hover:shadow-lg cursor-pointer transform hover:-translate-y-1'
-                          }`}
-                        onClick={() => !form.isSubmitted && handleFormSelect(form._id)}
-                        whileHover={!form.isSubmitted ? { scale: 1.02 } : {}}
-                        whileTap={!form.isSubmitted ? { scale: 0.98 } : {}}
-                      >
-                        <div className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3 mb-3">
-                                <div className={`p-2 rounded-xl ${form.isSubmitted
-                                  ? 'bg-emerald-100 text-emerald-600'
-                                  : 'bg-blue-100 text-blue-600 group-hover:bg-blue-200'
-                                  }`}>
-                                  {form.isSubmitted ? (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                  ) : (
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                  )}
-                                </div>
-                                <div>
-                                  <h3 className={`text-lg font-semibold ${form.isSubmitted ? 'text-emerald-800' : 'text-gray-900'
-                                    }`}>
-                                    {form.title}
-                                  </h3>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <span className={`text-sm font-medium px-3 py-1 rounded-full ${form.isSubmitted
-                                      ? 'bg-emerald-100 text-emerald-700'
-                                      : 'bg-gray-100 text-gray-600'
-                                      }`}>
-                                      Week {form.weekNumber}, {form.year}
-                                    </span>
-                                    {form.isSubmitted && (
-                                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                                        <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                        </svg>
-                                        Submitted
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {form.description && (
-                                <p className={`text-sm leading-relaxed ${form.isSubmitted ? 'text-emerald-700' : 'text-gray-600'
-                                  }`}>
-                                  {form.description}
-                                </p>
-                              )}
-                            </div>
-
-                            <div className="ml-4">
-                              {!form.isSubmitted ? (
-                                <div className="p-2 rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                </div>
-                              ) : (
-                                <div className="text-right">
-                                  <span className="text-xs text-emerald-600 font-medium">View Only</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
+          <Card>
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Available Report Forms</h2>
+              <p className="text-sm text-gray-600">Select a form to submit your ward report</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Form Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Period
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {activeForms.map((form) => (
+                    <tr key={form._id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{form.title}</div>
+                          {form.description && (
+                            <div className="text-sm text-gray-500">{form.description}</div>
+                          )}
                         </div>
-
-                        {!form.isSubmitted && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        Week {form.weekNumber}, {form.year}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(form.closeDateTime).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {form.isSubmitted ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Submitted
+                          </span>
+                        ) : (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Pending
+                          </span>
                         )}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex space-x-2">
+                          {form.isSubmitted ? (
+                            <button
+                              onClick={() => handleFormSelect(form._id)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              View Details
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleFormSelect(form._id)}
+                              className="text-green-600 hover:text-green-900"
+                            >
+                              Submit Report
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {activeForms.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="px-6 py-12 text-center">
+                        <div className="text-gray-500">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <p className="mt-2 text-sm">No report forms available for submission</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
