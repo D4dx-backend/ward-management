@@ -30,7 +30,6 @@ export default function AdminInstructions() {
     targetAudience: 'all',
     targetWards: [],
     targetCoordinators: [],
-    targetGroups: null,
     isHighlighted: false,
     allowReplies: true,
     specificWardOrGroup: false
@@ -124,7 +123,6 @@ export default function AdminInstructions() {
         targetAudience: 'all',
         targetWards: [],
         targetCoordinators: [],
-        targetGroups: null,
         isHighlighted: false,
         allowReplies: true,
         specificWardOrGroup: false
@@ -145,7 +143,7 @@ export default function AdminInstructions() {
       targetAudience: instruction.targetAudience,
       targetWards: instruction.targetWards?.map(w => w._id || w) || [],
       targetCoordinators: instruction.targetCoordinators?.map(c => c._id || c) || [],
-      targetGroups: instruction.targetGroups || null,
+      ...(instruction.targetGroups && { targetGroups: instruction.targetGroups }),
       isHighlighted: instruction.isHighlighted,
       allowReplies: instruction.allowReplies,
       specificWardOrGroup: false
@@ -408,7 +406,6 @@ export default function AdminInstructions() {
               targetAudience: 'all',
               targetWards: [],
               targetCoordinators: [],
-              targetGroups: null,
               isHighlighted: false,
               allowReplies: true,
               specificWardOrGroup: false

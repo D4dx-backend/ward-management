@@ -121,7 +121,7 @@ const instructionSchema = new mongoose.Schema({
   targetGroups: {
     type: String,
     enum: ['all_coordinators', 'all_ward_admins', 'specific_coordinators', 'specific_ward_admins', 'individual_user'],
-    default: null
+    required: false
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

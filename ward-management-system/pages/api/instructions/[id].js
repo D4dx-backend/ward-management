@@ -119,7 +119,7 @@ export default async function handler(req, res) {
           targetAudience: validatedAudience,
           targetWards: targetWards || [],
           targetCoordinators: targetCoordinators || [],
-          targetGroups: targetGroups || null,
+          ...(targetGroups && { targetGroups }),
           priority: validatedPriority,
           isHighlighted: Boolean(isHighlighted),
           allowReplies: allowReplies !== false,

@@ -99,15 +99,17 @@ export default function Home() {
   };
 
   const handleReportClick = (report) => {
-    // Check if it's a pending form (no submittedAt) or a submitted report (has submittedAt)
-    if (!report.submittedAt && (report.formType || report.title)) {
-      // This is a pending form
-      setSelectedPendingForm(report);
-      setShowPendingFormModal(true);
-    } else {
-      // This is a submitted report
+    // Check if it's a pending form (from pendingFormsList) or a submitted report (from recentReports)
+    // Pending forms don't have submittedAt and come from the pending forms list
+    // Submitted reports have submittedAt and come from the recent reports list
+    if (report.submittedAt || report.form || report.formTemplate) {
+      // This is a submitted report - has submittedAt or form reference
       setSelectedReport(report);
       setShowReportModal(true);
+    } else {
+      // This is a pending form - no submittedAt and no form reference
+      setSelectedPendingForm(report);
+      setShowPendingFormModal(true);
     }
   };
 

@@ -18,8 +18,12 @@ export default async function handler(req, res) {
     try {
       const { message } = req.body;
 
-      if (!message || message.trim().length === 0) {
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
         return res.status(400).json({ error: 'Reply message is required' });
+      }
+
+      if (message.trim().length > 1000) {
+        return res.status(400).json({ error: 'Reply message must be less than 1000 characters' });
       }
 
       const instruction = await Instruction.findById(id);
@@ -30,6 +34,39 @@ export default async function handler(req, res) {
 
       if (!instruction.allowReplies) {
         return res.status(403).json({ error: 'Replies are not allowed for this instruction' });
+      }
+
+      // Check if user has permission to view this instruction
+      const userRole = session.user.role;
+      const userId = session.user.id;
+      
+      let hasAccess = false;
+      
+      if (instruction.targetAudience === 'all') {
+        hasAccess = true;
+      } else if (instruction.targetAudience === 'coordinators' && userRole === 'coordinator') {
+        hasAccess = true;
+      } else if (instruction.targetAudience === 'ward_admins' && userRole === 'wardAdmin') {
+        hasAccess = true;
+      } else if (instruction.targetAudience === 'specific_coordinators' && instruction.targetCoordinators.includes(userId)) {
+        hasAccess = true;
+      } else if (instruction.targetAudience === 'specific_wards' && instruction.targetWards.length > 0) {
+        // Check if user's ward is in target wards
+        const User = require('../../../../models/User');
+        const Ward = require('../../../../models/Ward');
+        const user = await User.findById(userId);
+        if (user && userRole === 'wardAdmin') {
+          const ward = await Ward.findOne({ wardAdmin: userId });
+          if (ward && instruction.targetWards.includes(ward._id)) {
+            hasAccess = true;
+          }
+        }
+      } else if (userRole === 'stateAdmin') {
+        hasAccess = true; // State admin can always reply
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({ error: 'You do not have permission to reply to this instruction' });
       }
 
       // Create the reply object
