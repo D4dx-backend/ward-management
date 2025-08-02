@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -8,10 +8,10 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import Modal from '../../components/Modal';
+import { ShimmerDashboard } from '../../components/Shimmer';
 import { setCache, getCache } from '../../lib/simpleCache';
 import usePagination from '../../hooks/usePagination';
-import { useApiData } from '../../hooks/useApiData';
 
 export default function CoordinatorWardReports() {
   const { data: session, status } = useSession();
@@ -21,6 +21,8 @@ export default function CoordinatorWardReports() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [filter, setFilter] = useState({
     ward: '',
     week: '',
@@ -163,13 +165,8 @@ export default function CoordinatorWardReports() {
   };
 
   const handleViewReport = (report) => {
-    // For now, we'll show an alert with report details
-    // In a full implementation, this would open a modal or navigate to a details page
-    const reportDetails = Object.entries(report.responses || {})
-      .map(([key, value]) => `${key}: ${value}`)
-      .join('\n');
-
-    alert(`Report Details for ${report.ward?.name}\n\nWeek: ${report.weekNumber}, Year: ${report.year}\nSubmitted by: ${report.submittedBy?.name}\nSubmitted at: ${formatDate(report.submittedAt)}\n\nResponses:\n${reportDetails}`);
+    setSelectedReport(report);
+    setShowReportModal(true);
   };
 
   const uniqueWards = wardReports
@@ -404,6 +401,93 @@ export default function CoordinatorWardReports() {
           </div>
         </div>
       </div>
+
+      {/* Report Details Modal */}
+      <Modal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        title={selectedReport ? `Ward Report Details - ${selectedReport.ward?.name}` : 'Report Details'}
+        size="lg"
+      >
+        {selectedReport && (
+          <div className="space-y-6">
+            {/* Report Header Info */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Ward:</span>
+                  <span className="ml-2 font-medium">{selectedReport.ward?.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">District:</span>
+                  <span className="ml-2 font-medium">{selectedReport.ward?.district}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Week:</span>
+                  <span className="ml-2 font-medium">Week {selectedReport.weekNumber}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Year:</span>
+                  <span className="ml-2 font-medium">{selectedReport.year}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Submitted by:</span>
+                  <span className="ml-2 font-medium">{selectedReport.submittedBy?.name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600">Submitted at:</span>
+                  <span className="ml-2 font-medium">{formatDate(selectedReport.submittedAt)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Report Responses */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">Report Responses</h4>
+              <div className="space-y-4">
+                {selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
+                  Object.entries(selectedReport.responses).map(([question, answer]) => (
+                    <div key={question} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <div className="flex flex-col space-y-1">
+                        <h5 className="text-sm font-medium text-gray-900">{question}</h5>
+                        <div className="text-sm text-gray-700">
+                          {typeof answer === 'boolean' ? (
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              answer ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {answer ? 'Yes' : 'No'}
+                            </span>
+                          ) : typeof answer === 'string' && answer.length > 100 ? (
+                            <div className="bg-gray-50 p-3 rounded border">
+                              <p className="whitespace-pre-wrap">{answer}</p>
+                            </div>
+                          ) : (
+                            <span>{String(answer)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p className="mt-2 text-sm">No response data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <Button variant="outline" onClick={() => setShowReportModal(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </Layout>
   );
 }

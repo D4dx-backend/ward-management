@@ -12,6 +12,7 @@ import DashboardLoginHistory from '../../components/DashboardLoginHistory';
 import CoordinatorWardsList from '../../components/CoordinatorWardsList';
 import PendingReports from '../../components/PendingReports';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
+import CoordinatorFormTracker from '../../components/CoordinatorFormTracker';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
 
@@ -20,10 +21,9 @@ export default function CoordinatorDashboard() {
   const router = useRouter();
   const [coordinatorWards, setCoordinatorWards] = useState([]);
   const [pendingReportsList, setPendingReportsList] = useState([]);
-  const [recentLogins, setRecentLogins] = useState([]);
 
   // Use the dashboard data hook with caching
-  const { stats, recentReports, recentActivity, loading, error, refetch } = useDashboardData('coordinator');
+  const { stats, recentReports, recentActivity, recentLogins, loading, error, refetch } = useDashboardData('coordinator');
 
   useEffect(() => {
     // Check if user is authenticated and is coordinator
@@ -39,7 +39,6 @@ export default function CoordinatorDashboard() {
     if (stats) {
       setCoordinatorWards(stats.coordinatorWards || []);
       setPendingReportsList(stats.pendingReportsList || []);
-      setRecentLogins(stats.recentLogins || []);
     }
   }, [stats]);
 
@@ -65,7 +64,7 @@ export default function CoordinatorDashboard() {
         <title>Coordinator Dashboard - Ward Management System</title>
       </Head>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Welcome back, {session?.user?.name || 'Coordinator'}!
@@ -76,7 +75,7 @@ export default function CoordinatorDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatsCard
             title="Total Wards"
             value={stats?.totalWards || 0}
@@ -107,11 +106,14 @@ export default function CoordinatorDashboard() {
           />
         </div>
 
+        {/* Form Statistics Overview */}
+        <CoordinatorFormTracker compact={true} />
+
         {/* Cluster Visit Status - Recent 4 Weeks */}
         <ClusterVisitStatus />
 
         {/* Main Dashboard Content - 3 Containers */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* My Wards */}
           <div className="lg:col-span-1">
             <CoordinatorWardsList 
@@ -142,86 +144,85 @@ export default function CoordinatorDashboard() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/coordinator/ward-reports">
-              <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-gray-900">Ward Reports</h3>
-                      <p className="text-xs text-gray-500">View ward reports</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Link>
 
-            <Link href="/coordinator/ward-visits">
-              <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-gray-900">Ward Visits</h3>
-                      <p className="text-xs text-gray-500">Track visits</p>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            </Link>
 
-            <Link href="/coordinator/instructions">
-              <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-gray-900">Instructions</h3>
-                      <p className="text-xs text-gray-500">View instructions</p>
-                    </div>
+        {/* Management Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link href="/coordinator/users" className="block">
+            <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+              <div className="p-3">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-2">
+                    <h3 className="text-sm font-medium text-gray-900">Ward Admins</h3>
+                    <p className="text-xs text-gray-500">Manage users</p>
                   </div>
                 </div>
-              </Card>
-            </Link>
+              </div>
+            </Card>
+          </Link>
 
-            <Link href="/coordinator/cluster-visits">
-              <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                <div className="p-4">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center text-white">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-gray-900">Cluster Visits</h3>
-                      <p className="text-xs text-gray-500">Survey tracking</p>
-                    </div>
+          <Link href="/coordinator/ward-status" className="block">
+            <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+              <div className="p-3">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-2">
+                    <h3 className="text-sm font-medium text-gray-900">Ward Status</h3>
+                    <p className="text-xs text-gray-500">Monitor status</p>
                   </div>
                 </div>
-              </Card>
-            </Link>
-          </div>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/coordinator/ward-reports" className="block">
+            <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+              <div className="p-3">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-2">
+                    <h3 className="text-sm font-medium text-gray-900">Ward Reports</h3>
+                    <p className="text-xs text-gray-500">View reports</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
+          <Link href="/coordinator/ward-visits" className="block">
+            <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+              <div className="p-3">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center text-white">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <div className="ml-2">
+                    <h3 className="text-sm font-medium text-gray-900">Ward Visits</h3>
+                    <p className="text-xs text-gray-500">Track visits</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </Link>
         </div>
 
         {/* Additional Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Recent Activity */}
           <div className="lg:col-span-1">
             <RecentActivity 

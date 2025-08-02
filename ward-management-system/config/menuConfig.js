@@ -83,7 +83,15 @@ export const menuConfig = {
       items: [
         { name: 'Submit Reports', href: '/coordinator/reports/submit', icon: '📝' },
         { name: 'My Reports', href: '/coordinator/reports', icon: '📈' },
-        { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' }
+        { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
+        { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' }
+      ]
+    },
+    'User Management': {
+      type: 'category',
+      icon: '👥',
+      items: [
+        { name: 'Ward Admins', href: '/coordinator/users', icon: '👤' }
       ]
     },
     'Ward Management': {
@@ -115,6 +123,7 @@ export const menuConfig = {
       icon: '📚',
       items: [
         { name: 'Guidelines & Instructions', href: '/instructions', icon: '📋' },
+        { name: 'Instruction Management', href: '/coordinator/instruction-management', icon: '📊' },
         { name: 'Document Library', href: '/documents', icon: '📄' }
       ]
     },

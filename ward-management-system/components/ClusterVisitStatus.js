@@ -20,7 +20,7 @@ export default function ClusterVisitStatus() {
     try {
       setIsLoading(true);
       
-      const response = await axios.get('/api/admin/cluster-visits');
+      const response = await axios.get('/api/coordinator/cluster-visits');
       setVisitData(response.data.weeks || []);
       setError('');
     } catch (error) {

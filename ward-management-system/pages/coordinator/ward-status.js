@@ -47,168 +47,20 @@ export default function CoordinatorWardStatus() {
       setLoading(true);
       setError('');
 
-      // Fetch coordinator's wards with enhanced data
-      const [wardsResponse, reportsResponse, visitsResponse, formsResponse] = await Promise.all([
-        axios.get('/api/wards/coordinator'),
-        axios.get('/api/responses?coordinatorOnly=true'),
-        axios.get('/api/ward-visits/coordinator'),
-        axios.get('/api/ward-basic-data/coordinator')
-      ]);
-
-      const wardsData = wardsResponse.data || [];
-      const reportsData = reportsResponse.data || [];
-      const visitsData = visitsResponse.data || [];
-      const formsData = formsResponse.data || [];
-
-      // Process ward data with enhanced information
-      const processedWards = wardsData.map(ward => {
-        // Get ward admin's last login
-        const lastLogin = ward.wardAdmin?.lastLogin;
-        const daysSinceLogin = lastLogin ? 
-          Math.floor((new Date() - new Date(lastLogin)) / (1000 * 60 * 60 * 24)) : null;
-
-        // Get last report submission
-        const wardReports = reportsData.filter(r => r.ward?._id === ward._id);
-        const lastReport = wardReports.length > 0 ? 
-          wardReports.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))[0] : null;
-
-        // Get last visit
-        const wardVisits = visitsData.filter(v => v.ward?._id === ward._id);
-        const lastVisit = wardVisits.length > 0 ? 
-          wardVisits.sort((a, b) => new Date(b.visitDate) - new Date(a.visitDate))[0] : null;
-        const daysSinceLastVisit = lastVisit ? 
-          Math.floor((new Date() - new Date(lastVisit.visitDate)) / (1000 * 60 * 60 * 24)) : null;
-
-        // Calculate report completion status
-        const currentWeek = Math.ceil((new Date() - new Date(new Date().getFullYear(), 0, 1)) / (1000 * 60 * 60 * 24 * 7));
-        const expectedReports = Math.min(currentWeek, 52);
-        const submittedReports = wardReports.length;
-        const reportCompletionRate = expectedReports > 0 ? Math.round((submittedReports / expectedReports) * 100) : 0;
-
-        // Determine ward status color based on recent activity
-        let statusColor = 'gray';
-        if (lastReport) {
-          const daysSinceReport = Math.floor((new Date() - new Date(lastReport.submittedAt)) / (1000 * 60 * 60 * 24));
-          if (daysSinceReport <= 7) statusColor = 'green';
-          else if (daysSinceReport <= 14) statusColor = 'orange';
-          else statusColor = 'red';
-        }
-
-        // Check form completion status
-        const wardForms = formsData.filter(f => f.ward?._id === ward._id);
-        const docketStatus = wardForms.some(f => f.form?.title?.toLowerCase().includes('docket')) ? 'completed' : 'notStarted';
-        const basicSurveyStatus = wardForms.some(f => f.form?.title?.toLowerCase().includes('basic') || f.form?.title?.toLowerCase().includes('survey')) ? 'completed' : 'notStarted';
-
-        return {
-          ...ward,
-          lastLogin,
-          daysSinceLogin,
-          lastReportDate: lastReport?.submittedAt,
-          lastVisitDate: lastVisit?.visitDate,
-          daysSinceLastVisit,
-          submittedReports,
-          expectedReports,
-          reportCompletionRate,
-          statusColor,
-          docketStatus,
-          basicSurveyStatus,
-          recentReportStatus: lastReport ? 'completed' : 'notCompleted'
-        };
-      });
+      // Fetch coordinator's ward status data from consolidated API
+      const response = await axios.get('/api/coordinator/ward-status');
+      const { wards: processedWards, consolidation } = response.data;
 
       setWards(processedWards);
-
-      // Calculate report consolidation
-      const consolidation = {
-        docket: { completed: 0, ongoing: 0, notStarted: 0 },
-        basicSurvey: { completed: 0, ongoing: 0, notStarted: 0 }
-      };
-
-      processedWards.forEach(ward => {
-        consolidation.docket[ward.docketStatus]++;
-        consolidation.basicSurvey[ward.basicSurveyStatus]++;
-      });
-
       setReportConsolidation(consolidation);
 
     } catch (error) {
       console.error('Error fetching ward status:', error);
-      setError('Failed to load ward status data');
-      
-      // Fallback to mock data for development
-      const mockWards = [
-        {
-          _id: 'ward1',
-          name: 'Panchayath Ward 1',
-          wardNumber: 1,
-          district: session?.user?.district || 'Thiruvananthapuram',
-          wardAdmin: {
-            _id: 'admin1',
-            name: 'Ward Admin 1',
-            mobileNumber: '+91 9876543210',
-            lastLogin: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          lastReportDate: new Date().toISOString(),
-          daysSinceLogin: 2,
-          daysSinceLastVisit: 5,
-          submittedReports: 8,
-          expectedReports: 15,
-          reportCompletionRate: 53,
-          statusColor: 'green',
-          recentReportStatus: 'completed',
-          docketStatus: 'completed',
-          basicSurveyStatus: 'completed'
-        },
-        {
-          _id: 'ward2',
-          name: 'Panchayath Ward 2',
-          wardNumber: 2,
-          district: session?.user?.district || 'Thiruvananthapuram',
-          wardAdmin: {
-            _id: 'admin2',
-            name: 'Ward Admin 2',
-            mobileNumber: '+91 9876543211',
-            lastLogin: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          lastReportDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-          daysSinceLogin: 5,
-          daysSinceLastVisit: 12,
-          submittedReports: 6,
-          expectedReports: 15,
-          reportCompletionRate: 40,
-          statusColor: 'orange',
-          recentReportStatus: 'notCompleted',
-          docketStatus: 'ongoing',
-          basicSurveyStatus: 'completed'
-        },
-        {
-          _id: 'ward3',
-          name: 'Panchayath Ward 3',
-          wardNumber: 3,
-          district: session?.user?.district || 'Thiruvananthapuram',
-          wardAdmin: {
-            _id: 'admin3',
-            name: 'Ward Admin 3',
-            mobileNumber: '+91 9876543212',
-            lastLogin: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          lastReportDate: null,
-          daysSinceLogin: 10,
-          daysSinceLastVisit: 20,
-          submittedReports: 2,
-          expectedReports: 15,
-          reportCompletionRate: 13,
-          statusColor: 'red',
-          recentReportStatus: 'notCompleted',
-          docketStatus: 'notStarted',
-          basicSurveyStatus: 'notStarted'
-        }
-      ];
-
-      setWards(mockWards);
+      setError('Failed to load ward status data. Please try again.');
+      setWards([]);
       setReportConsolidation({
-        docket: { completed: 1, ongoing: 1, notStarted: 1 },
-        basicSurvey: { completed: 2, ongoing: 0, notStarted: 1 }
+        docket: { completed: 0, ongoing: 0, notStarted: 0 },
+        basicSurvey: { completed: 0, ongoing: 0, notStarted: 0 }
       });
     } finally {
       setLoading(false);
@@ -358,28 +210,34 @@ export default function CoordinatorWardStatus() {
             >
               {exporting ? 'Exporting...' : 'Export Status'}
             </button>
-            <Link href="/coordinator/ward-visits">
-              <Button variant="outline">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Ward Visits
-              </Button>
+            <Link href="/coordinator/ward-visits" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Ward Visits
             </Link>
           </div>
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
+            <div className="flex items-center justify-between">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm">{error}</p>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm">{error}</p>
-              </div>
+              <button
+                onClick={fetchWardStatus}
+                className="ml-4 bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded text-sm font-medium"
+              >
+                Retry
+              </button>
             </div>
           </div>
         )}
@@ -570,10 +428,8 @@ export default function CoordinatorWardStatus() {
                   <tr key={ward._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <Link href={getWardDetailUrl(ward._id)}>
-                          <a className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
-                            {ward.name}
-                          </a>
+                        <Link href={getWardDetailUrl(ward._id)} className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                          {ward.name}
                         </Link>
                         <div className="text-sm text-gray-500">
                           Ward #{ward.wardNumber} • {ward.district}
@@ -699,10 +555,8 @@ export default function CoordinatorWardStatus() {
                     {modalData.wards.map((ward) => (
                       <div key={ward._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
-                          <Link href={getWardDetailUrl(ward._id)}>
-                            <a className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
-                              {ward.name}
-                            </a>
+                          <Link href={getWardDetailUrl(ward._id)} className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                            {ward.name}
                           </Link>
                           <p className="text-xs text-gray-500">Ward #{ward.wardNumber}</p>
                         </div>

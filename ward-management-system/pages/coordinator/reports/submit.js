@@ -341,59 +341,269 @@ export default function SubmitReport() {
             </div>
           </Card>
         ) : !selectedForm ? (
-          <Card>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Select a Report Form</h2>
-              <p className="text-sm text-gray-600 mt-1">Choose the form you want to submit</p>
-            </div>
-            <div className="p-6 space-y-4">
-              {activeForms.map((form) => (
-                <div
-                  key={form._id}
-                  className={`border rounded-lg p-4 transition-colors ${
-                    form.isSubmitted 
-                      ? 'border-green-200 bg-green-50 cursor-default' 
-                      : 'border-gray-200 hover:bg-gray-50 hover:border-blue-300 cursor-pointer'
-                  }`}
-                  onClick={() => !form.isSubmitted && handleFormSelect(form._id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <h3 className={`font-medium ${form.isSubmitted ? 'text-green-800' : 'text-gray-900'}`}>
-                          {form.title}
-                        </h3>
-                        {form.isSubmitted && (
-                          <div className="ml-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
+          <>
+            {/* Summary Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
                       </div>
-                      <p className={`text-sm ${form.isSubmitted ? 'text-green-600' : 'text-gray-500'}`}>
-                        Week {form.weekNumber}, {form.year}
-                        {form.isSubmitted && ' - Submitted'}
-                      </p>
-                      {form.description && (
-                        <p className={`mt-2 text-sm ${form.isSubmitted ? 'text-green-700' : 'text-gray-700'}`}>
-                          {form.description}
-                        </p>
-                      )}
                     </div>
-                    {!form.isSubmitted && (
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    )}
-                    {form.isSubmitted && (
-                      <span className="text-sm text-green-600 font-medium">View Only</span>
-                    )}
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">Total Forms</p>
+                      <p className="text-2xl font-bold text-gray-900">{activeForms.length}</p>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </Card>
+
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">Submitted</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {activeForms.filter(f => f.isSubmitted).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">Pending</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {activeForms.filter(f => !f.isSubmitted).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <Card>
+                <div className="p-6">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">Overdue</p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {activeForms.filter(f => !f.isSubmitted && new Date() > new Date(f.closeDateTime)).length}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
+          <Card>
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Available Report Forms</h2>
+              <p className="text-sm text-gray-600 mt-1">Select a form to submit or view your submitted reports</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Form Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Period
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Submission Date
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {activeForms.map((form) => {
+                    const dueDate = new Date(form.closeDateTime);
+                    const isOverdue = !form.isSubmitted && new Date() > dueDate;
+                    const daysUntilDue = Math.ceil((dueDate - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    return (
+                      <tr key={form._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                              {form.isSubmitted ? (
+                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{form.title}</div>
+                              {form.description && (
+                                <div className="text-sm text-gray-500 mt-1">{form.description}</div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">Week {form.weekNumber}</div>
+                          <div className="text-sm text-gray-500">{form.year}</div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {form.isSubmitted ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Submitted
+                            </span>
+                          ) : isOverdue ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              Overdue
+                            </span>
+                          ) : daysUntilDue <= 2 ? (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Due Soon
+                            </span>
+                          ) : (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Pending
+                            </span>
+                          )}
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {dueDate.toLocaleDateString()}
+                          </div>
+                          <div className={`text-sm ${isOverdue ? 'text-red-600' : daysUntilDue <= 2 ? 'text-yellow-600' : 'text-gray-500'}`}>
+                            {isOverdue 
+                              ? `${Math.abs(daysUntilDue)} days overdue`
+                              : daysUntilDue === 0 
+                              ? 'Due today'
+                              : daysUntilDue === 1
+                              ? 'Due tomorrow'
+                              : `${daysUntilDue} days left`
+                            }
+                          </div>
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {form.isSubmitted ? (
+                            <div>
+                              <div className="text-sm text-gray-900">
+                                {form.submittedResponse?.submittedAt 
+                                  ? new Date(form.submittedResponse.submittedAt).toLocaleDateString()
+                                  : 'Submitted'
+                                }
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {form.submittedResponse?.submittedAt 
+                                  ? new Date(form.submittedResponse.submittedAt).toLocaleTimeString()
+                                  : ''
+                                }
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-500">Not submitted</span>
+                          )}
+                        </td>
+                        
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          {form.isSubmitted ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleFormSelect(form._id)}
+                              className="text-green-600 border-green-300 hover:bg-green-50"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleFormSelect(form._id)}
+                              className={isOverdue ? 'bg-red-600 hover:bg-red-700' : daysUntilDue <= 2 ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              {isOverdue ? 'Submit Now' : 'Fill Form'}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            {activeForms.length === 0 && (
+              <div className="text-center py-12">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="mt-2 text-sm text-gray-500">No report forms available</p>
+              </div>
+            )}
           </Card>
+          </>
         ) : (
           <Card>
             <div className="p-6 border-b border-gray-200">

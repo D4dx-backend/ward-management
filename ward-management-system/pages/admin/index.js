@@ -251,7 +251,7 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {quickActions.map((action, index) => (
-              <Link key={index} href={action.href}>
+              <Link key={index} href={action.href} className="block">
                 <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
                   <div className="p-6">
                     <div className="flex items-center">

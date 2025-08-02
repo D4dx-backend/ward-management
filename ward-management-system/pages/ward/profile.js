@@ -26,6 +26,7 @@ export default function WardProfile() {
   const [advancedEditData, setAdvancedEditData] = useState({});
   const [advancedClusterData, setAdvancedClusterData] = useState({});
   const [isSubmittingAdvanced, setIsSubmittingAdvanced] = useState(false);
+  const [expandedQuestions, setExpandedQuestions] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -39,26 +40,26 @@ export default function WardProfile() {
 
   const fetchWardData = async () => {
     setIsLoading(true);
-    
+
     try {
       // Get user info which includes ward data
       console.log('Fetching user data for:', session.user.id);
       const userResponse = await axios.get(`/api/users/${session.user.id}`);
       console.log('User response:', userResponse.data);
-      
+
       if (userResponse.data.ward) {
         const wardId = userResponse.data.ward._id;
         console.log('Ward ID found:', wardId);
-        
+
         // Get comprehensive ward profile data
         const profileResponse = await axios.get(`/api/ward-profile/${wardId}`);
         const profileData = profileResponse.data;
         console.log('Profile data:', profileData);
-        
+
         setWard(profileData.ward);
         setClusters(profileData.clusters || []);
         setAdvancedData(profileData.advancedData);
-        
+
         setEditData({
           population: profileData.ward.population || '',
           area: profileData.ward.area || '',
@@ -70,7 +71,7 @@ export default function WardProfile() {
           setAdvancedEditData(profileData.advancedData.responses || {});
           setAdvancedClusterData(profileData.advancedData.clusterResponses || {});
         }
-        
+
         setError(''); // Clear any previous errors
       } else {
         console.log('No ward found in user data');
@@ -83,7 +84,7 @@ export default function WardProfile() {
         response: error.response?.data,
         status: error.response?.status
       });
-      
+
       if (error.response?.status === 403) {
         setError('Access denied to ward data. Please contact your coordinator.');
       } else if (error.response?.status === 404) {
@@ -116,7 +117,7 @@ export default function WardProfile() {
 
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
-    
+
     // Handle number inputs properly
     if (type === 'number') {
       // Allow empty string for clearing the field
@@ -127,7 +128,7 @@ export default function WardProfile() {
         }));
         return;
       }
-      
+
       // Validate number inputs
       const numValue = parseFloat(value);
       if (!isNaN(numValue) && numValue >= 0) {
@@ -139,7 +140,7 @@ export default function WardProfile() {
       // If invalid number, don't update the state (keeps previous valid value)
       return;
     }
-    
+
     // Handle other input types normally
     setEditData(prev => ({
       ...prev,
@@ -155,7 +156,7 @@ export default function WardProfile() {
     try {
       // Validate inputs before sending
       const updateData = {};
-      
+
       // Handle population - must be a positive integer or null
       if (editData.population !== '' && editData.population !== null && editData.population !== undefined) {
         const popValue = parseInt(editData.population);
@@ -166,7 +167,7 @@ export default function WardProfile() {
       } else {
         updateData.population = null;
       }
-      
+
       // Handle area - must be a positive number or null
       if (editData.area !== '' && editData.area !== null && editData.area !== undefined) {
         const areaValue = parseFloat(editData.area);
@@ -177,7 +178,7 @@ export default function WardProfile() {
       } else {
         updateData.area = null;
       }
-      
+
       // Handle description
       updateData.description = editData.description?.trim() || null;
 
@@ -201,12 +202,12 @@ export default function WardProfile() {
 
   const handleExportPDF = async () => {
     setIsExporting(true);
-    
+
     try {
       const response = await axios.get(`/api/ward-profile/${ward._id}/export-pdf`, {
         responseType: 'blob'
       });
-      
+
       // Create blob link to download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -256,9 +257,16 @@ export default function WardProfile() {
     }));
   };
 
+  const toggleQuestionExpansion = (questionId) => {
+    setExpandedQuestions(prev => ({
+      ...prev,
+      [questionId]: !prev[questionId]
+    }));
+  };
+
   const validateAdvancedData = () => {
     const errors = [];
-    
+
     if (!advancedData || !advancedData.form) {
       return ['No form data available'];
     }
@@ -298,8 +306,8 @@ export default function WardProfile() {
     setSuccess('');
 
     try {
-      if (!advancedData || !advancedData._id) {
-        throw new Error('No advanced data found to update');
+      if (!advancedData || !advancedData.form) {
+        throw new Error('No form data available');
       }
 
       // Validate data before saving
@@ -308,24 +316,40 @@ export default function WardProfile() {
         throw new Error(`Validation failed:\n${validationErrors.join('\n')}`);
       }
 
-      const response = await axios.put(`/api/ward-basic-data/${advancedData._id}`, {
-        data: advancedEditData,
-        clusterData: advancedClusterData
-      });
+      let response;
+
+      // Check if we have existing data (with _id) or need to create new data
+      if (advancedData.hasData && advancedData._id) {
+        // Update existing data
+        response = await axios.put(`/api/ward-basic-data/${advancedData._id}`, {
+          data: advancedEditData,
+          clusterData: advancedClusterData
+        });
+      } else {
+        // Create new data
+        response = await axios.post('/api/ward-basic-data', {
+          wardId: ward._id,
+          formId: advancedData.form._id,
+          data: advancedEditData,
+          clusterData: advancedClusterData
+        });
+      }
 
       // Update the advanced data state
       setAdvancedData(prev => ({
         ...prev,
+        _id: response.data._id,
         responses: advancedEditData,
         clusterResponses: advancedClusterData,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        hasData: true
       }));
 
       setIsEditingAdvanced(false);
-      setSuccess('Advanced data updated successfully!');
+      setSuccess('Advanced data saved successfully!');
     } catch (error) {
-      console.error('Error updating advanced data:', error);
-      setError(error.response?.data?.message || error.message || 'Failed to update advanced data');
+      console.error('Error saving advanced data:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to save advanced data');
     } finally {
       setIsSubmittingAdvanced(false);
     }
@@ -346,11 +370,10 @@ export default function WardProfile() {
     switch (field.type) {
       case 'yesno':
         return (
-          <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${
-            value === 'yes' 
-              ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-          }`}>
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${value === 'yes'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+            }`}>
             {value === 'yes' ? (
               <>
                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -404,8 +427,8 @@ export default function WardProfile() {
 
       case 'email':
         return (
-          <a 
-            href={`mailto:${value}`} 
+          <a
+            href={`mailto:${value}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
             {value}
@@ -414,8 +437,8 @@ export default function WardProfile() {
 
       case 'phone':
         return (
-          <a 
-            href={`tel:${value}`} 
+          <a
+            href={`tel:${value}`}
             className="text-blue-600 hover:text-blue-800 underline"
           >
             {value}
@@ -424,10 +447,10 @@ export default function WardProfile() {
 
       case 'url':
         return (
-          <a 
-            href={value} 
-            target="_blank" 
-            rel="noopener noreferrer" 
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 underline inline-flex items-center"
           >
             {value}
@@ -470,10 +493,10 @@ export default function WardProfile() {
     const fieldValue = value || (field.type === 'multiselect' ? [] : '');
 
     const handleChange = (e) => {
-      const newValue = e.target.type === 'checkbox' ? 
-        (e.target.checked ? 'yes' : 'no') : 
+      const newValue = e.target.type === 'checkbox' ?
+        (e.target.checked ? 'yes' : 'no') :
         e.target.value;
-      
+
       if (isCluster && clusterId) {
         onChange(clusterId, fieldId, newValue);
       } else {
@@ -491,7 +514,7 @@ export default function WardProfile() {
     };
 
     // Common input classes
-    const inputClasses = "w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors";
+    const inputClasses = "w-full px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors";
     const errorClasses = field.required && !fieldValue ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "";
 
     switch (field.type) {
@@ -572,7 +595,7 @@ export default function WardProfile() {
             <textarea
               value={fieldValue}
               onChange={handleChange}
-              rows={4}
+              rows={2}
               className={`${inputClasses} ${errorClasses} resize-vertical`}
               placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
               required={field.required}
@@ -612,8 +635,8 @@ export default function WardProfile() {
                 {field.validation?.min !== undefined && field.validation?.max !== undefined
                   ? `Range: ${field.validation.min} - ${field.validation.max}`
                   : field.validation?.min !== undefined
-                  ? `Minimum: ${field.validation.min}`
-                  : `Maximum: ${field.validation.max}`
+                    ? `Minimum: ${field.validation.min}`
+                    : `Maximum: ${field.validation.max}`
                 }
               </p>
             )}
@@ -674,7 +697,7 @@ export default function WardProfile() {
                       const newValue = e.target.checked
                         ? [...selectedValues, option]
                         : selectedValues.filter(v => v !== option);
-                      
+
                       if (isCluster && clusterId) {
                         onChange(clusterId, fieldId, newValue);
                       } else {
@@ -788,13 +811,13 @@ export default function WardProfile() {
         <Head>
           <title>Ward Profile - Ward Management System</title>
         </Head>
-        <div className="space-y-6">
+        <div className="space-y-3">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Profile</h1>
             <p className="mt-1 text-sm text-gray-600">View and manage your ward information</p>
           </div>
           <Card>
-            <div className="p-6 text-center">
+            <div className="p-3 text-center">
               <svg className="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
@@ -813,7 +836,7 @@ export default function WardProfile() {
         <title>Ward Profile - Ward Management System</title>
       </Head>
 
-      <div className="space-y-6">
+      <div className="space-y-3">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Profile</h1>
@@ -847,7 +870,7 @@ export default function WardProfile() {
         </div>
 
         {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -862,7 +885,7 @@ export default function WardProfile() {
         )}
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -880,43 +903,42 @@ export default function WardProfile() {
           <>
             {/* Basic Ward Information */}
             <Card>
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
                 <p className="text-sm text-gray-600 mt-1">Core ward details and administrative information</p>
               </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+              <div className="p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Ward Name</h3>
                     <p className="mt-1 text-sm text-gray-900">{ward.name}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Ward Number</h3>
                     <p className="mt-1 text-sm text-gray-900">#{ward.wardNumber}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Panchayath</h3>
                     <p className="mt-1 text-sm text-gray-900">{ward.panchayath}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">District</h3>
                     <p className="mt-1 text-sm text-gray-900">{ward.district}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">State</h3>
                     <p className="mt-1 text-sm text-gray-900">{ward.state || 'Kerala'}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      ward.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ward.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {ward.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
@@ -926,13 +948,13 @@ export default function WardProfile() {
 
             {/* Editable Information */}
             <Card>
-              <div className="p-6 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Ward Statistics</h2>
                 <p className="text-sm text-gray-600 mt-1">Population and area information</p>
               </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+              <div className="p-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Population</h3>
                     {isEditing ? (
@@ -942,14 +964,14 @@ export default function WardProfile() {
                         value={editData.population || ''}
                         onChange={handleInputChange}
                         min="0"
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 w-full px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter population (numbers only)"
                       />
                     ) : (
                       <p className="mt-1 text-sm">{formatValue(ward.population, 'Not set')}</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Area (sq km)</h3>
                     {isEditing ? (
@@ -960,30 +982,30 @@ export default function WardProfile() {
                         value={editData.area || ''}
                         onChange={handleInputChange}
                         min="0"
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 w-full px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter area in sq km (decimal allowed)"
                       />
                     ) : (
                       <p className="mt-1 text-sm">{formatValue(ward.area, 'Not set')}</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Total Clusters</h3>
                     <p className="mt-1 text-sm text-gray-900">{clusters.length}</p>
                   </div>
                 </div>
-                
+
                 {(isEditing || ward.description) && (
-                  <div className="mt-6">
+                  <div className="mt-3">
                     <h3 className="text-sm font-medium text-gray-500">Description</h3>
                     {isEditing ? (
                       <textarea
                         name="description"
                         value={editData.description}
                         onChange={handleInputChange}
-                        rows={3}
-                        className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows={2}
+                        className="mt-1 w-full px-2 py-1 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="Enter ward description"
                       />
                     ) : (
@@ -997,25 +1019,25 @@ export default function WardProfile() {
             {/* Coordinator Information */}
             {ward.coordinator && (
               <Card>
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-3 border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-900">Coordinator Information</h2>
                   <p className="text-sm text-gray-600 mt-1">Your assigned coordinator details</p>
                 </div>
-                
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <div className="p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <h3 className="text-sm font-medium text-gray-500">Name</h3>
                       <p className="mt-1 text-sm text-gray-900">{ward.coordinator.name}</p>
                     </div>
-                    
+
                     {ward.coordinator.email && (
                       <div>
                         <h3 className="text-sm font-medium text-gray-500">Email</h3>
                         <p className="mt-1 text-sm text-gray-900">{ward.coordinator.email}</p>
                       </div>
                     )}
-                    
+
                     {ward.coordinator.mobileNumber && (
                       <div>
                         <h3 className="text-sm font-medium text-gray-500">Mobile Number</h3>
@@ -1028,9 +1050,9 @@ export default function WardProfile() {
             )}
 
             {/* Advanced Data from State Admin Forms */}
-            {advancedData && (
+            {advancedData && advancedData.form ? (
               <Card>
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-2 border-b border-gray-200">
                   <div className="flex justify-between items-center">
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">Ward Advanced Data</h2>
@@ -1055,112 +1077,174 @@ export default function WardProfile() {
                     )}
                   </div>
                 </div>
-                
-                <div className="p-6">
-                  <div className="mb-4">
+
+                <div className="p-2">
+                  <div className="mb-2">
                     <h3 className="text-md font-medium text-gray-900">{advancedData.form.title}</h3>
                     {advancedData.form.description && (
                       <p className="text-sm text-gray-600 mt-1">{advancedData.form.description}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-2">
-                      Last updated: {new Date(advancedData.submittedAt).toLocaleDateString('en-IN')}
-                    </p>
+                    {advancedData.submittedAt && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Last updated: {new Date(advancedData.submittedAt).toLocaleDateString('en-IN')}
+                      </p>
+                    )}
+                    {!advancedData.submittedAt && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        No data submitted yet - Click "Edit Advanced Data" to add information
+                      </p>
+                    )}
                   </div>
 
-                  {/* Ward-level questions */}
-                  {advancedData.form.fields.filter(field => !field.applicableToClusters).length > 0 && (
-                    <div className="mb-6">
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Ward Information</h4>
-                      <div className="space-y-4">
-                        {advancedData.form.fields
-                          .filter(field => !field.applicableToClusters)
-                          .map((field) => (
-                            <div key={field.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                              <div className="flex items-center justify-between mb-2">
+                  {/* All questions with question-based expand/collapse */}
+                  <div className="space-y-2">
+                    {advancedData.form.fields.map((field) => {
+                      const isClusterBased = field.applicableToClusters;
+                      const isExpanded = expandedQuestions[field.id];
+
+                      return (
+                        <div key={field.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                          {/* Question Header */}
+                          <div
+                            className={`p-2 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors ${isClusterBased ? '' : 'border-b-0'}`}
+                            onClick={isClusterBased ? () => toggleQuestionExpansion(field.id) : undefined}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
                                 <h5 className="text-sm font-medium text-gray-900">
                                   {field.label}
                                   {field.required && <span className="text-red-500 ml-1">*</span>}
                                 </h5>
-                                {isEditingAdvanced && field.required && (
-                                  <span className={`text-xs px-2 py-1 rounded ${
-                                    advancedEditData[field.id] && advancedEditData[field.id] !== '' 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-red-100 text-red-700'
-                                  }`}>
+                                {field.helpText && (
+                                  <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {isEditingAdvanced && field.required && !isClusterBased && (
+                                  <span className={`text-xs px-2 py-1 rounded ${advancedEditData[field.id] && advancedEditData[field.id] !== ''
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                    }`}>
                                     {advancedEditData[field.id] && advancedEditData[field.id] !== '' ? '✓' : 'Required'}
                                   </span>
                                 )}
+                                {isClusterBased && (
+                                  <>
+                                    {/* Show completion status for cluster-based questions */}
+                                    {(() => {
+                                      const completedClusters = clusters.filter(cluster => {
+                                        const value = advancedData.clusterResponses[cluster._id]?.[field.id];
+                                        return value && value !== '';
+                                      });
+                                      return (
+                                        <span className="text-xs text-gray-500">
+                                          {completedClusters.length}/{clusters.length} completed
+                                        </span>
+                                      );
+                                    })()}
+                                    <svg
+                                      className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </>
+                                )}
                               </div>
+                            </div>
+                          </div>
+
+                          {/* Question Content */}
+                          {!isClusterBased ? (
+                            /* Ward-level question - always visible */
+                            <div className="p-2 bg-white">
                               {isEditingAdvanced ? (
-                                <div className="mt-1">
+                                <div>
                                   {renderFormField(
-                                    field, 
-                                    advancedEditData[field.id], 
+                                    field,
+                                    advancedEditData[field.id],
                                     handleAdvancedInputChange
                                   )}
                                 </div>
                               ) : (
-                                <div className="mt-1">
+                                <div>
                                   {formatFieldValue(field, advancedData.responses[field.id])}
                                 </div>
                               )}
                             </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Cluster-based questions */}
-                  {advancedData.form.fields.filter(field => field.applicableToClusters).length > 0 && clusters.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-3">Cluster-Based Information</h4>
-                      {clusters.map((cluster) => (
-                        <div key={cluster._id} className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                          <h5 className="text-md font-medium text-gray-900 mb-3">
-                            {cluster.name} (Cluster #{cluster.clusterNumber})
-                          </h5>
-                          <div className="space-y-3">
-                            {advancedData.form.fields
-                              .filter(field => field.applicableToClusters)
-                              .map((field) => (
-                                <div key={field.id} className="border-l-4 border-green-500 pl-4 py-2">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <h6 className="text-sm font-medium text-gray-900">
-                                      {field.label}
-                                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </h6>
-                                    {isEditingAdvanced && field.required && (
-                                      <span className={`text-xs px-2 py-1 rounded ${
-                                        advancedClusterData[cluster._id]?.[field.id] && advancedClusterData[cluster._id]?.[field.id] !== '' 
-                                          ? 'bg-green-100 text-green-700' 
-                                          : 'bg-red-100 text-red-700'
-                                      }`}>
-                                        {advancedClusterData[cluster._id]?.[field.id] && advancedClusterData[cluster._id]?.[field.id] !== '' ? '✓' : 'Required'}
-                                      </span>
-                                    )}
-                                  </div>
-                                  {isEditingAdvanced ? (
-                                    <div className="mt-1">
-                                      {renderFormField(
-                                        field, 
-                                        advancedClusterData[cluster._id]?.[field.id], 
-                                        handleAdvancedClusterInputChange,
-                                        true,
-                                        cluster._id
+                          ) : (
+                            /* Cluster-based question - expandable */
+                            isExpanded && (
+                              <div className="p-2 bg-white">
+                                <div className="space-y-2">
+                                  {clusters.map((cluster) => (
+                                    <div key={cluster._id} className="border-l-4 border-blue-500 pl-2 py-1">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <h6 className="text-sm font-medium text-gray-900">
+                                          {cluster.name} (Cluster #{cluster.clusterNumber})
+                                        </h6>
+                                        {isEditingAdvanced && field.required && (
+                                          <span className={`text-xs px-2 py-1 rounded ${advancedClusterData[cluster._id]?.[field.id] && advancedClusterData[cluster._id]?.[field.id] !== ''
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-red-100 text-red-700'
+                                            }`}>
+                                            {advancedClusterData[cluster._id]?.[field.id] && advancedClusterData[cluster._id]?.[field.id] !== '' ? '✓' : 'Required'}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {isEditingAdvanced ? (
+                                        <div>
+                                          {renderFormField(
+                                            field,
+                                            advancedClusterData[cluster._id]?.[field.id],
+                                            handleAdvancedClusterInputChange,
+                                            true,
+                                            cluster._id
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          {formatFieldValue(field, advancedData.clusterResponses[cluster._id]?.[field.id])}
+                                        </div>
                                       )}
                                     </div>
-                                  ) : (
-                                    <div className="mt-1">
-                                      {formatFieldValue(field, advancedData.clusterResponses[cluster._id]?.[field.id])}
-                                    </div>
-                                  )}
+                                  ))}
                                 </div>
-                              ))}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <Card>
+                <div className="p-2 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Ward Advanced Data</h2>
+                  <p className="text-sm text-gray-600 mt-1">Data from state admin created forms</p>
+                </div>
+                <div className="p-2">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                      <div>
+                        <h3 className="text-sm font-medium text-yellow-800">No Ward Basic Form Available</h3>
+                        <div className="mt-1 text-sm text-yellow-700">
+                          <p>No active Ward Basic Form has been created by the State Admin.</p>
+                          <div className="mt-2">
+                            <p className="font-medium">To enable this section:</p>
+                            <p className="mt-1">State Admin should create a Ward Basic Form at <code className="bg-yellow-100 px-1 rounded">/admin/ward-basic-forms/create</code> and mark it as active.</p>
                           </div>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </Card>
             )}
@@ -1168,15 +1252,15 @@ export default function WardProfile() {
             {/* Clusters Information */}
             {clusters.length > 0 && (
               <Card>
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-3 border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-900">Ward Clusters</h2>
                   <p className="text-sm text-gray-600 mt-1">Clusters within your ward</p>
                 </div>
-                
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                <div className="p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {clusters.map((cluster) => (
-                      <div key={cluster._id} className="border border-gray-200 rounded-lg p-4">
+                      <div key={cluster._id} className="border border-gray-200 rounded-lg p-2">
                         <h4 className="font-medium text-gray-900">{cluster.name}</h4>
                         <p className="text-sm text-gray-500">Cluster #{cluster.clusterNumber}</p>
                         <p className="text-sm text-gray-600 mt-1">
