@@ -64,15 +64,15 @@ export default async function handler(req, res) {
         form: activeForm._id
       }).lean();
 
-      if (wardData) {
-        advancedData = {
-          form: activeForm,
-          responses: wardData.data,
-          clusterResponses: wardData.clusterData || {},
-          submittedAt: wardData.submittedAt,
-          submittedBy: wardData.submittedBy
-        };
-      }
+      // Always return the form structure if there's an active form
+      advancedData = {
+        form: activeForm,
+        responses: wardData ? wardData.data : {},
+        clusterResponses: wardData ? (wardData.clusterData || {}) : {},
+        submittedAt: wardData ? wardData.submittedAt : null,
+        submittedBy: wardData ? wardData.submittedBy : null,
+        hasData: !!wardData
+      };
     }
 
     const profileData = {

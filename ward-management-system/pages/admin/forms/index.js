@@ -393,15 +393,11 @@ export default function Forms() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        <Link href={`/admin/forms/responses/${form._id}`}>
-                          <Button variant="success" size="sm">
-                            View Responses
-                          </Button>
+                        <Link href={`/admin/forms/responses/${form._id}`} className="inline-flex items-center px-3 py-2 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                          View Responses
                         </Link>
-                        <Link href={`/admin/forms/edit/${form._id}`}>
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
+                        <Link href={`/admin/forms/edit/${form._id}`} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                          Edit
                         </Link>
                         <Button
                           variant="danger"

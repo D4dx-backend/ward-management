@@ -7,16 +7,18 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
-import { useApiData } from '../../../hooks/useApiData';
 
 export default function CoordinatorWardProfile() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { wardId } = router.query;
-  const [profileData, setProfileData] = useState(null);
+  const [ward, setWard] = useState(null);
+  const [clusters, setClusters] = useState([]);
+  const [advancedData, setAdvancedData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [expandedQuestions, setExpandedQuestions] = useState({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -24,20 +26,34 @@ export default function CoordinatorWardProfile() {
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
     } else if (status === 'authenticated' && wardId) {
-      fetchWardProfile();
+      fetchWardData();
     }
   }, [status, session, router, wardId]);
 
-  const fetchWardProfile = async () => {
+  const fetchWardData = async () => {
     setIsLoading(true);
-    
+
     try {
-      const response = await axios.get(`/api/ward-profile/${wardId}`);
-      setProfileData(response.data);
+      // Verify ward belongs to coordinator
+      const wardResponse = await axios.get(`/api/coordinator/ward-profile/${wardId}`);
+      const profileData = wardResponse.data;
+
+      setWard(profileData.ward);
+      setClusters(profileData.clusters || []);
+      setAdvancedData(profileData.advancedData);
       setError('');
     } catch (error) {
-      console.error('Error fetching ward profile:', error);
-      setError(error.response?.data?.message || 'Failed to fetch ward profile');
+      console.error('Error fetching ward data:', error);
+      
+      if (error.response?.status === 403) {
+        setError('Access denied to this ward. This ward is not under your coordination.');
+      } else if (error.response?.status === 404) {
+        setError('Ward not found.');
+      } else if (error.response?.data?.message) {
+        setError(`Error: ${error.response.data.message}`);
+      } else {
+        setError('Failed to fetch ward data. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -45,17 +61,17 @@ export default function CoordinatorWardProfile() {
 
   const handleExportPDF = async () => {
     setIsExporting(true);
-    
+
     try {
-      const response = await axios.get(`/api/ward-profile/${wardId}/export-pdf`, {
+      const response = await axios.get(`/api/coordinator/ward-profile/${wardId}/export-pdf`, {
         responseType: 'blob'
       });
-      
+
       // Create blob link to download
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `ward-profile-${profileData.ward.name}-${profileData.ward.wardNumber}.html`);
+      link.setAttribute('download', `ward-profile-${ward.name}-${ward.wardNumber}.html`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -68,6 +84,13 @@ export default function CoordinatorWardProfile() {
     }
   };
 
+  const toggleQuestionExpansion = (questionId) => {
+    setExpandedQuestions(prev => ({
+      ...prev,
+      [questionId]: !prev[questionId]
+    }));
+  };
+
   const formatValue = (value, defaultText = 'Not set') => {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-400 italic">{defaultText}</span>;
@@ -76,21 +99,128 @@ export default function CoordinatorWardProfile() {
   };
 
   const formatFieldValue = (field, value) => {
-    if (!value || value === '') {
+    if (!value || value === '' || (Array.isArray(value) && value.length === 0)) {
       return <span className="text-gray-400 italic">Not answered</span>;
     }
 
     switch (field.type) {
       case 'yesno':
-        return <span className={`px-2 py-1 rounded text-sm ${value === 'yes' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-          {value === 'yes' ? 'Yes' : 'No'}
-        </span>;
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${value === 'yes'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+            }`}>
+            {value === 'yes' ? (
+              <>
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                Yes
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+                No
+              </>
+            )}
+          </span>
+        );
+
       case 'multiselect':
-        return Array.isArray(value) ? value.join(', ') : value;
+        if (Array.isArray(value) && value.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {value.map((item, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return <span className="text-gray-400 italic">No options selected</span>;
+
       case 'date':
-        return new Date(value).toLocaleDateString('en-IN');
+        try {
+          const date = new Date(value);
+          return (
+            <span className="text-gray-900">
+              {date.toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </span>
+          );
+        } catch (error) {
+          return <span className="text-red-500">Invalid date</span>;
+        }
+
+      case 'email':
+        return (
+          <a
+            href={`mailto:${value}`}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {value}
+          </a>
+        );
+
+      case 'phone':
+        return (
+          <a
+            href={`tel:${value}`}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            {value}
+          </a>
+        );
+
+      case 'url':
+        return (
+          <a
+            href={value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline inline-flex items-center"
+          >
+            {value}
+            <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+              <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+            </svg>
+          </a>
+        );
+
+      case 'number':
+        return (
+          <span className="text-gray-900 font-mono">
+            {typeof value === 'number' ? value.toLocaleString() : value}
+          </span>
+        );
+
+      case 'textarea':
+        return (
+          <div className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-2 rounded border">
+            {value}
+          </div>
+        );
+
+      case 'select':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+            {value}
+          </span>
+        );
+
+      case 'text':
       default:
-        return value;
+        return <span className="text-gray-900">{value}</span>;
     }
   };
 
@@ -102,7 +232,7 @@ export default function CoordinatorWardProfile() {
     );
   }
 
-  if (error && !profileData) {
+  if (error && !ward) {
     return (
       <Layout>
         <Head>
@@ -111,7 +241,7 @@ export default function CoordinatorWardProfile() {
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Profile</h1>
-            <p className="mt-1 text-sm text-gray-600">View ward information and statistics</p>
+            <p className="mt-1 text-sm text-gray-600">View ward information</p>
           </div>
           <Card>
             <div className="p-6 text-center">
@@ -120,6 +250,11 @@ export default function CoordinatorWardProfile() {
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">Error</h3>
               <p className="mt-1 text-sm text-gray-500">{error}</p>
+              <div className="mt-4">
+                <Button onClick={() => router.back()} variant="outline">
+                  Go Back
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
@@ -127,30 +262,26 @@ export default function CoordinatorWardProfile() {
     );
   }
 
-  if (!profileData) return null;
-
-  const { ward, clusters, advancedData } = profileData;
-
   return (
     <Layout>
       <Head>
-        <title>Ward Profile - {ward.name} - Ward Management System</title>
+        <title>{ward?.name} Profile - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Profile</h1>
-            <p className="mt-1 text-sm text-gray-600">{ward.name} (Ward #{ward.wardNumber})</p>
+            <h1 className="text-2xl font-bold text-gray-900">{ward?.name} Profile</h1>
+            <p className="mt-1 text-sm text-gray-600">View ward information and data</p>
           </div>
           <div className="flex space-x-3">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button onClick={() => router.back()} variant="outline">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back
             </Button>
-            <Button onClick={handleExportPDF} disabled={isExporting}>
+            <Button onClick={handleExportPDF} disabled={isExporting} variant="outline">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -159,193 +290,191 @@ export default function CoordinatorWardProfile() {
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Basic Ward Information */}
         <Card>
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-            <p className="text-sm text-gray-600 mt-1">Core ward details and administrative information</p>
-          </div>
-          
           <div className="p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Ward Name</h3>
-                <p className="mt-1 text-sm text-gray-900">{ward.name}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Name</label>
+                <div className="text-sm text-gray-900">{ward?.name}</div>
               </div>
-              
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Ward Number</h3>
-                <p className="mt-1 text-sm text-gray-900">#{ward.wardNumber}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Number</label>
+                <div className="text-sm text-gray-900">#{ward?.wardNumber}</div>
               </div>
-              
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Panchayath</h3>
-                <p className="mt-1 text-sm text-gray-900">{ward.panchayath}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                <div className="text-sm text-gray-900">{ward?.district}</div>
               </div>
-              
               <div>
-                <h3 className="text-sm font-medium text-gray-500">District</h3>
-                <p className="mt-1 text-sm text-gray-900">{ward.district}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Panchayath</label>
+                <div className="text-sm text-gray-900">{ward?.panchayath}</div>
               </div>
-              
               <div>
-                <h3 className="text-sm font-medium text-gray-500">State</h3>
-                <p className="mt-1 text-sm text-gray-900">{ward.state || 'Kerala'}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Population</label>
+                <div className="text-sm">{formatValue(ward?.population)}</div>
               </div>
-              
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Status</h3>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  ward.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {ward.isActive ? 'Active' : 'Inactive'}
-                </span>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Area (sq km)</label>
+                <div className="text-sm">{formatValue(ward?.area)}</div>
               </div>
             </div>
-          </div>
-        </Card>
-
-        {/* Ward Statistics */}
-        <Card>
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Ward Statistics</h2>
-            <p className="text-sm text-gray-600 mt-1">Population and area information</p>
-          </div>
-          
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Population</h3>
-                <p className="mt-1 text-sm">{formatValue(ward.population, 'Not set')}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Area (sq km)</h3>
-                <p className="mt-1 text-sm">{formatValue(ward.area, 'Not set')}</p>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Total Clusters</h3>
-                <p className="mt-1 text-sm text-gray-900">{clusters.length}</p>
-              </div>
-            </div>
-            
-            {ward.description && (
+            {ward?.description && (
               <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-500">Description</h3>
-                <p className="mt-1 text-sm text-gray-900">{ward.description}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded border">
+                  {ward.description}
+                </div>
               </div>
             )}
           </div>
         </Card>
 
-        {/* Advanced Data from State Admin Forms */}
-        {advancedData && (
+        {/* Ward Admin Information */}
+        {ward?.wardAdmin && (
           <Card>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Ward Advanced Data</h2>
-              <p className="text-sm text-gray-600 mt-1">Data from state admin created forms</p>
-            </div>
-            
             <div className="p-6">
-              <div className="mb-4">
-                <h3 className="text-md font-medium text-gray-900">{advancedData.form.title}</h3>
-                {advancedData.form.description && (
-                  <p className="text-sm text-gray-600 mt-1">{advancedData.form.description}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-2">
-                  Last updated: {new Date(advancedData.submittedAt).toLocaleDateString('en-IN')}
-                </p>
-              </div>
-
-              {/* Ward-level questions */}
-              {advancedData.form.fields.filter(field => !field.applicableToClusters).length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Ward Information</h4>
-                  <div className="space-y-4">
-                    {advancedData.form.fields
-                      .filter(field => !field.applicableToClusters)
-                      .map((field) => (
-                        <div key={field.id} className="border-l-4 border-blue-500 pl-4">
-                          <h5 className="text-sm font-medium text-gray-900">{field.label}</h5>
-                          <div className="mt-1">
-                            {formatFieldValue(field, advancedData.responses[field.id])}
-                          </div>
-                        </div>
-                      ))}
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Ward Admin</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <div className="text-sm text-gray-900">{ward.wardAdmin.name}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <div className="text-sm text-gray-900">{ward.wardAdmin.email}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                  <div className="text-sm text-gray-900">{ward.wardAdmin.mobileNumber || 'Not provided'}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Login</label>
+                  <div className="text-sm text-gray-900">
+                    {ward.wardAdmin.lastLogin 
+                      ? new Date(ward.wardAdmin.lastLogin).toLocaleString()
+                      : 'Never logged in'
+                    }
                   </div>
                 </div>
-              )}
-
-              {/* Cluster-based questions */}
-              {advancedData.form.fields.filter(field => field.applicableToClusters).length > 0 && clusters.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">Cluster-Based Information</h4>
-                  {clusters.map((cluster) => (
-                    <div key={cluster._id} className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <h5 className="text-md font-medium text-gray-900 mb-3">
-                        {cluster.name} (Cluster #{cluster.clusterNumber})
-                      </h5>
-                      <div className="space-y-3">
-                        {advancedData.form.fields
-                          .filter(field => field.applicableToClusters)
-                          .map((field) => (
-                            <div key={field.id} className="border-l-4 border-green-500 pl-4">
-                              <h6 className="text-sm font-medium text-gray-900">{field.label}</h6>
-                              <div className="mt-1">
-                                {formatFieldValue(field, advancedData.clusterResponses[cluster._id]?.[field.id])}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              </div>
             </div>
           </Card>
         )}
 
         {/* Clusters Information */}
-        {clusters.length > 0 && (
+        {clusters && clusters.length > 0 && (
           <Card>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Ward Clusters</h2>
-              <p className="text-sm text-gray-600 mt-1">Clusters within this ward</p>
-            </div>
-            
             <div className="p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Clusters ({clusters.length})</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {clusters.map((cluster) => (
                   <div key={cluster._id} className="border border-gray-200 rounded-lg p-4">
-                    <h4 className="font-medium text-gray-900">{cluster.name}</h4>
-                    <p className="text-sm text-gray-500">Cluster #{cluster.clusterNumber}</p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Coordinator: {cluster.coordinator?.name || 'Not assigned'}
-                    </p>
-                    {cluster.coordinator?.mobileNumber && (
-                      <p className="text-sm text-gray-600">
-                        Mobile: {cluster.coordinator.mobileNumber}
-                      </p>
-                    )}
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-sm font-medium text-gray-900">{cluster.name}</h3>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        cluster.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {cluster.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-600 space-y-1">
+                      <div>Cluster #{cluster.clusterNumber}</div>
+                      <div>Coordinator: {cluster.coordinator?.name}</div>
+                      {cluster.coordinator?.mobileNumber && (
+                        <div>Mobile: {cluster.coordinator.mobileNumber}</div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Advanced Data */}
+        {advancedData && advancedData.form && (
+          <Card>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900">{advancedData.form.title}</h2>
+                  <p className="text-sm text-gray-600">{advancedData.form.description}</p>
+                </div>
+                {advancedData.hasData && (
+                  <div className="text-sm text-gray-500">
+                    Last updated: {new Date(advancedData.submittedAt).toLocaleDateString()}
+                  </div>
+                )}
+              </div>
+
+              {advancedData.hasData ? (
+                <div className="space-y-6">
+                  {/* Ward-level fields */}
+                  {advancedData.form.fields
+                    .filter(field => !field.applicableToClusters)
+                    .map((field) => (
+                      <div key={field.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-sm font-medium text-gray-900 mb-1">
+                              {field.label}
+                              {field.required && <span className="text-red-500 ml-1">*</span>}
+                            </h3>
+                            <div className="text-sm">
+                              {formatFieldValue(field, advancedData.responses?.[field.id])}
+                            </div>
+                            {field.helpText && (
+                              <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Cluster-level fields */}
+                  {advancedData.form.fields.some(field => field.applicableToClusters) && (
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">Cluster-specific Data</h3>
+                      {clusters.map((cluster) => (
+                        <div key={cluster._id} className="mb-6 border border-gray-200 rounded-lg p-4">
+                          <h4 className="text-md font-medium text-gray-900 mb-3">{cluster.name}</h4>
+                          <div className="space-y-4">
+                            {advancedData.form.fields
+                              .filter(field => field.applicableToClusters)
+                              .map((field) => (
+                                <div key={field.id} className="border-l-4 border-green-500 pl-4 py-2">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <h5 className="text-sm font-medium text-gray-900 mb-1">
+                                        {field.label}
+                                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                                      </h5>
+                                      <div className="text-sm">
+                                        {formatFieldValue(field, advancedData.clusterResponses?.[cluster._id]?.[field.id])}
+                                      </div>
+                                      {field.helpText && (
+                                        <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No data has been submitted for this form yet</p>
+                </div>
+              )}
             </div>
           </Card>
         )}

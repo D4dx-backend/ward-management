@@ -149,6 +149,7 @@ export const useDashboardData = (userRole) => {
   const [stats, setStats] = useState({});
   const [recentReports, setRecentReports] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [recentLogins, setRecentLogins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -164,6 +165,7 @@ export const useDashboardData = (userRole) => {
         setStats(cachedData.stats || {});
         setRecentReports(cachedData.recentReports || []);
         setRecentActivity(cachedData.recentActivity || []);
+        setRecentLogins(cachedData.recentLogins || []);
         setLoading(false);
         return;
       }
@@ -205,7 +207,8 @@ export const useDashboardData = (userRole) => {
             totalForms: formsRes.status === 'fulfilled' ? formsRes.value.data.length : 0
           },
           recentReports: [],
-          recentActivity: []
+          recentActivity: [],
+          recentLogins: []
         };
       } else {
         const [statsRes, reportsRes] = responses;
@@ -215,7 +218,8 @@ export const useDashboardData = (userRole) => {
         dashboardData = {
           stats: statsData.stats || statsData,
           recentReports: statsData.recentReports || reportsData,
-          recentActivity: statsData.recentActivity || []
+          recentActivity: statsData.recentLogs || [],
+          recentLogins: statsData.recentLogins || []
         };
       }
 
@@ -225,6 +229,7 @@ export const useDashboardData = (userRole) => {
       setStats(dashboardData.stats);
       setRecentReports(dashboardData.recentReports);
       setRecentActivity(dashboardData.recentActivity);
+      setRecentLogins(dashboardData.recentLogins);
 
     } catch (err) {
       console.error('Dashboard data fetch error:', err);
@@ -242,6 +247,7 @@ export const useDashboardData = (userRole) => {
     stats,
     recentReports,
     recentActivity,
+    recentLogins,
     loading,
     error,
     refetch: fetchDashboardData

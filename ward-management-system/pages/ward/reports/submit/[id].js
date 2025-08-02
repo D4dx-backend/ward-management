@@ -283,11 +283,9 @@ export default function SubmitSpecificWardReport() {
               </svg>
               <p className="mt-2 text-sm font-medium">{error}</p>
               <div className="mt-4">
-                <Link href="/ward/reports/submit">
-                  <Button variant="outline">
+                <Link href="/ward/reports/submit" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Back to Forms
-                  </Button>
-                </Link>
+                  </Link>
               </div>
             </div>
           </Card>
@@ -309,22 +307,18 @@ export default function SubmitSpecificWardReport() {
             <p className="text-sm text-gray-600">Submit your weekly ward progress report</p>
           </div>
           <div className="flex space-x-3">
-            <Link href="/ward/reports/submit">
-              <Button variant="outline">
+            <Link href="/ward/reports/submit" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                 </svg>
                 Back to Forms
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline">
+              </Link>
+            <Link href="/" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 Home
-              </Button>
-            </Link>
+              </Link>
           </div>
         </div>
 

@@ -29,7 +29,7 @@ const DashboardLoginHistory = ({ logins = [], userRole = 'stateAdmin' }) => {
 
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-4 py-3 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">Recent Logins</h3>
           <a href={getViewAllLink()} className="text-sm text-blue-600 hover:text-blue-800">
@@ -39,7 +39,7 @@ const DashboardLoginHistory = ({ logins = [], userRole = 'stateAdmin' }) => {
       </div>
       <div className="divide-y divide-gray-200">
         {logins.length === 0 ? (
-          <div className="px-6 py-8 text-center">
+          <div className="px-4 py-6 text-center">
             <div className="text-gray-500">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -49,14 +49,14 @@ const DashboardLoginHistory = ({ logins = [], userRole = 'stateAdmin' }) => {
           </div>
         ) : (
           logins.map((login) => (
-            <div key={login._id} className="px-6 py-4 hover:bg-gray-50">
+            <div key={login._id} className="px-4 py-3 hover:bg-gray-50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
                   <div className="flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
                       login.isActive ? 'bg-green-100' : 'bg-gray-100'
                     }`}>
-                      <svg className={`w-4 h-4 ${login.isActive ? 'text-green-600' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className={`w-3 h-3 ${login.isActive ? 'text-green-600' : 'text-gray-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                       </svg>
                     </div>

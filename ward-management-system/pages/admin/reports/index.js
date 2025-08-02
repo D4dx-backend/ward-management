@@ -331,10 +331,8 @@ export default function Reports() {
                       {new Date(response.submittedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link href={`/admin/reports/view/${response._id}`}>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
+                      <Link href={`/admin/reports/view/${response._id}`} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        View Details
                       </Link>
                     </td>
                   </tr>

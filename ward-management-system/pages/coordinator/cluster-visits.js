@@ -32,7 +32,8 @@ export default function CoordinatorClusterVisits() {
     ward: 'all',
     status: 'all',
     dateRange: 'all',
-    visitStatus: 'all'
+    visitStatus: 'all',
+    visitType: 'coordinator' // coordinator, ward_admin, all
   });
   
   const [wards, setWards] = useState([]);
@@ -98,6 +99,7 @@ export default function CoordinatorClusterVisits() {
       const clusters = mockWards.map((ward, wardIndex) => {
         const clusterId = `coord-${wardIndex}-${i}`;
         const visited = Math.random() > 0.4; // Higher visit rate for coordinator view
+        const visitType = Math.random() > 0.5 ? 'coordinator' : 'ward_admin'; // Random visit type
         
         return {
           id: clusterId,
@@ -107,7 +109,9 @@ export default function CoordinatorClusterVisits() {
           coordinator: session?.user?.name || 'Current User',
           visited: visited,
           visitDate: visited && Math.random() > 0.3 ? new Date(weekStart.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
-          canEdit: true, // Coordinator can edit their own visits
+          visitType: visitType,
+          recordedBy: visitType === 'coordinator' ? session?.user?.name || 'Current User' : 'Ward Admin',
+          canEdit: visitType === 'coordinator', // Only coordinator can edit their own visits
           visitDetails: visited ? {
             purpose: ['Routine monitoring', 'Data collection', 'Issue resolution', 'Community meeting'][Math.floor(Math.random() * 4)],
             findings: ['All systems functioning well', 'Minor issues identified', 'Significant improvements needed', 'Excellent progress'][Math.floor(Math.random() * 4)],
@@ -160,6 +164,10 @@ export default function CoordinatorClusterVisits() {
           if (filters.visitStatus === 'visited' && !cluster.visited) return false;
           if (filters.visitStatus === 'not_visited' && cluster.visited) return false;
           if (filters.visitStatus === 'needs_followup' && (!cluster.visitDetails?.followUpRequired)) return false;
+        }
+        if (filters.visitType !== 'all') {
+          if (filters.visitType === 'coordinator' && cluster.visitType !== 'coordinator') return false;
+          if (filters.visitType === 'ward_admin' && cluster.visitType !== 'ward_admin') return false;
         }
         return true;
       })
@@ -299,6 +307,55 @@ export default function CoordinatorClusterVisits() {
             </Button>
           </div>
         </div>
+
+        {/* Visit Type Toggle */}
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Visit View</h2>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => handleFilterChange('visitType', 'coordinator')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                    filters.visitType === 'coordinator'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  My Visits
+                </button>
+                <button
+                  onClick={() => handleFilterChange('visitType', 'ward_admin')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                    filters.visitType === 'ward_admin'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Ward Admin Visits
+                </button>
+                <button
+                  onClick={() => handleFilterChange('visitType', 'all')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg ${
+                    filters.visitType === 'all'
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All Visits
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600">
+              {filters.visitType === 'coordinator'
+                ? 'Showing visits recorded by you as coordinator'
+                : filters.visitType === 'ward_admin'
+                ? 'Showing visits recorded by ward administrators'
+                : 'Showing all visits from both coordinators and ward administrators'
+              }
+            </p>
+          </div>
+        </Card>
 
         {/* Filter Section */}
         <Card>
@@ -492,16 +549,30 @@ export default function CoordinatorClusterVisits() {
                           <div className="flex-1">
                             <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
                             <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
+                            {cluster.visited && cluster.recordedBy && (
+                              <p className="text-xs text-gray-500">Recorded by: {cluster.recordedBy}</p>
+                            )}
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {cluster.visited ? 'Visited' : 'Pending'}
-                            </span>
-                            {cluster.visitDetails?.followUpRequired && (
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                Follow-up
+                          <div className="flex flex-col items-end space-y-1">
+                            <div className="flex items-center space-x-2">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {cluster.visited ? 'Visited' : 'Pending'}
+                              </span>
+                              {cluster.visitDetails?.followUpRequired && (
+                                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                  Follow-up
+                                </span>
+                              )}
+                            </div>
+                            {cluster.visitType && (
+                              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                                cluster.visitType === 'coordinator' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {cluster.visitType === 'coordinator' ? 'Coordinator' : 'Ward Admin'}
                               </span>
                             )}
                           </div>
@@ -528,9 +599,15 @@ export default function CoordinatorClusterVisits() {
                         )}
                         
                         <div className="mt-3 flex justify-end">
-                          <Button size="sm" variant="outline">
-                            {cluster.visited ? 'Edit Visit' : 'Record Visit'}
-                          </Button>
+                          {cluster.canEdit ? (
+                            <Button size="sm" variant="outline">
+                              {cluster.visited ? 'Edit Visit' : 'Record Visit'}
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" disabled>
+                              View Only
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )) : []}
