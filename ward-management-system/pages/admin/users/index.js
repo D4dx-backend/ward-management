@@ -110,9 +110,9 @@ export default function Users() {
     // Filter users based on search term
     if (searchTerm) {
       const filtered = users.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.district && user.district.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.mobileNumber && user.mobileNumber.includes(searchTerm))
       );
