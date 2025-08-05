@@ -153,12 +153,14 @@ export default function AdminWards() {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    
     if (name === 'district') {
-      setSelectedDistrict(value);
-      setFormData({ ...formData, [name]: value, panchayath: '' });
+      setSelectedDistrict(newValue);
+      setFormData({ ...formData, [name]: newValue, panchayath: '' });
+    } else {
+      setFormData({ ...formData, [name]: newValue });
     }
   };
 
@@ -507,7 +509,7 @@ export default function AdminWards() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <SearchInput
-                onSearch={setSearchTerm}
+                onChange={setSearchTerm}
                 placeholder="Search wards by name, number, panchayath, district, or staff..."
                 className="max-w-md"
               />

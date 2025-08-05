@@ -90,7 +90,7 @@ async function createCluster(data, coordinatorId, res) {
       clusterNumber,
       ward: wardId,
       coordinator: {
-        name: coordinator.name,
+        name: coordinator.name || '',
         mobileNumber: coordinator.mobileNumber || null
       },
       isActive

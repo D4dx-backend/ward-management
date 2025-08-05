@@ -574,7 +574,7 @@ export default function Users() {
         <Card>
           <div className="p-6 border-b border-gray-200">
             <SearchInput
-              onSearch={setSearchTerm}
+              onChange={setSearchTerm}
               placeholder="Search users by name, email, role, district, or mobile..."
               className="max-w-md"
             />

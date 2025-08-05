@@ -25,6 +25,9 @@ export default function CoordinatorClusters() {
   const [editingCluster, setEditingCluster] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWard, setSelectedWard] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedPanchayath, setSelectedPanchayath] = useState('');
+  const [filteredWards, setFilteredWards] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     clusterNumber: '',
@@ -82,6 +85,21 @@ export default function CoordinatorClusters() {
     setFilteredClusters(filtered);
     setCurrentPage(1);
   }, [clusters, searchTerm, selectedWard]);
+
+  // Filter wards based on district and panchayath selection
+  useEffect(() => {
+    let filtered = wards;
+    
+    if (selectedDistrict) {
+      filtered = filtered.filter(ward => ward.district === selectedDistrict);
+    }
+    
+    if (selectedPanchayath) {
+      filtered = filtered.filter(ward => ward.panchayath === selectedPanchayath);
+    }
+    
+    setFilteredWards(filtered);
+  }, [wards, selectedDistrict, selectedPanchayath]);
 
   const fetchClusters = async () => {
     try {
@@ -238,6 +256,35 @@ export default function CoordinatorClusters() {
     setCurrentPage(page);
   };
 
+  // Get unique districts
+  const getUniqueDistricts = () => {
+    const districts = [...new Set(wards.map(ward => ward.district))];
+    return districts.sort();
+  };
+
+  // Get unique panchayaths for selected district
+  const getUniquePanchayaths = () => {
+    let filteredWards = wards;
+    if (selectedDistrict) {
+      filteredWards = wards.filter(ward => ward.district === selectedDistrict);
+    }
+    const panchayaths = [...new Set(filteredWards.map(ward => ward.panchayath))];
+    return panchayaths.sort();
+  };
+
+  // Handle district change
+  const handleDistrictChange = (district) => {
+    setSelectedDistrict(district);
+    setSelectedPanchayath(''); // Reset panchayath when district changes
+    setFormData(prev => ({ ...prev, wardId: '' })); // Reset ward selection
+  };
+
+  // Handle panchayath change
+  const handlePanchayathChange = (panchayath) => {
+    setSelectedPanchayath(panchayath);
+    setFormData(prev => ({ ...prev, wardId: '' })); // Reset ward selection
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
@@ -282,6 +329,48 @@ export default function CoordinatorClusters() {
           />
         </div>
 
+        {/* District Selection */}
+        <div>
+          <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-1">
+            District
+          </label>
+          <select
+            id="district"
+            value={selectedDistrict}
+            onChange={(e) => handleDistrictChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Districts</option>
+            {getUniqueDistricts().map(district => (
+              <option key={district} value={district}>
+                {district}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Panchayath Selection */}
+        <div>
+          <label htmlFor="panchayath" className="block text-sm font-medium text-gray-700 mb-1">
+            Panchayath
+          </label>
+          <select
+            id="panchayath"
+            value={selectedPanchayath}
+            onChange={(e) => handlePanchayathChange(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            disabled={!selectedDistrict}
+          >
+            <option value="">All Panchayaths</option>
+            {getUniquePanchayaths().map(panchayath => (
+              <option key={panchayath} value={panchayath}>
+                {panchayath}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Ward Selection */}
         <div className="md:col-span-2">
           <label htmlFor="wardId" className="block text-sm font-medium text-gray-700 mb-1">
             Ward *
@@ -295,12 +384,21 @@ export default function CoordinatorClusters() {
             required
           >
             <option value="">Select Ward</option>
-            {wards.map(ward => (
+            {filteredWards.map(ward => (
               <option key={ward._id} value={ward._id}>
-                {ward.name} - {ward.district}
+                {ward.name} - {ward.panchayath}, {ward.district}
               </option>
             ))}
           </select>
+          {selectedDistrict || selectedPanchayath ? (
+            <p className="mt-1 text-xs text-gray-500">
+              Showing wards {selectedDistrict && `in ${selectedDistrict}`} {selectedPanchayath && `under ${selectedPanchayath} panchayath`}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500">
+              Select district and panchayath to filter wards for easier selection
+            </p>
+          )}
         </div>
       </div>
 
@@ -310,7 +408,7 @@ export default function CoordinatorClusters() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="coordinator.name" className="block text-sm font-medium text-gray-700 mb-1">
-              Coordinator Name *
+              Coordinator Name (Optional)
             </label>
             <input
               type="text"
@@ -320,7 +418,6 @@ export default function CoordinatorClusters() {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter coordinator name"
-              required
             />
           </div>
 

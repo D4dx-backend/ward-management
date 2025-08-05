@@ -52,15 +52,9 @@ export default async function handler(req, res) {
 
     const totalVisits = await WardVisit.countDocuments(query);
 
-    res.status(200).json({
-      visits,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalVisits / parseInt(limit)),
-        totalVisits,
-        limit: parseInt(limit)
-      }
-    });
+    // For now, return just the visits array to match frontend expectations
+    // Later we can enhance the frontend to use pagination
+    res.status(200).json(visits);
 
   } catch (error) {
     console.error('Error fetching ward visits:', error);

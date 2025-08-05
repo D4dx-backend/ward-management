@@ -74,10 +74,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: 'All fields are required' });
       }
       
-      // Coordinator name is required
-      if (!coordinator.name || !coordinator.name.trim()) {
-        return res.status(400).json({ message: 'Coordinator name is required' });
-      }
+      // Coordinator name is optional now
+      // if (!coordinator.name || !coordinator.name.trim()) {
+      //   return res.status(400).json({ message: 'Coordinator name is required' });
+      // }
       
       // Validate mobile number if provided
       if (coordinator.mobileNumber && !/^\d{10}$/.test(coordinator.mobileNumber)) {
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         clusterNumber: clusterNumber.trim(),
         ward: wardId,
         coordinator: {
-          name: coordinator.name.trim(),
+          name: coordinator.name ? coordinator.name.trim() : '',
           mobileNumber: coordinator.mobileNumber ? coordinator.mobileNumber.trim() : undefined,
           email: coordinator.email ? coordinator.email.trim() : undefined
         },

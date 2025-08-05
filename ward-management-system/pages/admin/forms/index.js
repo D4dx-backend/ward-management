@@ -304,9 +304,6 @@ export default function Forms() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Published
-                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -368,28 +365,23 @@ export default function Forms() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => toggleFormStatus(form._id, form.isActive)}
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
-                          form.isActive
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                            : 'bg-red-100 text-red-800 hover:bg-red-200'
-                        }`}
-                      >
-                        {form.isActive ? 'Active' : 'Inactive'}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => togglePublishStatus(form._id, form.isPublished)}
-                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
-                          form.isPublished
-                            ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                        }`}
-                      >
-                        {form.isPublished ? 'Published' : 'Draft'}
-                      </button>
+                      <div className="flex flex-col space-y-1">
+                        <button
+                          onClick={() => togglePublishStatus(form._id, form.isPublished)}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
+                            form.isPublished
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          }`}
+                        >
+                          {form.isPublished ? 'Published' : 'Draft'}
+                        </button>
+                        {form.isPublished && (
+                          <span className="text-xs text-gray-500">
+                            {form.publishedAt ? new Date(form.publishedAt).toLocaleDateString() : 'Published'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
@@ -412,7 +404,7 @@ export default function Forms() {
                 ))}
                 {paginatedForms.length === 0 && (
                   <tr>
-                    <td colSpan="8" className="px-6 py-12 text-center">
+                    <td colSpan="7" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

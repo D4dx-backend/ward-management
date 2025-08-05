@@ -29,6 +29,17 @@ export default function AdminClusterVisits() {
   const [districts, setDistricts] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
   const [wards, setWards] = useState([]);
+  const [expandedWeeks, setExpandedWeeks] = useState(new Set());
+
+  // Debug effect to log filter changes
+  useEffect(() => {
+    const filteredData = getFilteredData();
+    console.log('Filters changed, filtered data:', {
+      filters,
+      totalWeeks: filteredData.length,
+      totalClusters: filteredData.reduce((sum, week) => sum + week.clusters.length, 0)
+    });
+  }, [filters, visitData]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -45,11 +56,25 @@ export default function AdminClusterVisits() {
     try {
       setIsLoading(true);
       const response = await axios.get('/api/admin/cluster-visits');
-      setVisitData(response.data.weeks || []);
-      setError('');
+      const weeks = response.data.weeks || [];
+      
+      if (weeks.length > 0) {
+        setVisitData(weeks);
+        setError('');
+        
+        // Auto-expand current week
+        const currentWeek = weeks.find(w => w.isCurrentWeek);
+        if (currentWeek) {
+          setExpandedWeeks(new Set([`${currentWeek.weekNumber}-${currentWeek.year}`]));
+        }
+      } else {
+        // If no real data, fall back to mock data
+        console.log('No real data available, using mock data');
+        generateMockData();
+      }
     } catch (error) {
       console.error('Error fetching cluster visit data:', error);
-      setError('Failed to load cluster visit data');
+      setError('Failed to load cluster visit data - using sample data');
       generateMockData();
     } finally {
       setIsLoading(false);
@@ -57,8 +82,40 @@ export default function AdminClusterVisits() {
   };
 
   const fetchFilterData = async () => {
-    // Fetch districts, coordinators, and wards for filters
-    // This would be actual API calls in production
+    try {
+      // Fetch real data for filters
+      const [wardsResponse, usersResponse] = await Promise.all([
+        axios.get('/api/wards'),
+        axios.get('/api/users?role=coordinator')
+      ]);
+      
+      const wardsData = wardsResponse.data || [];
+      const coordinatorsData = usersResponse.data || [];
+      
+      // Extract unique districts from wards
+      const uniqueDistricts = [...new Set(wardsData.map(ward => ward.district))].sort();
+      
+      // Extract unique ward names
+      const uniqueWards = [...new Set(wardsData.map(ward => ward.name))].sort();
+      
+      // Extract coordinator names
+      const coordinatorNames = coordinatorsData.map(coord => coord.name).sort();
+      
+      setDistricts(uniqueDistricts);
+      setWards(uniqueWards);
+      setCoordinators(coordinatorNames);
+      
+    } catch (error) {
+      console.error('Error fetching filter data:', error);
+      // Fall back to mock data if API fails
+      const mockDistricts = ['Thiruvananthapuram', 'Kollam', 'Pathanamthitta', 'Alappuzha'];
+      const mockCoordinators = ['Priya Nair', 'Rajesh Kumar', 'Sunita Devi', 'Anil Sharma', 'Meera Pillai'];
+      const mockWards = ['Central Ward', 'East Ward', 'West Ward', 'North Ward', 'South Ward'];
+      
+      setDistricts(mockDistricts);
+      setCoordinators(mockCoordinators);
+      setWards(mockWards);
+    }
   };
 
   const generateMockData = () => {
@@ -132,6 +189,12 @@ export default function AdminClusterVisits() {
     }
     
     setVisitData(weeks);
+    
+    // Auto-expand current week
+    const currentWeek = weeks.find(w => w.isCurrentWeek);
+    if (currentWeek) {
+      setExpandedWeeks(new Set([`${currentWeek.weekNumber}-${currentWeek.year}`]));
+    }
   };
 
   const getWeekNumber = (date) => {
@@ -145,20 +208,58 @@ export default function AdminClusterVisits() {
   // Filter logic
   const getFilteredData = () => {
     if (!visitData || !Array.isArray(visitData)) return [];
-    return visitData.map(week => ({
-      ...week,
-      clusters: (week.clusters || []).filter(cluster => {
-        if (filters.district !== 'all' && cluster.district !== filters.district) return false;
-        if (filters.coordinator !== 'all' && cluster.coordinator !== filters.coordinator) return false;
-        if (filters.ward !== 'all' && cluster.ward !== filters.ward) return false;
+    
+    return visitData.map(week => {
+      // Filter clusters within each week
+      const filteredClusters = (week.clusters || []).filter(cluster => {
+        // District filter
+        if (filters.district !== 'all' && cluster.district !== filters.district) {
+          return false;
+        }
+        
+        // Coordinator filter
+        if (filters.coordinator !== 'all' && cluster.coordinator !== filters.coordinator) {
+          return false;
+        }
+        
+        // Ward filter
+        if (filters.ward !== 'all') {
+          const clusterWardName = typeof cluster.ward === 'string' ? cluster.ward : 
+                                 (cluster.ward && cluster.ward.name) ? cluster.ward.name : '';
+          if (clusterWardName !== filters.ward) {
+            return false;
+          }
+        }
+        
+        // Visit status filter
         if (filters.visitStatus !== 'all') {
           if (filters.visitStatus === 'visited' && !cluster.visited) return false;
           if (filters.visitStatus === 'not_visited' && cluster.visited) return false;
         }
+        
         return true;
-      })
-    })).filter(week => {
+      });
+      
+      // Recalculate week statistics based on filtered clusters
+      const visitedCount = filteredClusters.filter(c => c.visited).length;
+      const totalClusters = filteredClusters.length;
+      const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClusters) * 100) : 0;
+      const status = visitPercentage >= 80 ? 'excellent' : 
+                    visitPercentage >= 60 ? 'good' : 
+                    visitPercentage >= 40 ? 'average' : 'poor';
+      
+      return {
+        ...week,
+        clusters: filteredClusters,
+        visitedCount,
+        totalClusters,
+        visitPercentage,
+        status
+      };
+    }).filter(week => {
+      // Filter weeks based on status and date range
       if (filters.status !== 'all' && week.status !== filters.status) return false;
+      
       if (filters.dateRange !== 'all') {
         const weekDate = new Date(week.weekStart);
         const now = new Date();
@@ -168,15 +269,23 @@ export default function AdminClusterVisits() {
         if (filters.dateRange === 'last_month' && daysDiff > 30) return false;
         if (filters.dateRange === 'last_quarter' && daysDiff > 90) return false;
       }
-      return true;
+      
+      // Only show weeks that have clusters after filtering
+      return week.clusters.length > 0;
     });
   };
 
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
+    console.log('Filter change:', filterType, 'from', filters[filterType], 'to', value);
+    
+    setFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [filterType]: value
+      };
+      console.log('New filters:', newFilters);
+      return newFilters;
+    });
   };
 
   const clearFilters = () => {
@@ -229,6 +338,18 @@ export default function AdminClusterVisits() {
     a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const toggleWeekExpansion = (weekKey) => {
+    setExpandedWeeks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(weekKey)) {
+        newSet.delete(weekKey);
+      } else {
+        newSet.add(weekKey);
+      }
+      return newSet;
+    });
   };
 
   const getStatusColor = (status) => {
@@ -458,92 +579,116 @@ export default function AdminClusterVisits() {
           <div className="p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Week-wise Analysis</h2>
             <div className="space-y-6">
-              {filteredData && Array.isArray(filteredData) ? filteredData.map((week) => (
-                <div key={`${week.weekNumber}-${week.year}`} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        Week {week.weekNumber} ({week.year})
-                        {week.isCurrentWeek && <span className="ml-2 text-sm text-blue-600">(Current)</span>}
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        {new Date(week.weekStart).toLocaleDateString()} - {new Date(week.weekEnd).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusColor(week.status)}`}>
-                        {week.status.charAt(0).toUpperCase() + week.status.slice(1)}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Progress</p>
-                        <p className="text-lg font-semibold">{Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100)}%</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>Visit Progress</span>
-                      <span>{week.clusters.filter(c => c.visited).length}/{week.clusters.length} clusters</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100))}`}
-                        style={{ width: `${Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  
-                  {/* Cluster Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {week.clusters && Array.isArray(week.clusters) ? week.clusters.map((cluster) => (
-                      <div
-                        key={cluster.id}
-                        className={`p-3 rounded-lg border ${
-                          cluster.visited ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
-                            <p className="text-xs text-gray-600">District: {cluster.district}</p>
-                            <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
-                            <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator}</p>
+              {filteredData && Array.isArray(filteredData) ? filteredData.map((week) => {
+                const weekKey = `${week.weekNumber}-${week.year}`;
+                const isExpanded = expandedWeeks.has(weekKey);
+                
+                return (
+                  <div key={weekKey} className="border border-gray-200 rounded-lg">
+                    <div 
+                      className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                      onClick={() => toggleWeekExpansion(weekKey)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <svg 
+                            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              Week {week.weekNumber} ({week.year})
+                              {week.isCurrentWeek && <span className="ml-2 text-sm text-blue-600">(Current)</span>}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {new Date(week.weekStart).toLocaleDateString()} - {new Date(week.weekEnd).toLocaleDateString()}
+                            </p>
                           </div>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {cluster.visited ? 'Visited' : 'Not Visited'}
-                          </span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className={`px-3 py-1 text-sm font-medium rounded-full border ${getStatusColor(week.status)}`}>
+                            {week.status.charAt(0).toUpperCase() + week.status.slice(1)}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">Progress</p>
+                            <p className="text-lg font-semibold">{Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100)}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {isExpanded && (
+                      <div className="px-4 pb-4">
+                        <div className="mb-4">
+                          <div className="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Visit Progress</span>
+                            <span>{week.clusters.filter(c => c.visited).length}/{week.clusters.length} clusters</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${getProgressBarColor(Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100))}`}
+                              style={{ width: `${Math.round((week.clusters.filter(c => c.visited).length / week.clusters.length) * 100)}%` }}
+                            ></div>
+                          </div>
                         </div>
                         
-                        {cluster.visited && cluster.visitDetails && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-xs text-gray-700">
-                              <span className="font-medium">Houses:</span> {cluster.visitDetails.housesVisited}
-                            </p>
-                            <p className="text-xs text-gray-700">
-                              <span className="font-medium">Duration:</span> {cluster.visitDetails.duration}
-                            </p>
-                            <p className="text-xs text-gray-700">
-                              <span className="font-medium">Issues:</span> {cluster.visitDetails.issuesFound}
-                            </p>
-                            {cluster.visitDetails.followUpRequired && (
-                              <p className="text-xs text-orange-600 font-medium">Follow-up required</p>
-                            )}
-                          </div>
-                        )}
-                        
-                        {cluster.visitDate && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            Visited: {new Date(cluster.visitDate).toLocaleDateString()}
-                          </p>
-                        )}
+                        {/* Cluster Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {week.clusters && Array.isArray(week.clusters) ? week.clusters.map((cluster) => (
+                            <div
+                              key={cluster.id}
+                              className={`p-3 rounded-lg border ${
+                                cluster.visited ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
+                                  <p className="text-xs text-gray-600">District: {cluster.district}</p>
+                                  <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
+                                  <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator}</p>
+                                </div>
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {cluster.visited ? 'Visited' : 'Not Visited'}
+                                </span>
+                              </div>
+                              
+                              {cluster.visited && cluster.visitDetails && (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs text-gray-700">
+                                    <span className="font-medium">Houses:</span> {cluster.visitDetails.housesVisited}
+                                  </p>
+                                  <p className="text-xs text-gray-700">
+                                    <span className="font-medium">Duration:</span> {cluster.visitDetails.duration}
+                                  </p>
+                                  <p className="text-xs text-gray-700">
+                                    <span className="font-medium">Issues:</span> {cluster.visitDetails.issuesFound}
+                                  </p>
+                                  {cluster.visitDetails.followUpRequired && (
+                                    <p className="text-xs text-orange-600 font-medium">Follow-up required</p>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {cluster.visitDate && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                  Visited: {new Date(cluster.visitDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </div>
+                          )) : []}
+                        </div>
                       </div>
-                    )) : []}
+                    )}
                   </div>
-                </div>
-              )) : []}
+                );
+              }) : []}
             </div>
           </div>
         </Card>
