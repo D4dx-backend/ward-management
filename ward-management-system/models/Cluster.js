@@ -39,6 +39,7 @@ const ClusterSchema = new mongoose.Schema({
       type: String,
       trim: true,
       lowercase: true,
+      default: '',
     }
   },
   isActive: {

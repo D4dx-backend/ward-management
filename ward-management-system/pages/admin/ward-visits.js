@@ -439,106 +439,223 @@ export default function AdminWardVisits() {
           </div>
         </Card>
 
-        {/* Visits Table */}
+        {/* Enhanced Visits Table */}
         <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Visit Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Coordinator
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Purpose
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Follow-up Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredVisits.map((visit) => (
-                  <tr key={visit._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatDateTime(visit.visitDate, visit.visitTime)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {visit.attendees && `Attendees: ${visit.attendees}`}
-                        </div>
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                {/* Enhanced Table Header */}
+                <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Visit Details</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                            <span className="text-xs font-medium text-gray-600">
-                              {visit.coordinator?.name?.charAt(0) || 'C'}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Coordinator</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>Ward</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Purpose & Findings</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Follow-up Status</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <span>Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+
+                {/* Enhanced Table Body */}
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredVisits.map((visit, index) => (
+                    <tr key={visit._id} className={`hover:bg-blue-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                      {/* Visit Details */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {formatDateTime(visit.visitDate, visit.visitTime)}
+                            </div>
+                          </div>
+                          {visit.attendees && (
+                            <div className="flex items-center space-x-2 text-xs text-gray-600">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <span className="truncate max-w-[200px]" title={visit.attendees}>
+                                {visit.attendees}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Coordinator */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-semibold text-sm">
+                                {visit.coordinator?.name?.charAt(0) || 'C'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-gray-900 truncate">
+                              {visit.coordinator?.name || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {visit.coordinator?.email}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Ward */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="space-y-1">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {visit.ward?.name}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                              Ward #{visit.ward?.wardNumber}
                             </span>
                           </div>
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">
-                            {visit.coordinator?.name || 'Unknown'}
+                      </td>
+
+                      {/* Purpose & Findings */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="space-y-2 max-w-xs">
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Purpose</div>
+                            <div className="text-sm text-gray-900 line-clamp-2" title={visit.purpose}>
+                              {visit.purpose}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {visit.coordinator?.email}
+                          {visit.findings && (
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Findings</div>
+                              <div className="text-sm text-gray-600 line-clamp-2" title={visit.findings}>
+                                {visit.findings}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Follow-up Status */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="space-y-2">
+                          {getFollowUpStatusBadge(visit)}
+                          {visit.followUpDate && (
+                            <div className="text-xs text-gray-500">
+                              <div className="flex items-center space-x-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span>Due: {formatDate(visit.followUpDate)}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm" className="text-xs">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Empty State */}
+                  {filteredVisits.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
                           </div>
+                          <h3 className="text-sm font-medium text-gray-900 mb-1">No ward visits found</h3>
+                          <p className="text-sm text-gray-500">
+                            {searchTerm || filter.coordinator || filter.ward || filter.month || filter.followUpStatus 
+                              ? 'No visits match your current filters' 
+                              : 'No ward visits have been recorded yet'}
+                          </p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{visit.ward?.name}</div>
-                      <div className="text-sm text-gray-500">Ward #{visit.ward?.wardNumber}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate" title={visit.purpose}>
-                        {visit.purpose}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getFollowUpStatusBadge(visit)}
-                      {visit.followUpDate && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Due: {formatDate(visit.followUpDate)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button variant="outline" size="sm">
-                        View Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-                {filteredVisits.length === 0 && (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <p className="mt-2 text-sm">
-                          {searchTerm || filter.coordinator || filter.ward || filter.month || filter.followUpStatus 
-                            ? 'No visits found matching your criteria' 
-                            : 'No ward visits recorded yet'}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Enhanced Table Footer */}
+            <div className="bg-gray-50 px-6 py-3 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6 text-xs text-gray-600">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span>Active Visit</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Completed</span>
+                    <span>Follow-up Done</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                    <span>Follow-up Required</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Overdue</span>
+                    <span>Follow-up Overdue</span>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Showing {filteredVisits.length} of {visits.length} visits
+                </div>
+              </div>
+            </div>
           </div>
         </Card>
       </div>

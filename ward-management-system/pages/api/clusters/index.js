@@ -60,6 +60,8 @@ export default async function handler(req, res) {
     try {
       let { name, clusterNumber, wardId, coordinator } = req.body;
       
+      console.log('Cluster creation request:', { name, clusterNumber, wardId, coordinator });
+      
       // For ward admins, auto-determine wardId from their assignment
       if (session.user.role === 'wardAdmin' && !wardId) {
         const userWard = await Ward.findOne({ wardAdmin: session.user.id });
@@ -76,16 +78,18 @@ export default async function handler(req, res) {
       
       // Ensure coordinator object exists even if empty
       if (!coordinator) {
-        coordinator = { name: '', mobileNumber: '' };
+        coordinator = { name: '', mobileNumber: '', email: '' };
       }
+      
+      console.log('Processed coordinator:', coordinator);
       
       // Coordinator name is optional now
       // if (!coordinator.name || !coordinator.name.trim()) {
       //   return res.status(400).json({ message: 'Coordinator name is required' });
       // }
       
-      // Validate mobile number if provided
-      if (coordinator.mobileNumber && !/^\d{10}$/.test(coordinator.mobileNumber)) {
+      // Validate mobile number if provided and not empty
+      if (coordinator.mobileNumber && coordinator.mobileNumber.trim() && !/^\d{10}$/.test(coordinator.mobileNumber.trim())) {
         return res.status(400).json({ message: 'Mobile number must be exactly 10 digits' });
       }
       
@@ -121,8 +125,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ message: 'Cluster number already exists in this ward' });
       }
       
-      // Create new cluster
-      const newCluster = new Cluster({
+      // Prepare cluster data
+      const clusterData = {
         name: name.trim(),
         clusterNumber: clusterNumber.trim(),
         ward: wardId,
@@ -133,9 +137,15 @@ export default async function handler(req, res) {
         },
         createdBy: session.user.id,
         updatedBy: session.user.id
-      });
+      };
+      
+      console.log('Creating cluster with data:', clusterData);
+      
+      // Create new cluster
+      const newCluster = new Cluster(clusterData);
       
       await newCluster.save();
+      console.log('Cluster saved successfully:', newCluster._id);
       
       // Populate the saved cluster for response
       await newCluster.populate('ward', 'name district panchayath');
