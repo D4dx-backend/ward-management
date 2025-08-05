@@ -6,6 +6,7 @@ import axios from 'axios';
 import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
+import SearchInput from '../../../../components/SearchInput';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../../components/Shimmer';
 import { useApiData } from '../../../../hooks/useApiData';
 
@@ -16,9 +17,19 @@ export default function FormResponses() {
   
   const [form, setForm] = useState(null);
   const [responses, setResponses] = useState([]);
+  const [filteredResponses, setFilteredResponses] = useState([]);
   const [selectedResponse, setSelectedResponse] = useState(null);
+  const [coordinators, setCoordinators] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [expandedResponses, setExpandedResponses] = useState(new Set());
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    role: 'all',
+    ward: 'all',
+    coordinator: 'all',
+    dateRange: 'all'
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -51,18 +62,138 @@ export default function FormResponses() {
     }
   }, [direct, responseId, responses]);
 
+  // Filter responses based on search term and filters
+  useEffect(() => {
+    let filtered = responses;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(response =>
+        (response.respondent?.name && response.respondent.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (response.ward?.name && response.ward.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (response.ward?.district && response.ward.district.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (response.respondent?.role && response.respondent.role.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply role filter
+    if (filters.role !== 'all') {
+      filtered = filtered.filter(response => response.respondent?.role === filters.role);
+    }
+
+    // Apply ward filter
+    if (filters.ward !== 'all') {
+      filtered = filtered.filter(response => response.ward?._id === filters.ward);
+    }
+
+    // Apply coordinator filter
+    if (filters.coordinator !== 'all') {
+      filtered = filtered.filter(response => {
+        // For coordinator reports, filter by respondent
+        if (response.formType === 'coordinatorReport') {
+          return response.respondent?._id === filters.coordinator;
+        }
+        // For ward reports, filter by ward's coordinator
+        return response.ward?.coordinator?._id === filters.coordinator || response.ward?.coordinator === filters.coordinator;
+      });
+    }
+
+    // Apply date range filter
+    if (filters.dateRange !== 'all') {
+      const now = new Date();
+      const filterDate = new Date();
+      
+      switch (filters.dateRange) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0);
+          filtered = filtered.filter(response => new Date(response.submittedAt) >= filterDate);
+          break;
+        case 'week':
+          filterDate.setDate(now.getDate() - 7);
+          filtered = filtered.filter(response => new Date(response.submittedAt) >= filterDate);
+          break;
+        case 'month':
+          filterDate.setMonth(now.getMonth() - 1);
+          filtered = filtered.filter(response => new Date(response.submittedAt) >= filterDate);
+          break;
+      }
+    }
+
+    setFilteredResponses(filtered);
+  }, [responses, searchTerm, filters]);
+
+  // Get unique values for filter options
+  const getFilterOptions = () => {
+    const roles = [...new Set(responses.map(r => r.respondent?.role).filter(Boolean))];
+    const wards = [...new Set(responses.map(r => r.ward).filter(Boolean))];
+    
+    return { roles, wards };
+  };
+
+  const { roles, wards } = getFilterOptions();
+
+  const handleFilterChange = (filterType, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [filterType]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      role: 'all',
+      ward: 'all',
+      coordinator: 'all',
+      dateRange: 'all'
+    });
+    setSearchTerm('');
+  };
+
+  const toggleResponseExpansion = (responseId) => {
+    setExpandedResponses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(responseId)) {
+        newSet.delete(responseId);
+      } else {
+        newSet.add(responseId);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedResponses(new Set(filteredResponses.map(r => r._id)));
+  };
+
+  const collapseAll = () => {
+    setExpandedResponses(new Set());
+  };
+
   const fetchFormAndResponses = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch form details and responses
-      const [formResponse, responsesResponse] = await Promise.all([
+      // Fetch form details, responses, and users
+      const [formResponse, responsesResponse, usersResponse] = await Promise.all([
         axios.get(`/api/forms/${id}`),
-        axios.get(`/api/responses?formTemplate=${id}`)
+        axios.get(`/api/responses?formTemplate=${id}`),
+        axios.get('/api/users')
       ]);
       
       setForm(formResponse.data);
-      setResponses(responsesResponse.data || []);
+      const responseData = responsesResponse.data || [];
+      setResponses(responseData);
+      setFilteredResponses(responseData);
+      
+      // Filter coordinators from users
+      const coordinatorUsers = (usersResponse.data || []).filter(user => user.role === 'coordinator');
+      setCoordinators(coordinatorUsers);
+      
+      // Auto-expand first response if there are responses
+      if (responseData.length > 0) {
+        setExpandedResponses(new Set([responseData[0]._id]));
+      }
+      
       setError('');
     } catch (error) {
       console.error('Error fetching form data:', error);
@@ -103,7 +234,7 @@ export default function FormResponses() {
   };
 
   const exportResponses = () => {
-    if (!responses.length || !form) return;
+    if (!filteredResponses.length || !form) return;
     
     const csvContent = generateResponsesCSV();
     downloadCSV(csvContent, `${form.title}_responses_${new Date().toISOString().split('T')[0]}.csv`);
@@ -116,16 +247,18 @@ export default function FormResponses() {
       'Respondent Role',
       'Ward',
       'District',
+      'Coordinator',
       'Submitted At',
       ...form.fields.map(field => field.label)
     ];
     
-    const rows = responses.map(response => [
+    const rows = filteredResponses.map(response => [
       response._id,
       response.respondent?.name || 'Unknown',
       response.respondent?.role || 'Unknown',
       response.ward?.name || 'Unknown',
       response.ward?.district || 'Unknown',
+      response.ward?.coordinator?.name || response.respondent?.name || 'Unknown',
       formatDate(response.submittedAt),
       ...form.fields.map(field => {
         const value = response.responses?.[field._id || field.id];
@@ -181,16 +314,28 @@ export default function FormResponses() {
                 {form?.title || 'Form'} - Responses
               </h1>
               <p className="text-sm text-gray-600">
-                {responses.length} response{responses.length !== 1 ? 's' : ''} received
+                Showing {filteredResponses.length} of {responses.length} response{responses.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
           <div className="flex space-x-3">
+            <Button onClick={expandAll} variant="outline" size="sm">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+              Expand All
+            </Button>
+            <Button onClick={collapseAll} variant="outline" size="sm">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9l6 6m0-6l-6 6M21 3l-6 6m0 0V4m0 5h5M3 21l6-6m0 0v5m0-5H4" />
+              </svg>
+              Collapse All
+            </Button>
             <Button onClick={exportResponses} variant="outline">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export All Responses ({responses.length})
+              Export Filtered ({filteredResponses.length})
             </Button>
           </div>
         </div>
@@ -212,77 +357,211 @@ export default function FormResponses() {
           </div>
         )}
 
-        <div className="space-y-6">
-          {responses.length > 0 ? (
-            responses.map((response) => (
-              <Card 
-                key={response._id} 
-                id={`response-${response._id}`}
-                className="transition-all duration-300"
-              >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Response from {response.respondent?.name || 'Unknown User'}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                        <span>Submitted: {formatDate(response.submittedAt)}</span>
-                        {response.respondent?.role && (
-                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {response.respondent.role.replace('Admin', ' Admin')}
-                          </span>
-                        )}
-                        {response.ward && (
-                          <span className="text-gray-600">
-                            {response.ward.name}, {response.ward.district}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                        Submitted
-                      </span>
-                    </div>
-                  </div>
+        {/* Filters Section */}
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Filters & Search</h2>
+              <Button onClick={clearFilters} variant="outline" size="sm">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Clear All
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {/* Search */}
+              <div className="lg:col-span-2">
+                <SearchInput
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  placeholder="Search responses..."
+                />
+              </div>
 
-                  <div className="space-y-4">
-                    {form?.fields && form.fields.length > 0 ? (
-                      form.fields.map((field) => (
-                        <div key={field._id || field.id} className="border-b border-gray-100 pb-3 last:border-b-0">
-                          <div className="flex items-start space-x-4">
-                            <div className="flex-1">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {field.label}
-                                {field.required && <span className="text-red-500 ml-1">*</span>}
-                              </label>
-                              <div className="text-sm text-gray-900">
-                                {renderFieldValue(field, response.responses?.[field._id || field.id])}
-                              </div>
-                            </div>
-                            <div className="text-xs text-gray-400">
-                              {field.type}
-                            </div>
+              {/* Role Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={filters.role}
+                  onChange={(e) => handleFilterChange('role', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Roles</option>
+                  {roles.map(role => (
+                    <option key={role} value={role}>
+                      {role.replace('Admin', ' Admin')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Coordinator Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Coordinator</label>
+                <select
+                  value={filters.coordinator}
+                  onChange={(e) => handleFilterChange('coordinator', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Coordinators</option>
+                  {coordinators.map(coordinator => (
+                    <option key={coordinator._id} value={coordinator._id}>
+                      {coordinator.name} - {coordinator.district}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                <select
+                  value={filters.dateRange}
+                  onChange={(e) => handleFilterChange('dateRange', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">Last 7 Days</option>
+                  <option value="month">Last 30 Days</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Ward Filter - Full width if many wards */}
+            {wards.length > 0 && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward</label>
+                <select
+                  value={filters.ward}
+                  onChange={(e) => handleFilterChange('ward', e.target.value)}
+                  className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Wards</option>
+                  {wards.map(ward => (
+                    <option key={ward._id} value={ward._id}>
+                      {ward.name} - {ward.district}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <div className="space-y-4">
+          {filteredResponses.length > 0 ? (
+            filteredResponses.map((response) => {
+              const isExpanded = expandedResponses.has(response._id);
+              
+              return (
+                <Card 
+                  key={response._id} 
+                  id={`response-${response._id}`}
+                  className="transition-all duration-300 overflow-hidden"
+                >
+                  {/* Response Header - Always Visible */}
+                  <div 
+                    className="p-6 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    onClick={() => toggleResponseExpansion(response._id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          <svg 
+                            className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            Response from {response.respondent?.name || 'Unknown User'}
+                          </h3>
+                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                            <span>Submitted: {formatDate(response.submittedAt)}</span>
+                            {response.respondent?.role && (
+                              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                {response.respondent.role.replace('Admin', ' Admin')}
+                              </span>
+                            )}
+                            {response.ward && (
+                              <span className="text-gray-600">
+                                {response.ward.name}, {response.ward.district}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-4 text-gray-500">
-                        <p className="text-sm">No form fields available</p>
                       </div>
-                    )}
+                      <div className="flex items-center space-x-3">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          Submitted
+                        </span>
+                        <div className="text-sm text-gray-500">
+                          {form?.fields?.length || 0} fields
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  {response.notes && (
-                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <h4 className="text-sm font-medium text-yellow-800 mb-1">Notes</h4>
-                      <p className="text-sm text-yellow-700">{response.notes}</p>
+                  {/* Response Content - Collapsible */}
+                  {isExpanded && (
+                    <div className="p-6 bg-gray-50">
+                      <div className="bg-white rounded-lg p-4 shadow-sm">
+                        <div className="space-y-4">
+                          {form?.fields && form.fields.length > 0 ? (
+                            form.fields.map((field, index) => (
+                              <div key={field._id || field.id} className={`${index !== form.fields.length - 1 ? 'border-b border-gray-100 pb-4' : ''}`}>
+                                <div className="flex items-start space-x-4">
+                                  <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      {field.label}
+                                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                                    </label>
+                                    <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+                                      {renderFieldValue(field, response.responses?.[field._id || field.id])}
+                                    </div>
+                                  </div>
+                                  <div className="flex-shrink-0">
+                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                      {field.type}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-8 text-gray-500">
+                              <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <p className="text-sm mt-2">No form fields available</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {response.notes && (
+                          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                            <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Notes
+                            </h4>
+                            <p className="text-sm text-yellow-700">{response.notes}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
-                </div>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           ) : (
             <Card>
               <div className="p-12 text-center">

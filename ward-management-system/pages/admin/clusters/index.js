@@ -30,7 +30,10 @@ export default function Clusters() {
   const [selectedWard, setSelectedWard] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [selectedPanchayath, setSelectedPanchayath] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedCoordinator, setSelectedCoordinator] = useState('');
   const [filteredWards, setFilteredWards] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     clusterNumber: '',
@@ -77,7 +80,7 @@ export default function Clusters() {
   }, [status, session, router]);
 
   useEffect(() => {
-    // Filter clusters based on search term and selected ward
+    // Filter clusters based on search term and all filters
     let filtered = clusters;
     
     if (searchTerm) {
@@ -93,9 +96,30 @@ export default function Clusters() {
       filtered = filtered.filter(cluster => cluster.ward._id === selectedWard);
     }
     
+    if (selectedDistrict) {
+      filtered = filtered.filter(cluster => cluster.ward.district === selectedDistrict);
+    }
+    
+    if (selectedPanchayath) {
+      filtered = filtered.filter(cluster => cluster.ward.panchayath === selectedPanchayath);
+    }
+    
+    if (selectedStatus) {
+      const isActive = selectedStatus === 'active';
+      filtered = filtered.filter(cluster => cluster.isActive === isActive);
+    }
+    
+    if (selectedCoordinator) {
+      if (selectedCoordinator === 'assigned') {
+        filtered = filtered.filter(cluster => cluster.coordinator.name && cluster.coordinator.name.trim() !== '');
+      } else if (selectedCoordinator === 'unassigned') {
+        filtered = filtered.filter(cluster => !cluster.coordinator.name || cluster.coordinator.name.trim() === '');
+      }
+    }
+    
     setFilteredClusters(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [clusters, searchTerm, selectedWard]);
+  }, [clusters, searchTerm, selectedWard, selectedDistrict, selectedPanchayath, selectedStatus, selectedCoordinator]);
 
   // Filter wards based on district and panchayath selection
   useEffect(() => {
@@ -122,21 +146,47 @@ export default function Clusters() {
     setCurrentPage(page);
   };
 
-  // Get unique districts
+  // Get unique districts from clusters
   const getUniqueDistricts = () => {
-    const districts = [...new Set(wards.map(ward => ward.district))];
+    const districts = [...new Set(clusters.map(cluster => cluster.ward.district))];
     return districts.sort();
   };
 
-  // Get unique panchayaths for selected district
+  // Get unique panchayaths from clusters
   const getUniquePanchayaths = () => {
-    let filteredWards = wards;
+    let filteredClusters = clusters;
     if (selectedDistrict) {
-      filteredWards = wards.filter(ward => ward.district === selectedDistrict);
+      filteredClusters = clusters.filter(cluster => cluster.ward.district === selectedDistrict);
     }
-    const panchayaths = [...new Set(filteredWards.map(ward => ward.panchayath))];
+    const panchayaths = [...new Set(filteredClusters.map(cluster => cluster.ward.panchayath))];
     return panchayaths.sort();
   };
+
+  // Get unique wards for filters
+  const getUniqueWards = () => {
+    let filteredClusters = clusters;
+    if (selectedDistrict) {
+      filteredClusters = clusters.filter(cluster => cluster.ward.district === selectedDistrict);
+    }
+    if (selectedPanchayath) {
+      filteredClusters = filteredClusters.filter(cluster => cluster.ward.panchayath === selectedPanchayath);
+    }
+    const uniqueWards = [...new Map(filteredClusters.map(cluster => [cluster.ward._id, cluster.ward])).values()];
+    return uniqueWards.sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSelectedWard('');
+    setSelectedDistrict('');
+    setSelectedPanchayath('');
+    setSelectedStatus('');
+    setSelectedCoordinator('');
+    setSearchTerm('');
+  };
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedWard || selectedDistrict || selectedPanchayath || selectedStatus || selectedCoordinator || searchTerm;
 
   // Handle district change
   const handleDistrictChange = (district) => {
@@ -509,9 +559,8 @@ export default function Clusters() {
               value={formData.coordinator.mobileNumber}
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="10-digit mobile number"
+              placeholder="10-digit mobile number (optional)"
               maxLength="10"
-              pattern="[0-9]{10}"
             />
           </div>
 
@@ -622,90 +671,370 @@ export default function Clusters() {
           </div>
         )}
 
+        {/* Enhanced Filters Section */}
         <Card>
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
+          <div className="p-6">
+            {/* Search and Filter Toggle */}
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between mb-4">
+              <div className="flex-1 max-w-md">
                 <SearchInput
                   value={searchTerm}
                   onChange={setSearchTerm}
-                  placeholder="Search clusters..."
+                  placeholder="Search clusters by name, number, coordinator, or ward..."
+                  className="w-full"
                 />
-                <div className="mt-2 text-sm text-gray-600">
-                  Showing {paginatedClusters.length} of {filteredClusters.length} clusters
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Clear Filters
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${
+                    showFilters
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  } focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                >
+                  <svg className={`w-4 h-4 mr-2 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                  </svg>
+                  Advanced Filters
+                  {hasActiveFilters && (
+                    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-blue-600 rounded-full">
+                      {[selectedWard, selectedDistrict, selectedPanchayath, selectedStatus, selectedCoordinator].filter(Boolean).length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsible Filters */}
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+              showFilters ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}>
+              <div className="border-t border-gray-200 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                  {/* District Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      District
+                    </label>
+                    <select
+                      value={selectedDistrict}
+                      onChange={(e) => {
+                        setSelectedDistrict(e.target.value);
+                        setSelectedPanchayath(''); // Reset panchayath when district changes
+                        setSelectedWard(''); // Reset ward when district changes
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    >
+                      <option value="">All Districts</option>
+                      {getUniqueDistricts().map(district => (
+                        <option key={district} value={district}>{district}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Panchayath Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Panchayath
+                    </label>
+                    <select
+                      value={selectedPanchayath}
+                      onChange={(e) => {
+                        setSelectedPanchayath(e.target.value);
+                        setSelectedWard(''); // Reset ward when panchayath changes
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      disabled={!selectedDistrict}
+                    >
+                      <option value="">All Panchayaths</option>
+                      {getUniquePanchayaths().map(panchayath => (
+                        <option key={panchayath} value={panchayath}>{panchayath}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Ward Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v0" />
+                      </svg>
+                      Ward
+                    </label>
+                    <select
+                      value={selectedWard}
+                      onChange={(e) => setSelectedWard(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    >
+                      <option value="">All Wards</option>
+                      {getUniqueWards().map(ward => (
+                        <option key={ward._id} value={ward._id}>
+                          {ward.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Status
+                    </label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    >
+                      <option value="">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+
+                  {/* Coordinator Filter */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Coordinator
+                    </label>
+                    <select
+                      value={selectedCoordinator}
+                      onChange={(e) => setSelectedCoordinator(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    >
+                      <option value="">All Coordinators</option>
+                      <option value="assigned">Assigned</option>
+                      <option value="unassigned">Unassigned</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div className="sm:w-64">
-                <select
-                  value={selectedWard}
-                  onChange={(e) => setSelectedWard(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Wards</option>
-                  {wards.map(ward => (
-                    <option key={ward._id} value={ward._id}>
-                      {ward.name} - {ward.district}
-                    </option>
-                  ))}
-                </select>
+            </div>
+
+            {/* Results Summary */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-medium text-gray-900">{paginatedClusters.length}</span> of{' '}
+                <span className="font-medium text-gray-900">{filteredClusters.length}</span> clusters
+                {hasActiveFilters && (
+                  <span className="text-blue-600 ml-1">(filtered from {clusters.length} total)</span>
+                )}
               </div>
+              
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedDistrict && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      District: {selectedDistrict}
+                      <button
+                        onClick={() => setSelectedDistrict('')}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 text-blue-400 hover:text-blue-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedPanchayath && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Panchayath: {selectedPanchayath}
+                      <button
+                        onClick={() => setSelectedPanchayath('')}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 text-green-400 hover:text-green-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedWard && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Ward: {getUniqueWards().find(w => w._id === selectedWard)?.name}
+                      <button
+                        onClick={() => setSelectedWard('')}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 text-purple-400 hover:text-purple-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedStatus && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      Status: {selectedStatus === 'active' ? 'Active' : 'Inactive'}
+                      <button
+                        onClick={() => setSelectedStatus('')}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 text-yellow-400 hover:text-yellow-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {selectedCoordinator && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                      Coordinator: {selectedCoordinator === 'assigned' ? 'Assigned' : 'Unassigned'}
+                      <button
+                        onClick={() => setSelectedCoordinator('')}
+                        className="ml-1 inline-flex items-center justify-center w-4 h-4 text-indigo-400 hover:text-indigo-600"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           
+          {/* Enhanced Table */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cluster Details
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <div className="flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>Cluster Details</span>
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <div className="flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>Ward & Location</span>
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Coordinator
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <div className="flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>Coordinator</span>
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <div className="flex items-center space-x-1">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>Status</span>
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedClusters.map((cluster) => (
-                  <tr key={cluster._id} className="hover:bg-gray-50">
+                {paginatedClusters.map((cluster, index) => (
+                  <tr key={cluster._id} className={`hover:bg-blue-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                     <td className="px-6 py-4">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{cluster.name}</div>
-                        <div className="text-sm text-gray-500">Cluster #{cluster.clusterNumber}</div>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-semibold text-sm">#{cluster.clusterNumber}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-gray-900">{cluster.name}</div>
+                          <div className="text-xs text-gray-500">Cluster #{cluster.clusterNumber}</div>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{cluster.ward.name}</div>
-                      <div className="text-sm text-gray-500">{cluster.ward.district}</div>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{cluster.ward.name}</div>
+                          <div className="text-xs text-gray-500">{cluster.ward.panchayath}, {cluster.ward.district}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{cluster.coordinator.name}</div>
-                      {cluster.coordinator.mobileNumber && (
-                        <div className="text-sm text-gray-500">{cluster.coordinator.mobileNumber}</div>
+                      {cluster.coordinator.name && cluster.coordinator.name.trim() ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="flex-shrink-0">
+                            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-medium text-xs">
+                                {cluster.coordinator.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{cluster.coordinator.name}</div>
+                            {cluster.coordinator.mobileNumber && (
+                              <div className="text-xs text-gray-500 flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                                {cluster.coordinator.mobileNumber}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2 text-gray-400">
+                          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span className="text-sm italic">No coordinator assigned</span>
+                        </div>
                       )}
-
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                         cluster.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-red-100 text-red-800 border border-red-200'
                       }`}>
+                        <svg className={`w-2 h-2 mr-1 ${cluster.isActive ? 'text-green-600' : 'text-red-600'}`} fill="currentColor" viewBox="0 0 8 8">
+                          <circle cx={4} cy={4} r={3} />
+                        </svg>
                         {cluster.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end items-center space-x-2">
                         {['stateAdmin', 'coordinator', 'wardAdmin'].includes(session?.user?.role) && (
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(cluster)}>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleEdit(cluster)}
+                            className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-colors"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
                             Edit
                           </Button>
                         )}
@@ -714,12 +1043,22 @@ export default function Clusters() {
                             variant="danger"
                             size="sm"
                             onClick={() => openDeleteModal(cluster)}
+                            className="hover:bg-red-50 hover:border-red-300 transition-colors"
                           >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                             Delete
                           </Button>
                         )}
                         {session?.user?.role === 'wardAdmin' && (
-                          <span className="text-sm text-gray-500 italic">View Only</span>
+                          <span className="text-sm text-gray-500 italic flex items-center">
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            View Only
+                          </span>
                         )}
                       </div>
                     </td>
@@ -727,14 +1066,31 @@ export default function Clusters() {
                 ))}
                 {filteredClusters.length === 0 && (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
-                      <div className="text-gray-500">
-                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                        <p className="mt-2 text-sm">
-                          {searchTerm || selectedWard ? 'No clusters found matching your criteria' : 'No clusters found'}
+                    <td colSpan="5" className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                          <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                        </div>
+                        <h3 className="text-sm font-medium text-gray-900 mb-1">No clusters found</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                          {hasActiveFilters 
+                            ? 'Try adjusting your filters to see more results' 
+                            : 'Get started by creating your first cluster'
+                          }
                         </p>
+                        {hasActiveFilters && (
+                          <button
+                            onClick={clearAllFilters}
+                            className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            Clear all filters
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

@@ -32,7 +32,14 @@ export default async function handler(req, res) {
       // Get all responses for this form
       const responses = await Response.find({ formTemplate: id })
         .populate('respondent', 'name email district role')
-        .populate('ward', 'name district')
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        })
         .sort({ submittedAt: -1 });
       
       // Create comprehensive CSV content with all field details

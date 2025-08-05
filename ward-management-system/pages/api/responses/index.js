@@ -67,7 +67,14 @@ export default async function handler(req, res) {
       const responses = await Response.find(query)
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name email district role')
-        .populate('ward', 'name district')
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        })
         .sort({ submittedAt: -1 });
       
       console.log(`Found ${responses.length} responses matching query`);
@@ -306,7 +313,14 @@ export default async function handler(req, res) {
       const populatedResponse = await Response.findById(savedResponse._id)
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name email')
-        .populate('ward', 'name district');
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        });
       
       return res.status(201).json(populatedResponse);
     } catch (error) {

@@ -219,106 +219,219 @@ function WardClusterVisitStatusContent() {
               </div>
             </div>
 
-            {/* Dynamic Week Headers */}
-            <div className={`grid gap-2 text-xs font-medium text-gray-500 uppercase tracking-wider`}
-              style={{ gridTemplateColumns: `1fr repeat(${survey.formWeeks?.length || 0}, 1fr)` }}>
-              <div>Cluster</div>
-              {Array.isArray(survey.formWeeks) && survey.formWeeks.map((week, index) => {
-                if (!week || typeof week !== 'object') {
-                  return (
-                    <div key={index} className="text-center">
-                      Week N/A
-                    </div>
-                  );
-                }
-                
-                const weekNumber = week.weekNumber ? String(week.weekNumber) : 'N/A';
-                const year = week.year ? String(week.year) : 'N/A';
-                
-                return (
-                  <div key={index} className="text-center">
-                    Week {weekNumber}, {year}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Dynamic Cluster Data */}
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {Array.isArray(survey.clusterVisits) && survey.clusterVisits.length > 0 ? (
-                survey.clusterVisits.map((cluster, index) => {
-                  // Validate cluster data
-                  if (!cluster || typeof cluster !== 'object') {
-                    console.warn('Invalid cluster data at index', index, cluster);
-                    return null;
-                  }
-                  
-                  // Safe cluster name extraction
-                  let clusterName = 'Unknown Cluster';
-                  try {
-                    if (typeof cluster.clusterName === 'string' && cluster.clusterName.trim()) {
-                      clusterName = cluster.clusterName.trim();
-                    } else if (typeof cluster.clusterName === 'object' && cluster.clusterName?.name) {
-                      clusterName = String(cluster.clusterName.name).trim();
-                    } else if (cluster.cluster?.name) {
-                      clusterName = String(cluster.cluster.name).trim();
-                    } else if (cluster.name) {
-                      clusterName = String(cluster.name).trim();
-                    }
-                  } catch (error) {
-                    console.error('Error extracting cluster name:', error, cluster);
-                    clusterName = `Cluster ${index + 1}`;
-                  }
-
-                  return (
-                    <div key={cluster._id || `cluster-${index}`} className={`grid gap-2 p-2 bg-white border border-gray-200 rounded text-sm`}
-                      style={{ gridTemplateColumns: `1fr repeat(${survey.formWeeks?.length || 0}, 1fr)` }}>
-                      <div className="font-medium text-gray-900 truncate" title={clusterName}>
-                        {clusterName}
-                      </div>
-                      {Array.isArray(survey.formWeeks) && survey.formWeeks.map((week, weekIndex) => {
+            {/* Enhanced Table Design */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  {/* Table Header */}
+                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          <span>Cluster</span>
+                        </div>
+                      </th>
+                      {Array.isArray(survey.formWeeks) && survey.formWeeks.map((week, index) => {
                         if (!week || typeof week !== 'object') {
                           return (
-                            <div key={weekIndex} className="text-center">
-                              <div className="text-xs text-gray-400">N/A</div>
-                            </div>
+                            <th key={index} className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                              <div className="flex flex-col items-center space-y-1">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="text-red-500">Week N/A</span>
+                              </div>
+                            </th>
                           );
                         }
-
-                        const weekKey = `${week.year || 'unknown'}-${week.weekNumber || 'unknown'}`;
-                        let weekData = { houses: 0, days: 0 };
                         
+                        const weekNumber = week.weekNumber ? String(week.weekNumber) : 'N/A';
+                        const year = week.year ? String(week.year) : 'N/A';
+                        
+                        return (
+                          <th key={index} className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200 last:border-r-0 min-w-[80px]">
+                            <div className="flex flex-col items-center space-y-1">
+                              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <div className="text-center">
+                                <div className="text-blue-600 font-medium">Week {weekNumber}</div>
+                                <div className="text-gray-500 text-xs">{year}</div>
+                              </div>
+                            </div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+
+                  {/* Table Body */}
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Array.isArray(survey.clusterVisits) && survey.clusterVisits.length > 0 ? (
+                      survey.clusterVisits.map((cluster, index) => {
+                        // Validate cluster data
+                        if (!cluster || typeof cluster !== 'object') {
+                          console.warn('Invalid cluster data at index', index, cluster);
+                          return null;
+                        }
+                        
+                        // Safe cluster name extraction
+                        let clusterName = 'Unknown Cluster';
                         try {
-                          if (cluster.weeklyData && typeof cluster.weeklyData === 'object') {
-                            weekData = cluster.weeklyData[weekKey] || weekData;
+                          if (typeof cluster.clusterName === 'string' && cluster.clusterName.trim()) {
+                            clusterName = cluster.clusterName.trim();
+                          } else if (typeof cluster.clusterName === 'object' && cluster.clusterName?.name) {
+                            clusterName = String(cluster.clusterName.name).trim();
+                          } else if (cluster.cluster?.name) {
+                            clusterName = String(cluster.cluster.name).trim();
+                          } else if (cluster.name) {
+                            clusterName = String(cluster.name).trim();
                           }
                         } catch (error) {
-                          console.error('Error accessing weekly data:', error);
+                          console.error('Error extracting cluster name:', error, cluster);
+                          clusterName = `Cluster ${index + 1}`;
                         }
 
                         return (
-                          <div key={weekIndex} className="text-center">
-                            <div className="text-xs text-gray-600">
-                              H: {Number(weekData.houses) || 0}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              D: {Number(weekData.days) || 0}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                }).filter(Boolean)
-              ) : (
-                <div className="text-center py-4 text-gray-500">
-                  No cluster visit data available
-                </div>
-              )}
-            </div>
+                          <tr key={cluster._id || `cluster-${index}`} className={`hover:bg-blue-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                            {/* Cluster Name Column */}
+                            <td className="px-4 py-3 border-r border-gray-200">
+                              <div className="flex items-center space-x-3">
+                                <div className="flex-shrink-0">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                                    <span className="text-white font-semibold text-xs">
+                                      {clusterName.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-semibold text-gray-900 truncate max-w-[120px]" title={clusterName}>
+                                    {clusterName}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Cluster #{index + 1}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
 
-            <div className="text-xs text-gray-500 text-center">
-              H = Houses Visited, D = Days Spent
+                            {/* Week Data Columns */}
+                            {Array.isArray(survey.formWeeks) && survey.formWeeks.map((week, weekIndex) => {
+                              if (!week || typeof week !== 'object') {
+                                return (
+                                  <td key={weekIndex} className="px-3 py-3 text-center border-r border-gray-200 last:border-r-0">
+                                    <div className="flex flex-col items-center space-y-1">
+                                      <div className="text-xs text-gray-400 italic">N/A</div>
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              const weekKey = `${week.year || 'unknown'}-${week.weekNumber || 'unknown'}`;
+                              let weekData = { houses: 0, days: 0 };
+                              
+                              try {
+                                if (cluster.weeklyData && typeof cluster.weeklyData === 'object') {
+                                  weekData = cluster.weeklyData[weekKey] || weekData;
+                                }
+                              } catch (error) {
+                                console.error('Error accessing weekly data:', error);
+                              }
+
+                              const houses = Number(weekData.houses) || 0;
+                              const days = Number(weekData.days) || 0;
+                              const hasData = houses > 0 || days > 0;
+
+                              return (
+                                <td key={weekIndex} className="px-3 py-3 text-center border-r border-gray-200 last:border-r-0">
+                                  <div className="flex flex-col items-center space-y-1">
+                                    {/* Houses */}
+                                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                      houses > 0 
+                                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                                        : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                                      </svg>
+                                      <span>{houses}</span>
+                                    </div>
+                                    
+                                    {/* Days */}
+                                    <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                      days > 0 
+                                        ? 'bg-blue-100 text-blue-800 border border-blue-200' 
+                                        : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      <span>{days}</span>
+                                    </div>
+
+                                    {/* Status Indicator */}
+                                    {hasData && (
+                                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      }).filter(Boolean)
+                    ) : (
+                      <tr>
+                        <td colSpan={1 + (survey.formWeeks?.length || 0)} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center text-gray-500">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                              <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                            </div>
+                            <h3 className="text-sm font-medium text-gray-900 mb-1">No cluster visit data</h3>
+                            <p className="text-sm text-gray-500">Start tracking cluster visits to see data here</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Footer with Legend */}
+              <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-6 text-xs text-gray-600">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-800 rounded-full border border-green-200">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span>Houses Visited</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full border border-blue-200">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span>Visit Days</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Active Data</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Last updated: {new Date().toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

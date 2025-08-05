@@ -22,7 +22,14 @@ export default async function handler(req, res) {
       // Find the response by ID and populate related data
       const response = await Response.findById(id)
         .populate('respondent', 'name email role')
-        .populate('ward', 'name district')
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        })
         .populate('formTemplate', 'title fields formType allowEditAfterSubmission')
         .lean();
 
@@ -131,7 +138,14 @@ export default async function handler(req, res) {
       // Return updated response with populated data
       const populatedResponse = await Response.findById(updatedResponse._id)
         .populate('respondent', 'name email role')
-        .populate('ward', 'name district')
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        })
         .populate('formTemplate', 'title fields formType');
 
       return res.status(200).json(populatedResponse);
