@@ -13,31 +13,25 @@ import UserWardsModal from '../../../components/UserWardsModal';
 import Pagination from '../../../components/Pagination';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
-import usePagination from '../../../hooks/usePagination';
+
 
 export default function Users() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-
-  // Use cached API data
-  const { data: usersData, loading: usersLoading, error: usersError, refetch } = useApiData('/api/users', {
-    cacheKey: 'admin-users',
-    cacheTTL: 2 * 60 * 1000 // 2 minutes cache
-  });
-
-  const { data: wardsData, loading: wardsLoading } = useApiData('/api/wards', {
-    cacheKey: 'admin-wards',
-    cacheTTL: 5 * 60 * 1000 // 5 minutes cache
-  });
-
-  const isLoading = usersLoading || wardsLoading;
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Simple pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -62,18 +56,22 @@ export default function Users() {
     userName: '',
     isResetting: false
   });
-  
-  // Pagination using custom hook
-  const {
-    currentPage,
-    itemsPerPage,
-    paginatedData: paginatedUsers,
-    totalPages,
-    totalItems,
-    handlePageChange,
-    handleItemsPerPageChange,
-    resetPagination,
-  } = usePagination(filteredUsers, 10);
+
+  // Calculate pagination values
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -81,12 +79,25 @@ export default function Users() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
       router.push('/');
+    } else if (status === 'authenticated') {
+      fetchData();
     }
   }, [status, session, router]);
 
-  useEffect(() => {
-    // Process users data when available
-    if (usersData && wardsData) {
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch users and wards
+      const [usersResponse, wardsResponse] = await Promise.all([
+        axios.get('/api/users'),
+        axios.get('/api/wards')
+      ]);
+
+      const usersData = usersResponse.data;
+      const wardsData = wardsResponse.data;
+
+      // Process users data with ward counts
       const usersWithWardCounts = usersData.map(user => {
         const coordinatorWards = wardsData.filter(ward => ward.coordinator?._id === user._id);
         const wardAdminWards = wardsData.filter(ward => ward.wardAdmin?._id === user._id);
@@ -103,12 +114,18 @@ export default function Users() {
       
       setUsers(usersWithWardCounts);
       setFilteredUsers(usersWithWardCounts);
+      setError('');
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to fetch users data');
+    } finally {
+      setIsLoading(false);
     }
-  }, [usersData, wardsData]);
+  };
 
   useEffect(() => {
     // Filter users based on search term
-    if (searchTerm) {
+    if (searchTerm.trim()) {
       const filtered = users.filter(user =>
         (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -120,14 +137,8 @@ export default function Users() {
     } else {
       setFilteredUsers(users);
     }
-    resetPagination(); // Reset to first page when search changes
-  }, [users, searchTerm, resetPagination]);
-
-  useEffect(() => {
-    if (usersError) {
-      setError('Failed to fetch users');
-    }
-  }, [usersError]);
+    setCurrentPage(1); // Reset to first page when search changes
+  }, [users, searchTerm]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -184,12 +195,8 @@ export default function Users() {
 
       // Submit form
       const response = await axios.post('/api/users', formData);
-      const newUsers = [...users, response.data];
-      setUsers(newUsers);
-      setFilteredUsers(newUsers);
-      
-      // Refresh cached data
-      refetch();
+      // Refresh data after creation
+      await fetchData();
       
       // Reset form and close modal
       resetForm();
@@ -225,14 +232,8 @@ export default function Users() {
 
       // Submit form
       const response = await axios.put(`/api/users/${editingUser._id}`, updateData);
-      const updatedUsers = users.map(user => 
-        user._id === editingUser._id ? response.data : user
-      );
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedUsers);
-      
-      // Refresh cached data
-      refetch();
+      // Refresh data after update
+      await fetchData();
       
       // Reset form and close modal
       resetForm();
@@ -282,13 +283,9 @@ export default function Users() {
 
     try {
       await axios.delete(`/api/users/${deleteModal.userId}`);
-      const updatedUsers = users.filter(user => user._id !== deleteModal.userId);
-      setUsers(updatedUsers);
-      setFilteredUsers(updatedUsers);
+      // Refresh data after deletion
+      await fetchData();
       closeDeleteModal();
-      
-      // Refresh cached data
-      refetch();
     } catch (error) {
       setError('Failed to delete user');
       console.error(error);
@@ -357,15 +354,7 @@ export default function Users() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
-
-  if (isLoading) {
+  if (status === 'loading' || isLoading) {
     return (
       <Layout>
         <ShimmerDashboard />
@@ -579,7 +568,7 @@ export default function Users() {
               className="max-w-md"
             />
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedUsers.length} of {totalItems} users
+              Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} users
             </div>
           </div>
           
@@ -703,7 +692,7 @@ export default function Users() {
                     </td>
                   </tr>
                 ))}
-                {totalItems === 0 && (
+                {paginatedUsers.length === 0 && totalItems === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -722,13 +711,15 @@ export default function Users() {
           </div>
           
           {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </Card>
 
         {/* Create User Modal */}
