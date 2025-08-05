@@ -371,7 +371,8 @@ export default function AdminWardVisits() {
           <div className="p-6 border-b border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <SearchInput
-                onSearch={setSearchTerm}
+                value={searchTerm}
+                onChange={setSearchTerm}
                 placeholder="Search visits..."
                 className="md:col-span-2"
               />

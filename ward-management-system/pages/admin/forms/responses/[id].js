@@ -102,6 +102,54 @@ export default function FormResponses() {
     }
   };
 
+  const exportResponses = () => {
+    if (!responses.length || !form) return;
+    
+    const csvContent = generateResponsesCSV();
+    downloadCSV(csvContent, `${form.title}_responses_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const generateResponsesCSV = () => {
+    const headers = [
+      'Response ID',
+      'Respondent Name',
+      'Respondent Role',
+      'Ward',
+      'District',
+      'Submitted At',
+      ...form.fields.map(field => field.label)
+    ];
+    
+    const rows = responses.map(response => [
+      response._id,
+      response.respondent?.name || 'Unknown',
+      response.respondent?.role || 'Unknown',
+      response.ward?.name || 'Unknown',
+      response.ward?.district || 'Unknown',
+      formatDate(response.submittedAt),
+      ...form.fields.map(field => {
+        const value = response.responses?.[field._id || field.id];
+        if (!value) return 'N/A';
+        if (Array.isArray(value)) return value.join('; ');
+        return String(value).replace(/,/g, ';'); // Replace commas to avoid CSV issues
+      })
+    ]);
+    
+    return [headers, ...rows].map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+  };
+
+  const downloadCSV = (content, filename) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
@@ -136,6 +184,14 @@ export default function FormResponses() {
                 {responses.length} response{responses.length !== 1 ? 's' : ''} received
               </p>
             </div>
+          </div>
+          <div className="flex space-x-3">
+            <Button onClick={exportResponses} variant="outline">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export All Responses ({responses.length})
+            </Button>
           </div>
         </div>
 

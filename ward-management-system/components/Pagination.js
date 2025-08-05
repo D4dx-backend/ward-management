@@ -43,15 +43,19 @@ const Pagination = ({
 
   const visiblePages = totalPages > 1 ? getVisiblePages() : [];
 
-  if (totalItems === 0) {
-    return (
+  // Don't show pagination if there are no items or only one page
+  if (totalItems === 0 || totalPages <= 1) {
+    return showItemsInfo && totalItems > 0 ? (
       <div className={`flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 ${className}`}>
         <div className="text-sm text-gray-700">
-          No items to display
+          Showing <span className="font-medium">{totalItems}</span> of{' '}
+          <span className="font-medium">{totalItems}</span> results
         </div>
       </div>
-    );
+    ) : null;
   }
+
+
 
   return (
     <div className={`flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 ${className}`}>

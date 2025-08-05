@@ -257,7 +257,7 @@ export default function WardClusters() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="coordinator.name" className="block text-sm font-medium text-gray-700 mb-1">
-              Coordinator Name *
+              Coordinator Name (Optional)
             </label>
             <input
               type="text"
@@ -267,7 +267,6 @@ export default function WardClusters() {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
               placeholder="Enter coordinator name"
-              required
             />
           </div>
 

@@ -20,14 +20,34 @@ export default function ClusterVisitStatus() {
     try {
       setIsLoading(true);
       
-      const response = await axios.get('/api/coordinator/cluster-visits');
-      setVisitData(response.data.weeks || []);
+      // Try admin cluster visits API first, then fall back to coordinator API
+      let response;
+      try {
+        response = await axios.get('/api/admin/cluster-visits');
+        const weeks = response.data.weeks || [];
+        console.log('Admin API response:', weeks);
+        setVisitData(weeks);
+      } catch (adminError) {
+        // If admin API fails, try coordinator API
+        console.log('Admin API failed, trying coordinator API:', adminError.message);
+        try {
+          response = await axios.get('/api/coordinator/cluster-visits');
+          const weeks = response.data.weeks || [];
+          console.log('Coordinator API response:', weeks);
+          setVisitData(weeks);
+        } catch (coordinatorError) {
+          console.log('Coordinator API also failed:', coordinatorError.message);
+          throw coordinatorError;
+        }
+      }
+      
       setError('');
     } catch (error) {
       console.error('Error fetching cluster visit data:', error);
       setError('Failed to load cluster visit data');
       
-      // Fallback to mock data if API fails
+      // Fallback to mock data if both APIs fail
+      console.log('Both APIs failed, generating mock data');
       const currentDate = new Date();
       const weeks = [];
       
@@ -40,6 +60,7 @@ export default function ClusterVisitStatus() {
         weekEnd.setDate(weekStart.getDate() + 6); // End of week (Saturday)
         
         const weekNumber = getWeekNumber(weekStart);
+        const year = weekStart.getFullYear();
         const isCurrentWeek = i === 0;
         
         // Mock cluster visit data with proper names and assignments
@@ -67,6 +88,7 @@ export default function ClusterVisitStatus() {
         
         weeks.push({
           weekNumber,
+          year,
           weekStart: weekStart.toISOString().split('T')[0],
           weekEnd: weekEnd.toISOString().split('T')[0],
           isCurrentWeek,

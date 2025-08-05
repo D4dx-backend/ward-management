@@ -17,7 +17,8 @@ export default function DragDropField({
   onSubQuestionChange,
   onAddSubQuestionOption,
   onRemoveSubQuestionOption,
-  onSubQuestionOptionChange
+  onSubQuestionOptionChange,
+  fieldPrefix = "Question"
 }) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -97,7 +98,7 @@ export default function DragDropField({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
               </svg>
             </div>
-            <h3 className="text-md font-medium text-gray-900">Question {index + 1}</h3>
+            <h3 className="text-md font-medium text-gray-900">{fieldPrefix} {index + 1}</h3>
             {field.applicableToClusters && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 🏘️ Clusters

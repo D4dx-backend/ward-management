@@ -89,7 +89,7 @@ const SearchInput = memo(({
         value={internalValue}
         onChange={handleInputChange}
         placeholder={placeholder}
-        className={`form-input pl-10 ${
+        className={`w-full border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pl-10 ${
           showClearButton && internalValue ? 'pr-10' : ''
         } ${sizes[size]}`}
         {...props}
