@@ -19,16 +19,18 @@ const ClusterSchema = new mongoose.Schema({
   coordinator: {
     name: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
+      default: '',
     },
     mobileNumber: {
       type: String,
       required: false,
       trim: true,
+      default: '',
       validate: {
         validator: function(v) {
-          return !v || /^\d{10}$/.test(v);
+          return !v || v === '' || /^\d{10}$/.test(v);
         },
         message: 'Mobile number must be exactly 10 digits'
       }

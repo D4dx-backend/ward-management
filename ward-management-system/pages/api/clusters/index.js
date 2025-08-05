@@ -70,8 +70,13 @@ export default async function handler(req, res) {
       }
       
       // Validate required fields
-      if (!name || !clusterNumber || !wardId || !coordinator) {
-        return res.status(400).json({ message: 'All fields are required' });
+      if (!name || !clusterNumber || !wardId) {
+        return res.status(400).json({ message: 'Name, cluster number, and ward are required' });
+      }
+      
+      // Ensure coordinator object exists even if empty
+      if (!coordinator) {
+        coordinator = { name: '', mobileNumber: '' };
       }
       
       // Coordinator name is optional now
@@ -123,8 +128,8 @@ export default async function handler(req, res) {
         ward: wardId,
         coordinator: {
           name: coordinator.name ? coordinator.name.trim() : '',
-          mobileNumber: coordinator.mobileNumber ? coordinator.mobileNumber.trim() : undefined,
-          email: coordinator.email ? coordinator.email.trim() : undefined
+          mobileNumber: coordinator.mobileNumber ? coordinator.mobileNumber.trim() : '',
+          email: coordinator.email ? coordinator.email.trim() : ''
         },
         createdBy: session.user.id,
         updatedBy: session.user.id
