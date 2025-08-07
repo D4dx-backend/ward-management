@@ -366,18 +366,19 @@ export default async function handler(req, res) {
 
         let hasChanges = false;
 
+        let hasChanges = false;
+        let updateLog = [];
+
         // Update specific question
         if (questionKey && status) {
           console.log(`Updating question ${questionKey} to ${status}`);
           
-          // Validate status
           if (!['completed', 'ongoing', 'not_started'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status value' });
           }
           
-          const currentStatus = survey.questions[questionKey]?.status;
+          const currentStatus = survey.questions?.[questionKey]?.status || 'not_started';
           
-          // Initialize question object if it doesn't exist
           if (!survey.questions) {
             survey.questions = {};
           }
@@ -385,38 +386,45 @@ export default async function handler(req, res) {
             survey.questions[questionKey] = {};
           }
           
-          survey.questions[questionKey].status = status;
-          if (currentStatus && currentStatus !== status) {
+          // Only update if status actually changed
+          if (currentStatus !== status) {
+            survey.questions[questionKey].status = status;
             survey.questions[questionKey].previousStatus = currentStatus;
+            survey.questions[questionKey].lastUpdated = new Date();
+            hasChanges = true;
+            updateLog.push(`Question ${questionKey}: ${currentStatus} -> ${status}`);
+            
+            console.log(`Question ${questionKey} updated: ${currentStatus} -> ${status}`);
+          } else {
+            console.log(`Question ${questionKey} already has status ${status}, no change needed`);
           }
-          survey.questions[questionKey].lastUpdated = new Date();
-          hasChanges = true;
-          
-          console.log(`Question ${questionKey} updated: ${currentStatus} -> ${status}`);
         }
 
         // Update basic survey
         if (basicSurveyStatus) {
           console.log(`Updating basic survey to ${basicSurveyStatus}`);
           
-          // Validate status
           if (!['completed', 'ongoing', 'not_started'].includes(basicSurveyStatus)) {
             return res.status(400).json({ message: 'Invalid basic survey status value' });
           }
           
-          const currentBasicStatus = survey.basicSurvey?.status;
+          const currentBasicStatus = survey.basicSurvey?.status || 'not_started';
           
-          if (!survey.basicSurvey) {
-            survey.basicSurvey = {};
-          }
-          survey.basicSurvey.status = basicSurveyStatus;
-          if (currentBasicStatus && currentBasicStatus !== basicSurveyStatus) {
+          // Only update if status actually changed
+          if (currentBasicStatus !== basicSurveyStatus) {
+            if (!survey.basicSurvey) {
+              survey.basicSurvey = {};
+            }
+            survey.basicSurvey.status = basicSurveyStatus;
             survey.basicSurvey.previousStatus = currentBasicStatus;
+            survey.basicSurvey.lastUpdated = new Date();
+            hasChanges = true;
+            updateLog.push(`Basic survey: ${currentBasicStatus} -> ${basicSurveyStatus}`);
+            
+            console.log(`Basic survey updated: ${currentBasicStatus} -> ${basicSurveyStatus}`);
+          } else {
+            console.log(`Basic survey already has status ${basicSurveyStatus}, no change needed`);
           }
-          survey.basicSurvey.lastUpdated = new Date();
-          hasChanges = true;
-          
-          console.log(`Basic survey updated: ${currentBasicStatus} -> ${basicSurveyStatus}`);
         }
 
         // Update cluster visits
@@ -424,24 +432,53 @@ export default async function handler(req, res) {
           console.log(`Updating cluster visits (${clusterVisits.length} clusters)`);
           survey.clusterVisits = clusterVisits;
           hasChanges = true;
+          updateLog.push(`Cluster visits updated (${clusterVisits.length} clusters)`);
         }
 
+        // Save changes if any were made
         if (hasChanges) {
-          // Mark the document as modified to ensure Mongoose saves it
+          console.log('Changes detected, saving survey...');
+          console.log('Update log:', updateLog);
+          
+          // Mark nested objects as modified for Mongoose
           survey.markModified('questions');
           survey.markModified('basicSurvey');
           survey.markModified('clusterVisits');
           
-          await survey.save();
-          console.log('Survey saved successfully');
+          // Force update the lastUpdated timestamp
+          survey.lastUpdated = new Date();
+          
+          try {
+            const savedSurvey = await survey.save();
+            console.log('Survey saved successfully with ID:', savedSurvey._id);
+            console.log('New completion rate:', savedSurvey.completionRate);
+          } catch (saveError) {
+            console.error('Error saving survey:', saveError);
+            return res.status(500).json({ 
+              message: 'Failed to save survey changes',
+              error: saveError.message
+            });
+          }
+        } else {
+          console.log('No changes detected, skipping save');
         }
 
         const updatedSurvey = await DockerSurvey.findById(survey._id)
           .populate('ward', 'name wardNumber panchayath district')
           .populate('wardAdmin', 'name email');
 
-        console.log('Survey update completed, completion rate:', updatedSurvey.completionRate);
-        res.status(200).json(updatedSurvey);
+        if (!updatedSurvey) {
+          console.error('Failed to fetch updated survey');
+          return res.status(500).json({ message: 'Failed to fetch updated survey' });
+        }
+
+        console.log('Survey update completed successfully');
+        console.log('Final completion rate:', updatedSurvey.completionRate);
+        
+        res.status(200).json({
+          ...updatedSurvey.toObject(),
+          updateLog: hasChanges ? updateLog : ['No changes made']
+        });
       } catch (error) {
         console.error('Error updating docker survey:', error);
         console.error('Error stack:', error.stack);

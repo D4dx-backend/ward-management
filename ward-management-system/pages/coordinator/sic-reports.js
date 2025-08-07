@@ -26,6 +26,12 @@ export default function SICReports() {
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
     } else if (status === 'authenticated') {
+      console.log('User authenticated as coordinator, fetching reports...');
+      console.log('Session details:', {
+        userId: session.user.id,
+        userRole: session.user.role,
+        userEmail: session.user.email
+      });
       fetchReports();
     }
   }, [status, session, router]);
@@ -35,16 +41,32 @@ export default function SICReports() {
       setIsLoading(true);
       setError('');
 
+      console.log('Fetching SIC reports...');
+      
       const [pendingResponse, submittedResponse] = await Promise.all([
         axios.get('/api/coordinator/reports?type=pending&limit=20'),
         axios.get('/api/coordinator/reports?type=submitted&limit=20')
       ]);
 
+      console.log('SIC reports fetched successfully');
       setPendingReports(pendingResponse.data.reports || []);
       setSubmittedReports(submittedResponse.data.reports || []);
     } catch (error) {
       console.error('Error fetching SIC reports:', error);
-      setError('Failed to load reports');
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
+      
+      if (error.response?.status === 401) {
+        setError('Authentication failed. Please try logging out and logging back in.');
+      } else if (error.response?.status === 403) {
+        setError('Access denied. You do not have permission to view these reports.');
+      } else {
+        setError(`Failed to load reports: ${error.response?.data?.message || error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -237,7 +259,17 @@ export default function SICReports() {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            <p className="text-sm">{error}</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm">{error}</p>
+              <Button
+                onClick={fetchReports}
+                size="sm"
+                variant="outline"
+                className="text-red-600 border-red-300 hover:bg-red-50"
+              >
+                Retry
+              </Button>
+            </div>
           </div>
         )}
 

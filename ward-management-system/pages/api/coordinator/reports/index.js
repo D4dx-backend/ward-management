@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../auth/[...nextauth]';
 import dbConnect from '../../../../lib/mongodb';
 import Response from '../../../../models/Response';
 import FormTemplate from '../../../../models/FormTemplate';
@@ -9,9 +10,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await getSession({ req });
+    const session = await getServerSession(req, res, authOptions);
+    
+    console.log('Session in coordinator reports API:', session ? 'Found' : 'Not found');
+    console.log('User role:', session?.user?.role);
     
     if (!session) {
+      console.log('No session found, returning 401');
       return res.status(401).json({ message: 'Unauthorized' });
     }
 

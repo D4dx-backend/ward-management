@@ -22,16 +22,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get coordinator's assigned wards
-    const coordinator = await User.findById(session.user.id);
-    
-    if (!coordinator || !coordinator.assignedWards || coordinator.assignedWards.length === 0) {
-      return res.status(200).json([]);
-    }
-
+    // Get wards where this user is the coordinator
     const wards = await Ward.find({
-      _id: { $in: coordinator.assignedWards }
-    }).select('name district _id').sort({ name: 1 });
+      coordinator: session.user.id,
+      isActive: true
+    })
+    .select('name district wardNumber _id')
+    .sort({ name: 1 });
 
     res.status(200).json(wards);
   } catch (error) {

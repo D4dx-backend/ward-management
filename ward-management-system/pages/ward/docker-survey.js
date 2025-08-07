@@ -107,6 +107,7 @@ export default function DockerSurvey() {
   const updateQuestionStatus = async (questionKey, newStatus) => {
     if (!survey?.ward?._id) {
       console.error('No survey or ward ID available');
+      setError('Survey data not available. Please refresh the page.');
       return;
     }
     
@@ -116,17 +117,37 @@ export default function DockerSurvey() {
       
       console.log('Updating question:', { questionKey, newStatus, wardId: survey.ward._id });
       
-      const response = await axios.put(`/api/docker-survey/${survey.ward._id}`, {
+      // Use the my-ward endpoint for better reliability
+      const response = await axios.put(`/api/docker-survey/my-ward`, {
         questionKey,
         status: newStatus
       });
       
       console.log('Question update response:', response.data);
+      console.log('Update log:', response.data.updateLog);
+      
+      // Update the survey state
       setSurvey(response.data);
+      
+      // Show success feedback if there were actual changes
+      if (response.data.updateLog && response.data.updateLog.length > 0 && 
+          !response.data.updateLog.includes('No changes made')) {
+        console.log('✅ Question updated successfully:', response.data.updateLog);
+      }
+      
     } catch (error) {
       console.error('Error updating question:', error);
       console.error('Error response:', error.response?.data);
-      setError(error.response?.data?.message || 'Failed to update question status');
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to update question status';
+      setError(errorMessage);
+      
+      // If it's an authentication error, suggest refresh
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setError('Session expired. Please refresh the page and try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -135,6 +156,7 @@ export default function DockerSurvey() {
   const updateBasicSurvey = async (newStatus) => {
     if (!survey?.ward?._id) {
       console.error('No survey or ward ID available');
+      setError('Survey data not available. Please refresh the page.');
       return;
     }
     
@@ -144,16 +166,36 @@ export default function DockerSurvey() {
       
       console.log('Updating basic survey:', { newStatus, wardId: survey.ward._id });
       
-      const response = await axios.put(`/api/docker-survey/${survey.ward._id}`, {
+      // Use the my-ward endpoint for better reliability
+      const response = await axios.put(`/api/docker-survey/my-ward`, {
         basicSurveyStatus: newStatus
       });
       
       console.log('Basic survey update response:', response.data);
+      console.log('Update log:', response.data.updateLog);
+      
+      // Update the survey state
       setSurvey(response.data);
+      
+      // Show success feedback if there were actual changes
+      if (response.data.updateLog && response.data.updateLog.length > 0 && 
+          !response.data.updateLog.includes('No changes made')) {
+        console.log('✅ Basic survey updated successfully:', response.data.updateLog);
+      }
+      
     } catch (error) {
       console.error('Error updating basic survey:', error);
       console.error('Error response:', error.response?.data);
-      setError(error.response?.data?.message || 'Failed to update basic survey status');
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to update basic survey status';
+      setError(errorMessage);
+      
+      // If it's an authentication error, suggest refresh
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setError('Session expired. Please refresh the page and try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -162,6 +204,7 @@ export default function DockerSurvey() {
   const updateClusterVisits = async (clusterVisits) => {
     if (!survey?.ward?._id) {
       console.error('No survey or ward ID available');
+      setError('Survey data not available. Please refresh the page.');
       return;
     }
     
@@ -171,16 +214,36 @@ export default function DockerSurvey() {
       
       console.log('Updating cluster visits:', { clusterVisitsLength: clusterVisits?.length, wardId: survey.ward._id });
       
-      const response = await axios.put(`/api/docker-survey/${survey.ward._id}`, {
+      // Use the my-ward endpoint for better reliability
+      const response = await axios.put(`/api/docker-survey/my-ward`, {
         clusterVisits
       });
       
       console.log('Cluster visits update response:', response.data);
+      console.log('Update log:', response.data.updateLog);
+      
+      // Update the survey state
       setSurvey(response.data);
+      
+      // Show success feedback if there were actual changes
+      if (response.data.updateLog && response.data.updateLog.length > 0 && 
+          !response.data.updateLog.includes('No changes made')) {
+        console.log('✅ Cluster visits updated successfully:', response.data.updateLog);
+      }
+      
     } catch (error) {
       console.error('Error updating cluster visits:', error);
       console.error('Error response:', error.response?.data);
-      setError(error.response?.data?.message || 'Failed to update cluster visits');
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          'Failed to update cluster visits';
+      setError(errorMessage);
+      
+      // If it's an authentication error, suggest refresh
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        setError('Session expired. Please refresh the page and try again.');
+      }
     } finally {
       setSaving(false);
     }
