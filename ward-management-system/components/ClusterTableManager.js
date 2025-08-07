@@ -188,14 +188,25 @@ const ClusterTableManager = memo(({ wardId, onSave, initialClusters = [] }) => {
                 </td>
                 <td className="px-4 py-3">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={cluster.clusterNumber}
                     onChange={(e) => updateCluster(index, 'clusterNumber', e.target.value)}
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    }}
+                    onKeyDown={(e) => {
+                      const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                      if (e.ctrlKey || e.metaKey || allowedKeys.includes(e.key) || (e.key >= '0' && e.key <= '9')) {
+                        return;
+                      }
+                      e.preventDefault();
+                    }}
                     className={`w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       getErrorMessage(index, 'clusterNumber') ? 'border-red-300' : 'border-gray-300'
                     }`}
                     placeholder="Enter cluster number"
-                    min="1"
                   />
                   {getErrorMessage(index, 'clusterNumber') && (
                     <p className="text-xs text-red-600 mt-1">{getErrorMessage(index, 'clusterNumber')}</p>

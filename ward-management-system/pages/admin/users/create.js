@@ -187,8 +187,8 @@ export default function CreateUser() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   >
-                    <option value="coordinator">Coordinator</option>
-                    <option value="wardAdmin">Ward Admin</option>
+                    <option value="coordinator">State Incharge (SIC)</option>
+                    <option value="wardAdmin">Ward Incharge</option>
                     <option value="stateAdmin">State Admin</option>
                   </select>
                 </div>

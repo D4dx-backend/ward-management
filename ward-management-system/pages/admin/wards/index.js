@@ -371,7 +371,7 @@ export default function AdminWards() {
           <SearchableSelect
             id="coordinatorId"
             name="coordinatorId"
-            label="Coordinator"
+            label="State Incharge (SIC)"
             value={formData.coordinatorId}
             onChange={handleInputChange}
             options={coordinators}
@@ -387,7 +387,7 @@ export default function AdminWards() {
           <SearchableSelect
             id="wardAdminId"
             name="wardAdminId"
-            label="Ward Admin"
+            label="Ward Incharge"
             value={formData.wardAdminId}
             onChange={handleInputChange}
             options={wardAdmins.map((admin) => {

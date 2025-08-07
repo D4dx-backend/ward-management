@@ -230,9 +230,21 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'number':
         return (
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={fieldValue}
             onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
+            onInput={(e) => {
+              e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }}
+            onKeyDown={(e) => {
+              const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+              if (e.ctrlKey || e.metaKey || allowedKeys.includes(e.key) || (e.key >= '0' && e.key <= '9')) {
+                return;
+              }
+              e.preventDefault();
+            }}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               fieldError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
@@ -399,9 +411,21 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'number':
         return (
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={subValue}
             onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
+            onInput={(e) => {
+              e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }}
+            onKeyDown={(e) => {
+              const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+              if (e.ctrlKey || e.metaKey || allowedKeys.includes(e.key) || (e.key >= '0' && e.key <= '9')) {
+                return;
+              }
+              e.preventDefault();
+            }}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               subError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}

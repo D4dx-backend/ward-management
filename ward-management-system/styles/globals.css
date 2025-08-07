@@ -55,4 +55,26 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  
+  /* Hide number input spinners while preserving keyboard functionality */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  /* Utility class for hiding spinners on specific inputs */
+  .no-spinners::-webkit-outer-spin-button,
+  .no-spinners::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  .no-spinners {
+    -moz-appearance: textfield;
+  }
 }

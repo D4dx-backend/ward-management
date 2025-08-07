@@ -128,7 +128,7 @@ export default function ClusterVisits() {
   return (
     <Layout>
       <Head>
-        <title>Cluster Visits - Ward Management System</title>
+        <title>House Visit - Cluster Visit Reports - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
@@ -161,9 +161,9 @@ export default function ClusterVisits() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cluster Visits</h1>
+          <h1 className="text-2xl font-bold text-gray-900">House Visit - Cluster Visit Reports</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Track cluster visit progress for form periods - Ward: {clusterData?.ward?.name}
+            Track house visits and cluster visit progress for form periods - Ward: {clusterData?.ward?.name}
           </p>
         </div>
 
@@ -172,7 +172,7 @@ export default function ClusterVisits() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                Cluster Visit Status
+                House Visit Status by Cluster
               </h2>
               <Button
                 onClick={updateClusterVisits}

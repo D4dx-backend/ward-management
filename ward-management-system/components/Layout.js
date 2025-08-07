@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Logo from './Logo';
 import MenuManager from './MenuManager';
+import UserProfileDropdown from './UserProfileDropdown';
 
 const Layout = memo(({ children }) => {
   const { data: session, status } = useSession();
@@ -95,27 +96,7 @@ const Layout = memo(({ children }) => {
               </div>
 
               {/* Profile dropdown */}
-              <div className="relative">
-                <div className="flex items-center">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {session.user.name?.charAt(0) || 'U'}
-                      </span>
-                    </div>
-                    <div className="hidden lg:block">
-                      <p className="text-sm font-medium text-gray-900">{session.user.name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{session.user.role.replace('Admin', ' Admin')}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="ml-4 px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              </div>
+              <UserProfileDropdown />
             </div>
           </div>
         </div>
