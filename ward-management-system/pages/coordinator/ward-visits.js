@@ -97,15 +97,19 @@ export default function WardVisits() {
       
       // Fetch visits and wards
       const [visitsResponse, wardsResponse] = await Promise.all([
-        axios.get('/api/ward-visits/'),
-        axios.get('/api/wards/')
+        axios.get('/api/ward-visits'),
+        axios.get('/api/coordinator/wards')
       ]);
       
+      console.log('Visits data:', visitsResponse.data);
       setVisits(visitsResponse.data || []);
       setWards(wardsResponse.data || []);
       setError('');
     } catch (error) {
       console.error('Error fetching data:', error);
+      console.error('Error details:', error.response?.data);
+      
+      setError(`Failed to load data: ${error.response?.data?.message || error.message}`);
       
       // Fallback to mock data
       const mockWards = [
@@ -196,17 +200,25 @@ export default function WardVisits() {
 
       if (editingVisit) {
         // Update existing visit
-        const response = await axios.put(`/api/ward-visits/?visitId=${editingVisit._id}`, formData);
+        const response = await axios.put(`/api/ward-visits?visitId=${editingVisit._id}`, formData);
         // Update the visit in the list
         setVisits(visits.map(v => v._id === editingVisit._id ? response.data : v));
         setError('');
         setSuccess('Visit updated successfully!');
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
       } else {
         // Create new visit
-        const response = await axios.post('/api/ward-visits/', formData);
-        // Add new visit to the list
-        setVisits([response.data, ...visits]);
+        const response = await axios.post('/api/ward-visits', formData);
+        console.log('Visit created:', response.data);
         setSuccess('Visit recorded successfully!');
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccess(''), 5000);
+        
+        // Refresh data to ensure consistency
+        await fetchData();
       }
       
       // Reset form
@@ -227,7 +239,8 @@ export default function WardVisits() {
       setEditingVisit(null);
     } catch (error) {
       console.error('Error saving visit:', error);
-      setError('Failed to save visit. Please try again.');
+      console.error('Error details:', error.response?.data);
+      setError(`Failed to save visit: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -262,9 +275,12 @@ export default function WardVisits() {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`/api/ward-visits/?visitId=${visitToDelete._id}`);
+      await axios.delete(`/api/ward-visits?visitId=${visitToDelete._id}`);
       setVisits(visits.filter(v => v._id !== visitToDelete._id));
       setSuccess('Visit deleted successfully!');
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(''), 5000);
       setShowDeleteModal(false);
       setVisitToDelete(null);
     } catch (error) {
@@ -703,11 +719,15 @@ export default function WardVisits() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              visit.recordedBy === 'coordinator' 
+                              visit.recordedByRole === 'coordinator' || 
+                              (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
                                 ? 'bg-blue-100 text-blue-800' 
                                 : 'bg-green-100 text-green-800'
                             }`}>
-                              {visit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Incharge Record'}
+                              {visit.recordedByRole === 'coordinator' || 
+                               (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                                ? 'Coordinator Visit' 
+                                : 'Ward Admin Record'}
                             </span>
                           </div>
                         </div>

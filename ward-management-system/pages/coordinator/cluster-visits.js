@@ -302,6 +302,12 @@ export default function CoordinatorClusterVisits() {
             </p>
           </div>
           <div className="flex space-x-3">
+            <Button 
+              onClick={() => router.push('/coordinator/cluster-visit-details')} 
+              variant="primary"
+            >
+              Detailed View
+            </Button>
             <Button onClick={clearFilters} variant="outline">
               Clear Filters
             </Button>

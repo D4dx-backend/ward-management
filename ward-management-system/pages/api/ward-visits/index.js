@@ -19,11 +19,19 @@ export default async function handler(req, res) {
     await dbConnect();
 
     if (req.method === 'GET') {
+      console.log('Fetching ward visits for coordinator:', session.user.id);
+      
       // Get all wards under this coordinator
-      const coordinatorWards = await Ward.find({ coordinator: session.user.id });
+      const coordinatorWards = await Ward.find({ 
+        coordinator: session.user.id,
+        isActive: true 
+      });
+      
+      console.log('Found coordinator wards:', coordinatorWards.length);
+      
       const wardIds = coordinatorWards.map(ward => ward._id);
 
-      // Get all visits for these wards (both coordinator and Ward Incharge recorded)
+      // Get all visits for these wards (both coordinator and ward admin recorded)
       const visits = await WardVisit.find({ 
         ward: { $in: wardIds }
       })
@@ -31,6 +39,21 @@ export default async function handler(req, res) {
       .populate('coordinator', 'name email role')
       .sort({ visitDate: -1, createdAt: -1 });
 
+      console.log('Found visits:', visits.length);
+      
+      // Update any visits that don't have recordedByRole set (migration for old data)
+      const visitsToUpdate = visits.filter(visit => !visit.recordedByRole);
+      if (visitsToUpdate.length > 0) {
+        console.log('Updating', visitsToUpdate.length, 'visits without recordedByRole');
+        for (const visit of visitsToUpdate) {
+          // If the coordinator field matches the session user, it's a coordinator visit
+          // Otherwise, it's likely a ward admin visit
+          visit.recordedByRole = visit.coordinator.toString() === session.user.id ? 'coordinator' : 'wardAdmin';
+          visit.recordedBy = visit.coordinator;
+          await visit.save();
+        }
+      }
+      
       res.status(200).json(visits);
     } else if (req.method === 'POST') {
       // Create new visit record
@@ -47,6 +70,8 @@ export default async function handler(req, res) {
         remarks
       } = req.body;
 
+      console.log('Creating new ward visit:', { ward, visitDate, purpose });
+      
       // Validate required fields
       if (!ward || !visitDate || !purpose) {
         return res.status(400).json({ message: 'Ward, visit date, and purpose are required' });
@@ -55,10 +80,12 @@ export default async function handler(req, res) {
       // Verify ward belongs to this coordinator
       const wardDoc = await Ward.findOne({ 
         _id: ward, 
-        coordinator: session.user.id 
+        coordinator: session.user.id,
+        isActive: true
       });
 
       if (!wardDoc) {
+        console.log('Ward not found or not under coordination:', ward);
         return res.status(403).json({ message: 'You can only record visits for wards under your coordination' });
       }
 
@@ -67,17 +94,20 @@ export default async function handler(req, res) {
         ward,
         coordinator: session.user.id,
         visitDate: new Date(visitDate),
-        visitTime,
+        visitTime: visitTime || '10:00',
         purpose,
-        findings,
-        recommendations,
+        findings: findings || '',
+        recommendations: recommendations || '',
         followUpRequired: followUpRequired || false,
         followUpDate: followUpRequired && followUpDate ? new Date(followUpDate) : null,
-        attendees,
-        remarks
+        attendees: attendees || '',
+        remarks: remarks || '',
+        recordedBy: session.user.id,
+        recordedByRole: 'coordinator'
       });
 
       await visit.save();
+      console.log('Ward visit created successfully:', visit._id);
 
       // Populate the response
       await visit.populate([

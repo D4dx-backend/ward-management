@@ -36,11 +36,14 @@ export default function ClusterVisitDetails() {
       setIsLoading(true);
       setError('');
 
+      console.log('Fetching ward cluster data...');
       const response = await axios.get('/api/coordinator/ward-cluster-visits');
+      console.log('Ward cluster data response:', response.data);
       setWards(response.data.wards || []);
     } catch (error) {
       console.error('Error fetching ward cluster data:', error);
-      setError('Failed to load ward cluster data');
+      console.error('Error details:', error.response?.data || error.message);
+      setError(`Failed to load ward cluster data: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -51,11 +54,14 @@ export default function ClusterVisitDetails() {
       setIsLoadingClusters(true);
       setSelectedWard(ward);
 
+      console.log('Fetching cluster details for ward:', ward._id);
       const response = await axios.get(`/api/coordinator/wards/${ward._id}/cluster-visits`);
+      console.log('Cluster details response:', response.data);
       setClusterDetails(response.data.clusters || []);
     } catch (error) {
       console.error('Error fetching cluster details:', error);
-      setError('Failed to load cluster details');
+      console.error('Error details:', error.response?.data || error.message);
+      setError(`Failed to load cluster details: ${error.response?.data?.message || error.message}`);
     } finally {
       setIsLoadingClusters(false);
     }
