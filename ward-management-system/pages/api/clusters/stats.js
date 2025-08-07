@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     
     // Role-based filtering
     if (session.user.role === 'wardAdmin') {
-      // Ward admins can only see clusters in their ward
+      // Ward Incharges can only see clusters in their ward
       const ward = await Ward.findOne({ wardAdmin: session.user.id });
       if (!ward) {
         return res.status(200).json({

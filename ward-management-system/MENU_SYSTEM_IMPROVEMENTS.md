@@ -80,7 +80,7 @@ The menu system has been restructured with better organization, clearer naming, 
    └── Reset PIN
 ```
 
-### **Ward Admin Menu**
+### **Ward Incharge Menu**
 ```
 📊 Dashboard
 📈 Reports
@@ -153,7 +153,7 @@ The menu system has been restructured with better organization, clearer naming, 
 
 ✅ **State Admin Menu** - Reorganized with Documentation and System Management  
 ✅ **Coordinator Menu** - Added Documentation and Account Management sections  
-✅ **Ward Admin Menu** - Added Documentation and Account Management sections  
+✅ **Ward Incharge Menu** - Added Documentation and Account Management sections  
 ✅ **Better Naming** - All menu items have clearer, more descriptive names  
 ✅ **Logical Grouping** - Related items grouped together appropriately  
 

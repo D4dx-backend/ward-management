@@ -59,7 +59,7 @@
 - `/coordinator/wards` ✅ **OK** - Ward viewing for coordinators
 - `/coordinator/reports/submit` ✅ **OK** - Enhanced with FormRenderer
 
-### **Ward Admin Pages**
+### **Ward Incharge Pages**
 - `/ward/reports/submit` ✅ **OK** - Enhanced with FormRenderer
 
 ## 🔧 **NEW FEATURES IMPLEMENTED**

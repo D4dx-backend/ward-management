@@ -56,11 +56,11 @@ export default function SICReports() {
         // Fetch full report details for submitted reports
         const response = await axios.get(`/api/coordinator/reports/${report._id}`);
         setSelectedReport({ ...response.data, reportType: 'submitted' });
+        setShowReportModal(true);
       } else {
-        // For pending reports, just show the form details
-        setSelectedReport({ ...report, reportType: 'pending' });
+        // For pending reports, navigate directly to the editable form
+        router.push(`/coordinator/reports/submit?formId=${report._id}`);
       }
-      setShowReportModal(true);
     } catch (error) {
       console.error('Error fetching report details:', error);
       alert('Failed to load report details');

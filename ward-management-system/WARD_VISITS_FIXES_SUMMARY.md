@@ -11,12 +11,12 @@
 
 **Root Cause**: 
 - The API was trying to populate a `ward` field on the User model, which doesn't exist
-- Ward admins are associated with wards through the Ward model's `wardAdmin` field, not through a `ward` field on the User model
+- Ward Incharges are associated with wards through the Ward model's `wardAdmin` field, not through a `ward` field on the User model
 
 **Solution**:
 - **Fixed API Logic**: Updated `/api/ward-visits/ward-admin.js` to find wards by querying `Ward.findOne({ wardAdmin: session.user.id })`
 - **Proper Population**: Updated population to use correct field paths and select specific fields
-- **Error Handling**: Added proper error handling for cases where ward admin has no assigned ward
+- **Error Handling**: Added proper error handling for cases where Ward Incharge has no assigned ward
 
 **Code Changes**:
 ```javascript
@@ -29,7 +29,7 @@ if (!user || !user.ward) {
 // After (FIXED)
 const ward = await Ward.findOne({ wardAdmin: session.user.id });
 if (!ward) {
-  return res.status(404).json({ message: 'No ward assigned to this ward admin' });
+  return res.status(404).json({ message: 'No ward assigned to this Ward Incharge' });
 }
 ```
 
@@ -41,7 +41,7 @@ if (!ward) {
 - **Enabled Visit Recording**: Updated coordinator ward visits page to allow visit recording
 - **Updated UI**: Changed "Cannot Record Visits" button to functional "Record Visit" button
 - **Enhanced API**: Updated `/api/ward-visits/index.js` to use newer authentication method
-- **Hierarchical Data**: Modified API to show all visits for coordinator's wards (both coordinator and ward admin recorded)
+- **Hierarchical Data**: Modified API to show all visits for coordinator's wards (both coordinator and Ward Incharge recorded)
 
 **Code Changes**:
 ```javascript
@@ -62,10 +62,10 @@ const visits = await WardVisit.find({
 **Enhancement**: Added visual indicators to show who recorded each visit and their role in the hierarchy
 
 **Features Added**:
-- **Visit Source Badges**: Color-coded badges showing whether visit was recorded by coordinator or ward admin
+- **Visit Source Badges**: Color-coded badges showing whether visit was recorded by coordinator or Ward Incharge
 - **Recorder Information**: Display of who recorded the visit with their name
 - **Ward Details**: Enhanced display with ward number and district information
-- **Role-based Styling**: Different colors for different roles (blue for coordinator, green for ward admin)
+- **Role-based Styling**: Different colors for different roles (blue for coordinator, green for Ward Incharge)
 
 **UI Implementation**:
 ```javascript
@@ -74,7 +74,7 @@ const visits = await WardVisit.find({
     ? 'bg-blue-100 text-blue-800' 
     : 'bg-green-100 text-green-800'
 }`}>
-  {visit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Admin Record'}
+  {visit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Incharge Record'}
 </span>
 <span className="text-xs text-gray-500">
   by {visit.coordinator?.name || 'Unknown'}
@@ -87,7 +87,7 @@ const visits = await WardVisit.find({
 
 **Updated APIs**:
 - `/api/ward-visits/index.js` - Coordinator visits API
-- `/api/ward-visits/ward-admin.js` - Ward admin visits API  
+- `/api/ward-visits/ward-admin.js` - Ward Incharge visits API  
 - `/api/admin/ward-visits/index.js` - Admin visits API
 
 **Changes Made**:
@@ -105,7 +105,7 @@ const session = await getServerSession(req, res, authOptions);
 ### 2. Database Schema Enhancements
 
 **WardVisit Model**:
-- ✅ Added `recordedBy` field to distinguish between coordinator and ward admin records
+- ✅ Added `recordedBy` field to distinguish between coordinator and Ward Incharge records
 - ✅ Maintained backward compatibility with default value 'coordinator'
 - ✅ Enhanced population with proper field selection
 
@@ -118,7 +118,7 @@ const session = await getServerSession(req, res, authOptions);
 
 ## User Experience Enhancements
 
-### 1. Ward Admin Experience
+### 1. Ward Incharge Experience
 
 **Features**:
 - ✅ Can record visits by coordinators and officials to their ward
@@ -127,14 +127,14 @@ const session = await getServerSession(req, res, authOptions);
 - ✅ Follow-up tracking with due dates
 
 **Navigation**:
-- ✅ Added "Ward Visits Record" to ward admin menu
+- ✅ Added "Ward Visits Record" to Ward Incharge menu
 - ✅ Proper icon and positioning in navigation
 
 ### 2. Coordinator Experience
 
 **Features**:
 - ✅ Can record their own visits to assigned wards
-- ✅ Can view all visits (both their own and ward admin recorded) for their wards
+- ✅ Can view all visits (both their own and Ward Incharge recorded) for their wards
 - ✅ Hierarchical data display showing visit sources
 - ✅ Enhanced filtering and search capabilities
 
@@ -152,11 +152,11 @@ const session = await getServerSession(req, res, authOptions);
 
 ## API Endpoints Summary
 
-### Ward Admin Visits API
+### Ward Incharge Visits API
 - **Endpoint**: `/api/ward-visits/ward-admin.js`
 - **Methods**: GET, POST
-- **Authentication**: Ward admin role required
-- **Features**: CRUD operations for ward admin visit records
+- **Authentication**: Ward Incharge role required
+- **Features**: CRUD operations for Ward Incharge visit records
 
 ### Coordinator Visits API
 - **Endpoint**: `/api/ward-visits/index.js`
@@ -175,7 +175,7 @@ const session = await getServerSession(req, res, authOptions);
 ### Ward-User Relationship
 ```
 Ward Model:
-- wardAdmin: ObjectId (ref: User) - One ward admin per ward
+- wardAdmin: ObjectId (ref: User) - One Ward Incharge per ward
 - coordinator: ObjectId (ref: User) - One coordinator per ward
 
 User Model:
@@ -193,9 +193,9 @@ WardVisit Model:
 
 ## Testing Checklist
 
-### Ward Admin Functionality
-- [x] Ward admin can access Ward Visits Record from navigation
-- [x] Ward admin can record new visits with all required fields
+### Ward Incharge Functionality
+- [x] Ward Incharge can access Ward Visits Record from navigation
+- [x] Ward Incharge can record new visits with all required fields
 - [x] Visit submission works without schema errors
 - [x] Visit history displays correctly
 - [x] Follow-up tracking works as expected
@@ -216,7 +216,7 @@ WardVisit Model:
 ## Security Features
 
 ### Access Control
-- **Ward Admins**: Can only record visits for their assigned ward
+- **Ward Incharges**: Can only record visits for their assigned ward
 - **Coordinators**: Can only record visits for wards under their coordination
 - **State Admins**: Can view all visits system-wide
 

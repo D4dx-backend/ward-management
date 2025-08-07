@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         query.district = session.user.district;
         if (userId) query.user = userId;
       } else if (session.user.role === 'wardAdmin') {
-        // Ward admins can only see their own login history
+        // Ward Incharges can only see their own login history
         query.user = session.user.id;
       } else {
         return res.status(403).json({ message: 'Forbidden' });

@@ -255,7 +255,7 @@ export default function AdminInstructions() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Manage Instructions</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Create and manage instructions for coordinators and ward admins
+              Create and manage instructions for coordinators and Ward Incharges
             </p>
             {/* Debug info */}
             <div className="text-xs text-gray-500 mt-1">
@@ -354,7 +354,7 @@ export default function AdminInstructions() {
                       <span className="text-sm text-blue-700 font-medium">
                         Target: {
                           instruction.targetAudience === 'all' ? 'All Users' :
-                            instruction.targetAudience === 'ward_admins' ? 'Ward Admins' :
+                            instruction.targetAudience === 'ward_admins' ? 'Ward Incharges' :
                               instruction.targetAudience === 'coordinators' ? 'Coordinators' :
                                 instruction.targetAudience === 'state_admins' ? 'State Admins' :
                                   instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
@@ -517,7 +517,7 @@ export default function AdminInstructions() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                 >
                   <option value="all">All Users</option>
-                  <option value="ward_admins">Ward Admins</option>
+                  <option value="ward_admins">Ward Incharges</option>
                   <option value="coordinators">Coordinators</option>
                   <option value="state_admins">State Admins</option>
                   <option value="specific_wards">Specific Wards</option>
@@ -526,7 +526,7 @@ export default function AdminInstructions() {
                 <p className="text-xs text-gray-500 mt-1">
                   {formData.targetAudience === 'coordinators' && 'This will send to all coordinators in the system'}
                   {formData.targetAudience === 'specific_coordinators' && 'Select individual coordinators below'}
-                  {formData.targetAudience === 'ward_admins' && 'This will send to all ward admins in the system'}
+                  {formData.targetAudience === 'ward_admins' && 'This will send to all Ward Incharges in the system'}
                   {formData.targetAudience === 'specific_wards' && 'Select specific wards below'}
                 </p>
               </div>

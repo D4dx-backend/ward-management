@@ -1,7 +1,7 @@
 # Coordinator Instruction Management - Implementation Summary
 
 ## Overview
-Implemented comprehensive instruction management functionality for coordinators to monitor instructions sent to ward admins, track reading status, and view replies.
+Implemented comprehensive instruction management functionality for coordinators to monitor instructions sent to Ward Incharges, track reading status, and view replies.
 
 ## Features Implemented
 
@@ -9,8 +9,8 @@ Implemented comprehensive instruction management functionality for coordinators 
 **Location**: `/coordinator/instruction-management`
 
 **Functionality**:
-- View all instructions sent to ward admins in coordinator's district
-- Track reading status for each ward admin
+- View all instructions sent to Ward Incharges in coordinator's district
+- Track reading status for each Ward Incharge
 - Monitor reply counts and response rates
 - Filter by status (All Read, Partially Read, Unread, Has Replies)
 - Filter by priority (High, Medium, Low)
@@ -21,11 +21,11 @@ Implemented comprehensive instruction management functionality for coordinators 
 ### 2. ✅ API Endpoint Created
 
 #### `/api/coordinator/instructions` (GET)
-- Returns instructions targeted to ward admins in coordinator's district
+- Returns instructions targeted to Ward Incharges in coordinator's district
 - Includes comprehensive reading and reply statistics
-- Provides ward admin status details for each instruction
+- Provides Ward Incharge status details for each instruction
 - Restricted to coordinators only
-- Handles different targeting types (all ward admins, specific wards, etc.)
+- Handles different targeting types (all Ward Incharges, specific wards, etc.)
 
 ### 3. ✅ Navigation Menu Integration
 Added "Instruction Management" to the coordinator Documentation section:
@@ -49,8 +49,8 @@ Added "Instruction Management" to the coordinator Documentation section:
 
 ### Status Modal
 - **Summary statistics** (Total Recipients, Read Count, Reply Count)
-- **Individual ward admin status** showing:
-  - Ward admin name and assigned ward
+- **Individual Ward Incharge status** showing:
+  - Ward Incharge name and assigned ward
   - Read/Unread status
   - Reply status
   - Ward information (name and number)
@@ -73,11 +73,11 @@ Added "Instruction Management" to the coordinator Documentation section:
 ```javascript
 {
   readingStats: {
-    totalWardAdmins: number,    // Total ward admins who should see this
+    totalWardAdmins: number,    // Total Ward Incharges who should see this
     readCount: number,          // How many have read it
     unreadCount: number,        // How many haven't read it
     replyCount: number,         // Total number of replies
-    uniqueRepliers: number      // Number of unique ward admins who replied
+    uniqueRepliers: number      // Number of unique Ward Incharges who replied
   },
   wardAdminStatus: [
     {
@@ -96,16 +96,16 @@ Added "Instruction Management" to the coordinator Documentation section:
 
 ### Targeting Logic
 The system handles different instruction targeting types:
-- **ward_admins**: All ward admins in coordinator's district
-- **specific_wards**: Ward admins of specific wards under coordinator
-- **ward_or_group**: Ward admins of specific ward groups under coordinator
+- **ward_admins**: All Ward Incharges in coordinator's district
+- **specific_wards**: Ward Incharges of specific wards under coordinator
+- **ward_or_group**: Ward Incharges of specific ward groups under coordinator
 
 ## Integration with Existing System
 
 ### Uses Existing Models
 - **Instruction Model**: Leverages existing `readBy` field for tracking
-- **User Model**: Gets ward admin information
-- **Ward Model**: Links ward admins to their assigned wards
+- **User Model**: Gets Ward Incharge information
+- **Ward Model**: Links Ward Incharges to their assigned wards
 - **No new models required** - uses existing infrastructure
 
 ### Coordinator Access Control
@@ -199,11 +199,11 @@ The system handles different instruction targeting types:
 ✅ **Complete and Ready for Use**
 
 The coordinator instruction management system is fully implemented with:
-- Comprehensive monitoring of ward admin instruction engagement
+- Comprehensive monitoring of Ward Incharge instruction engagement
 - Detailed status tracking and reporting
 - Intuitive filtering and search capabilities
 - Secure access control and data isolation
 - Integration with existing instruction system
 - Mobile-responsive design
 
-Coordinators can now effectively monitor how ward admins are engaging with instructions, track reading status, and view replies - providing complete oversight of instruction communication in their district.
+Coordinators can now effectively monitor how Ward Incharges are engaging with instructions, track reading status, and view replies - providing complete oversight of instruction communication in their district.

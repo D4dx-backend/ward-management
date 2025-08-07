@@ -198,7 +198,7 @@ export default function FormsManager() {
           <h3 className="font-medium text-blue-800">Instructions:</h3>
           <ol className="list-decimal list-inside text-sm text-blue-700 mt-2 space-y-1">
             <li>If you're a <strong>State Admin</strong>: Click "Create Test Forms" to create forms with week numbers</li>
-            <li>If you're a <strong>Ward Admin</strong>: After forms are created, click "Reset Survey Structure"</li>
+            <li>If you're a <strong>Ward Incharge</strong>: After forms are created, click "Reset Survey Structure"</li>
             <li>Go to Docker Survey → Cluster Visits to see the week numbers</li>
             <li>You should see "Week 30, 2025", "Week 31, 2025" etc. instead of "Old Structure"</li>
           </ol>

@@ -37,7 +37,7 @@ export default function TestClusterSurvey() {
   }
 
   if (session.user.role !== 'wardAdmin') {
-    return <Layout><div>Access denied. Ward admin only.</div></Layout>;
+    return <Layout><div>Access denied. Ward Incharge only.</div></Layout>;
   }
 
   return (

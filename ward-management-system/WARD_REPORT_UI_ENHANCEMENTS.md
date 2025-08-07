@@ -37,7 +37,7 @@ Enhanced the ward report submission page with modern, advanced UI/UX design and 
 
 ### Issues Fixed:
 - **API Endpoint Enhancement**: Improved error handling and validation
-- **Role-Based Access**: Ensured only ward admins can reply to instructions
+- **Role-Based Access**: Ensured only Ward Incharges can reply to instructions
 - **Better Error Messages**: More descriptive error responses
 - **Auto-Expand Replies**: Automatically show replies after posting
 

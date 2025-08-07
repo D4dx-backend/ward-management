@@ -36,7 +36,7 @@ export default function DebugSurveys() {
 
   const testDockerSurvey = async () => {
     if (!session?.user?.role === 'wardAdmin') {
-      addLog('You must be a ward admin to test Docker Survey', 'error');
+      addLog('You must be a Ward Incharge to test Docker Survey', 'error');
       return;
     }
 
@@ -174,7 +174,7 @@ export default function DebugSurveys() {
           </div>
           {session.user.role !== 'wardAdmin' && (
             <p className="text-sm text-yellow-600 mt-2">
-              Note: Docker Survey tests require ward admin role
+              Note: Docker Survey tests require Ward Incharge role
             </p>
           )}
         </Card>

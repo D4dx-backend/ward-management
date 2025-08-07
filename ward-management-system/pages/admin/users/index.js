@@ -185,7 +185,7 @@ export default function Users() {
         }
       } else {
         if (!formData.mobileNumber || !formData.pinCode) {
-          throw new Error('Mobile number and PIN code are required for coordinators and ward admins');
+          throw new Error('Mobile number and PIN code are required for coordinators and Ward Incharges');
         }
         
         if (formData.pinCode.length !== 4) {
@@ -441,7 +441,7 @@ export default function Users() {
         </div>
       )}
 
-      {/* Coordinator/Ward Admin Authentication */}
+      {/* Coordinator/Ward Incharge Authentication */}
       {(formData.role === 'coordinator' || formData.role === 'wardAdmin') && (
         <div className="border-t pt-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Authentication Details</h3>
@@ -623,7 +623,7 @@ export default function Users() {
                           : 'bg-green-100 text-green-800'
                       }`}>
                         {user.role === 'stateAdmin' ? 'State Admin' : 
-                         user.role === 'coordinator' ? 'Coordinator' : 'Ward Admin'}
+                         user.role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

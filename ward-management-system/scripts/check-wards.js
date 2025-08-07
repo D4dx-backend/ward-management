@@ -40,7 +40,7 @@ async function checkWards() {
     wards.forEach(ward => {
       console.log(`- ${ward.name} (${ward.district})`);
       console.log(`  Coordinator: ${ward.coordinator?.name || 'None'}`);
-      console.log(`  Ward Admin: ${ward.wardAdmin?.name || 'None'}`);
+      console.log(`  Ward Incharge: ${ward.wardAdmin?.name || 'None'}`);
       console.log('');
     });
 

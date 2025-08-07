@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     try {
       const { id } = req.query;
       
-      // Get wards assigned to this user (either as coordinator or ward admin)
+      // Get wards assigned to this user (either as coordinator or Ward Incharge)
       const wards = await Ward.find({
         $or: [
           { coordinator: id },

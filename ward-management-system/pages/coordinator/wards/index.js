@@ -119,12 +119,12 @@ export default function ManageWards() {
       const wardsResponse = await axios.get('/api/wards');
       console.log('Wards response:', wardsResponse.data);
       
-      // Try to get available ward admins from API
+      // Try to get available Ward Incharges from API
       const usersResponse = await axios.get('/api/users');
       console.log('Users response:', usersResponse.data);
       
       const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
-      console.log('Filtered ward admins:', wardAdmins);
+      console.log('Filtered Ward Incharges:', wardAdmins);
       
       setWards(wardsResponse.data || []);
       setFilteredWards(wardsResponse.data || []);
@@ -410,7 +410,7 @@ export default function ManageWards() {
 
       <div>
         <label htmlFor="wardAdminId" className="block text-sm font-medium text-gray-700 mb-1">
-          Ward Admin
+          Ward Incharge
         </label>
         <select
           id="wardAdminId"
@@ -419,7 +419,7 @@ export default function ManageWards() {
           onChange={handleInputChange}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="">No Ward Admin Assigned</option>
+          <option value="">No Ward Incharge Assigned</option>
           {wardAdmins.map((admin) => (
             <option key={admin._id} value={admin._id}>
               {admin.name} ({admin.email})
@@ -542,7 +542,7 @@ export default function ManageWards() {
           <div className="p-6 border-b border-gray-200">
             <SearchInput
               onSearch={setSearchTerm}
-              placeholder="Search wards by name, number, panchayath, or ward admin..."
+              placeholder="Search wards by name, number, panchayath, or Ward Incharge..."
               className="max-w-md"
             />
           </div>
@@ -558,7 +558,7 @@ export default function ManageWards() {
                     Location
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Admin
+                    Ward Incharge
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Population

@@ -33,7 +33,7 @@
 ## How to Debug
 
 ### Step 1: Access Debug Page
-1. Login as a ward admin
+1. Login as a Ward Incharge
 2. Navigate to: `/ward/debug-cluster-survey`
 3. This will show you:
    - Total clusters for your ward (active/inactive)
@@ -97,7 +97,7 @@ Check the debug page to ensure:
 ```
 GET /api/debug/ward-clusters
 ```
-Returns cluster count and details for the current ward admin.
+Returns cluster count and details for the current Ward Incharge.
 
 ### Debug Form Information
 ```

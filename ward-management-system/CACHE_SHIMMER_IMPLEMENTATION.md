@@ -46,7 +46,7 @@ The following pages have been updated with cache and shimmer loading:
 - Instructions (`coordinator/instructions.js`) ✅
 - Activity logs (`coordinator/activity.js`) ✅
 
-#### Ward Admin Pages (15 pages updated)
+#### Ward Incharge Pages (15 pages updated)
 - Dashboard (`ward/index.js`) ✅
 - Report submission (`ward/reports/submit.js`) ✅
 - Ward profile (`ward/profile.js`) ✅

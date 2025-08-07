@@ -18,7 +18,7 @@
 **Root Cause:** Dashboard was using simple `hasSubmittedThisWeek` logic instead of proper form-specific tracking
 
 **Fix Applied:**
-- **API Enhancement**: Updated `/api/dashboard/stats.js` to return `pendingFormsList` for ward admins
+- **API Enhancement**: Updated `/api/dashboard/stats.js` to return `pendingFormsList` for Ward Incharges
 - **Frontend Update**: Dashboard now uses `stats.pendingReports` from API instead of simple week-based logic
 - **Real-time Updates**: Count now reflects actual pending forms, not just weekly submission status
 
@@ -35,7 +35,7 @@
 **Issue:** Showing submitted forms instead of only pending forms
 **Status: FIXED**
 
-**Root Cause:** Logic was restricting ward admins to only one form submission ever
+**Root Cause:** Logic was restricting Ward Incharges to only one form submission ever
 
 **Fix Applied:**
 ```javascript
@@ -66,7 +66,7 @@ const formsWithStatus = formsResponse.data.map(form => {
 **Status: VERIFIED**
 
 All previous fixes are still in place:
-- ✅ Ward admin cluster creation authorization
+- ✅ Ward Incharge cluster creation authorization
 - ✅ Coordinator name optional in cluster creation
 - ✅ Docket survey progress calculation (docket only, not basic survey)
 - ✅ Navigation name changes ("Surveys" instead of "Docket Survey")
@@ -77,12 +77,12 @@ All previous fixes are still in place:
 ### Files Modified:
 
 1. **`pages/api/dashboard/stats.js`**
-   - Added `pendingFormsList` for ward admins
+   - Added `pendingFormsList` for Ward Incharges
    - Enhanced pending reports calculation
    - Returns detailed form information
 
 2. **`pages/index.js`**
-   - Updated ward admin dashboard logic
+   - Updated Ward Incharge Dashboard logic
    - Replaced `hasSubmittedThisWeek` with proper `pendingFormsList`
    - Enhanced visual indicators (red for pending, green for submitted)
    - Updated stats card to use API data

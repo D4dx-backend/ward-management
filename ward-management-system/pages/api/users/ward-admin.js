@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // Only coordinators can create ward admins
+  // Only coordinators can create Ward Incharges
   if (session.user.role !== 'coordinator') {
     return res.status(403).json({ message: 'Access denied' });
   }
@@ -96,8 +96,8 @@ export default async function handler(req, res) {
       return res.status(201).json(userResponse);
 
     } catch (error) {
-      console.error('Error creating ward admin:', error);
-      return res.status(500).json({ message: 'Error creating ward admin' });
+      console.error('Error creating Ward Incharge:', error);
+      return res.status(500).json({ message: 'Error creating Ward Incharge' });
     }
   }
 

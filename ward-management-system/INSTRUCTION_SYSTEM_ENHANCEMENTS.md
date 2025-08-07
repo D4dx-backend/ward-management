@@ -16,14 +16,14 @@ This document outlines the comprehensive enhancements made to the instruction sy
 **Before:**
 - All Users
 - All Coordinators  
-- All Ward Admins
+- All Ward Incharges
 - Specific Wards
 - Specific Coordinators
 - Specific Ward or Group of Wards
 
 **After:**
 - All Users
-- Ward Admins
+- Ward Incharges
 - Coordinators
 - State Admins
 - Specific Wards
@@ -111,7 +111,7 @@ const instructionReplySchema = new mongoose.Schema({
 
 ### For State Admins:
 - Create instructions with specific target audiences
-- Choose from Ward Admins, Coordinators, or State Admins
+- Choose from Ward Incharges, Coordinators, or State Admins
 - Can see all comments (public and private)
 
 ### For Coordinators:
@@ -119,8 +119,8 @@ const instructionReplySchema = new mongoose.Schema({
 - Can see all comments (public and private)
 - Can post public or private comments
 
-### For Ward Admins:
-- View instructions targeted to ward admins
+### For Ward Incharges:
+- View instructions targeted to Ward Incharges
 - Can only see public comments and their own private comments
 - Can post public or private comments
 

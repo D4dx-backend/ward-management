@@ -24,7 +24,7 @@ export function generateSecurePassword() {
   return password.split('').sort(() => Math.random() - 0.5).join('');
 }
 
-// Generate 4-digit PIN for coordinators and ward admins
+// Generate 4-digit PIN for coordinators and Ward Incharges
 export function generate4DigitPIN() {
   return Math.floor(1000 + Math.random() * 9000).toString();
 }
@@ -166,7 +166,7 @@ export async function sendPasswordResetMessage({ name, email, newPassword, mobil
   let message;
   
   if (isPIN) {
-    // Customized message for coordinators and ward admins using mobile + PIN
+    // Customized message for coordinators and Ward Incharges using mobile + PIN
     message = `🔐 PIN Reset - Ward Management System
 
 Hi ${name},

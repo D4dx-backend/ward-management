@@ -45,7 +45,7 @@
 - Kept only the essential targeting options:
   - All Users
   - All Coordinators  
-  - All Ward Admins
+  - All Ward Incharges
   - Specific Wards
   - Specific Coordinators
   - Specific Ward or Group of Wards

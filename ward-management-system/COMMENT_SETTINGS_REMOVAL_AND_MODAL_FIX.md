@@ -2,12 +2,12 @@
 
 ## Summary
 Fixed two issues as requested:
-1. Removed comment settings from ward admin while ensuring functionality still works
+1. Removed comment settings from Ward Incharge while ensuring functionality still works
 2. Fixed dashboard recent instructions modal showing invalid data (dates, comments)
 
 ## Changes Made
 
-### 1. Ward Admin Comment Settings Removal
+### 1. Ward Incharge Comment Settings Removal
 
 **Files Modified:**
 - `pages/admin/instructions.js`
@@ -51,7 +51,7 @@ Fixed two issues as requested:
 - Modal now handles data gracefully without errors
 
 ## Impact
-- Ward admins no longer see confusing comment settings they don't need
+- Ward Incharges no longer see confusing comment settings they don't need
 - Dashboard modal works properly with both real and sample data
 - No breaking changes to existing functionality
 - Improved user experience and reduced confusion

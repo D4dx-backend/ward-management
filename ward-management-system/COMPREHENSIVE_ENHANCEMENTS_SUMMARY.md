@@ -5,7 +5,7 @@ This document summarizes all the comprehensive enhancements made to the Ward Man
 
 ## ✅ 1. Ward Visits Management - Full CRUD Implementation
 
-### Ward Admin Ward Visits
+### Ward Incharge Ward Visits
 **File**: `/pages/ward/ward-visits.js`
 **API**: `/pages/api/ward-visits/ward-admin.js`
 
@@ -25,7 +25,7 @@ This document summarizes all the comprehensive enhancements made to the Ward Man
 
 #### API Endpoints:
 ```javascript
-GET    /api/ward-visits/ward-admin     // Get all visits for ward admin's ward
+GET    /api/ward-visits/ward-admin     // Get all visits for Ward Incharge's ward
 POST   /api/ward-visits/ward-admin     // Create new visit record
 PUT    /api/ward-visits/ward-admin     // Update existing visit
 DELETE /api/ward-visits/ward-admin     // Delete visit record
@@ -45,7 +45,7 @@ DELETE /api/ward-visits/ward-admin     // Delete visit record
 #### Hierarchical Data Display:
 - **Visual Badges**: Color-coded indicators showing visit source
   - Blue badge: "Coordinator Visit" (recorded by coordinator)
-  - Green badge: "Ward Admin Record" (recorded by ward admin)
+  - Green badge: "Ward Incharge Record" (recorded by Ward Incharge)
 - **Recorder Information**: Shows who recorded each visit
 - **Conditional Actions**: Edit/Delete only available for coordinator's own visits
 
@@ -63,7 +63,7 @@ if (visit.coordinator.toString() !== session.user.id) {
 
 ## ✅ 2. Enhanced Report Management
 
-### Ward Admin Reports
+### Ward Incharge Reports
 **File**: `/pages/ward/reports/index.js`
 
 #### Features Implemented:
@@ -126,7 +126,7 @@ if (visit.coordinator.toString() !== session.user.id) {
 
 ### Access Control
 ```javascript
-// Ward Admin: Can only access their assigned ward
+// Ward Incharge: Can only access their assigned ward
 const ward = await Ward.findOne({ wardAdmin: session.user.id });
 
 // Coordinator: Can only access their assigned wards
@@ -146,7 +146,7 @@ if (visit.coordinator.toString() !== session.user.id) {
 
 ## ✅ 5. User Interface Enhancements
 
-### Ward Admin Interface
+### Ward Incharge Interface
 - **Comprehensive Table**: Visit details, purpose, follow-up status, actions
 - **Action Buttons**: View Details, Edit, Delete with proper styling
 - **Modal Dialogs**: View details and delete confirmation modals
@@ -169,15 +169,15 @@ if (visit.coordinator.toString() !== session.user.id) {
 ### Ward Visit Workflow
 ```
 1. Coordinator visits ward → Records visit via coordinator interface
-2. Ward admin sees visit in their list → Can view details
-3. Ward admin can also record visits by others → Full CRUD access
+2. Ward Incharge sees visit in their list → Can view details
+3. Ward Incharge can also record visits by others → Full CRUD access
 4. Admin can view all visits system-wide → Complete oversight
 ```
 
 ### Report Workflow
 ```
 1. Admin creates forms → Forms become available
-2. Ward admin/Coordinator sees available forms → Can submit reports
+2. Ward Incharge/Coordinator sees available forms → Can submit reports
 3. After submission → Can view submitted reports with full details
 4. No available forms → Submit button hidden, clear messaging
 ```
@@ -189,7 +189,7 @@ State Admin: Full system access
 │   ├── Can record visits to assigned wards
 │   ├── Can edit/delete own visits
 │   └── Can view all visits for assigned wards
-└── Ward Admin: Single ward access
+└── Ward Incharge: Single ward access
     ├── Can record any visits to their ward
     ├── Can edit/delete any visits to their ward
     └── Can view all visits to their ward
@@ -199,8 +199,8 @@ State Admin: Full system access
 
 ### Ward Visits APIs
 
-#### Ward Admin API (`/api/ward-visits/ward-admin.js`)
-- `GET`: Fetch all visits for ward admin's ward
+#### Ward Incharge API (`/api/ward-visits/ward-admin.js`)
+- `GET`: Fetch all visits for Ward Incharge's ward
 - `POST`: Create new visit record
 - `PUT`: Update existing visit (with visitId query param)
 - `DELETE`: Delete visit (with visitId query param)
@@ -218,7 +218,7 @@ State Admin: Full system access
 
 ## ✅ 8. Testing Checklist
 
-### Ward Visits - Ward Admin
+### Ward Visits - Ward Incharge
 - [ ] Can view all visits to their ward
 - [ ] Can record new visits with all fields
 - [ ] Can edit existing visits
@@ -236,7 +236,7 @@ State Admin: Full system access
 - [ ] View details shows proper information
 - [ ] Permission restrictions work
 
-### Reports - Ward Admin
+### Reports - Ward Incharge
 - [ ] Submit button only shows when forms available
 - [ ] View details modal shows all report data
 - [ ] Empty state messages are appropriate
@@ -285,7 +285,7 @@ State Admin: Full system access
 
 The Ward Management System now provides comprehensive CRUD functionality for ward visits with proper hierarchical data display and enhanced report management. Key achievements include:
 
-1. **Complete Ward Visit Management**: Full CRUD operations for both ward admins and coordinators
+1. **Complete Ward Visit Management**: Full CRUD operations for both Ward Incharges and coordinators
 2. **Hierarchical Data Display**: Clear visual indicators showing visit sources and permissions
 3. **Enhanced Report Management**: Smart form availability checking and detailed report viewing
 4. **Improved User Experience**: Intuitive interfaces with proper feedback and validation

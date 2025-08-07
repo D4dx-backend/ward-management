@@ -45,7 +45,7 @@ export default function DebugClusterSurvey() {
     return (
       <Layout>
         <div className="text-center py-8">
-          <p>Access denied. Only ward admins can access this debug page.</p>
+          <p>Access denied. Only Ward Incharges can access this debug page.</p>
         </div>
       </Layout>
     );

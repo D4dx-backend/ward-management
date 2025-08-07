@@ -299,7 +299,7 @@ export default function CoordinatorActivityLogs() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>Note:</strong> This shows system logs for activities in your district, including your own actions and those of ward admins under your supervision.
+                <strong>Note:</strong> This shows system logs for activities in your district, including your own actions and those of Ward Incharges under your supervision.
               </p>
             </div>
           </div>

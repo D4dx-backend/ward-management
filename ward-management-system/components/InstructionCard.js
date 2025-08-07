@@ -39,7 +39,7 @@ export default function InstructionCard({ instruction, onMarkAsRead, session }) 
   const getTargetAudienceText = () => {
     if (instruction.targetAudience === 'all') return 'All Users';
     if (instruction.targetAudience === 'coordinators') return 'All Coordinators';
-    if (instruction.targetAudience === 'ward_admins') return 'All Ward Admins';
+    if (instruction.targetAudience === 'ward_admins') return 'All Ward Incharges';
     if (instruction.targetAudience === 'specific_wards') return `${instruction.targetWards?.length || 0} Specific Wards`;
     if (instruction.targetAudience === 'specific_coordinators') return `${instruction.targetCoordinators?.length || 0} Specific Coordinators`;
     if (instruction.targetAudience === 'ward_or_group') return `${instruction.targetWards?.length || 0} Ward Groups`;

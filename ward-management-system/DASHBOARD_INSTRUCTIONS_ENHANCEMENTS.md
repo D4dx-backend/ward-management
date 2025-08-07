@@ -5,7 +5,7 @@ This document outlines the enhancements made to address the following requiremen
 
 1. **Instructions from Database**: Show instructions from database based on user role
 2. **Documents from Database**: Show documents from database based on user role with proper display
-3. **Ward Admin Dashboard Updates**: Remove population tile, show ward details in top bar, add clusters tile
+3. **Ward Incharge Dashboard Updates**: Remove population tile, show ward details in top bar, add clusters tile
 4. **Last Login Display**: Show last login information in dashboard
 
 ## 1. Instructions from Database
@@ -49,7 +49,7 @@ This document outlines the enhancements made to address the following requiremen
 - Role-based filtering already implemented
 - Category and search filtering support
 
-## 3. Ward Admin Dashboard Updates
+## 3. Ward Incharge Dashboard Updates
 
 ### Enhanced Dashboard Header
 **File**: `pages/index.js` - `renderWardAdminDashboard()` function
@@ -80,7 +80,7 @@ This document outlines the enhancements made to address the following requiremen
 **File**: `pages/api/dashboard/stats.js`
 
 **Added:**
-- Clusters count calculation for ward admins
+- Clusters count calculation for Ward Incharges
 - Populates ward clusters and counts them
 - Includes clusters data in stats response
 
@@ -96,7 +96,7 @@ This document outlines the enhancements made to address the following requiremen
 ### Dashboard Implementation
 **File**: `pages/index.js`
 
-**Ward Admin Dashboard:**
+**Ward Incharge Dashboard:**
 - Last login displayed in top-right of header
 - Shows both date and time separately
 - Formatted for better readability
@@ -160,7 +160,7 @@ Last login:
 - District information maintained
 
 **Dashboard Stats Calculation:**
-- Clusters counted across all wards assigned to ward admin
+- Clusters counted across all wards assigned to Ward Incharge
 - Real-time calculation from database
 - Cached in dashboard stats response
 
@@ -168,7 +168,7 @@ Last login:
 
 ### Visual Enhancements
 - **Header Design**: Gradient background with clear information hierarchy
-- **Stats Cards**: Reduced to 3 relevant tiles for ward admins
+- **Stats Cards**: Reduced to 3 relevant tiles for Ward Incharges
 - **Last Login**: Prominently displayed with clear formatting
 - **Documents**: Clean card-based layout with download functionality
 
@@ -208,4 +208,4 @@ Last login:
 - **API Pagination**: Implemented for large datasets
 - **Caching Strategy**: Redis integration for high-traffic scenarios
 
-This implementation provides a comprehensive solution for role-based content management and an enhanced ward admin dashboard experience.
+This implementation provides a comprehensive solution for role-based content management and an enhanced Ward Incharge Dashboard experience.

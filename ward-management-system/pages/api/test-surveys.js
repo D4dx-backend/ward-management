@@ -71,19 +71,19 @@ export default async function handler(req, res) {
       };
     }
 
-    // Test 4: User's Ward Access (for ward admins)
+    // Test 4: User's Ward Access (for Ward Incharges)
     if (session.user.role === 'wardAdmin') {
       try {
         const ward = await Ward.findOne({ wardAdmin: session.user.id });
         if (ward) {
           results.tests.wardAccess = {
             status: 'success',
-            message: `Ward admin has access to ward: ${ward.name} (${ward.wardNumber})`
+            message: `Ward Incharge has access to ward: ${ward.name} (${ward.wardNumber})`
           };
         } else {
           results.tests.wardAccess = {
             status: 'warning',
-            message: 'Ward admin has no assigned ward'
+            message: 'Ward Incharge has no assigned ward'
           };
         }
       } catch (error) {
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Test 5: Docker Survey for User's Ward (for ward admins)
+    // Test 5: Docker Survey for User's Ward (for Ward Incharges)
     if (session.user.role === 'wardAdmin') {
       try {
         const ward = await Ward.findOne({ wardAdmin: session.user.id });

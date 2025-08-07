@@ -31,7 +31,7 @@ export const authOptions = {
           throw new Error('Invalid password');
         }
         
-        // For ward admins, get district from their assigned ward
+        // For Ward Incharges, get district from their assigned ward
         let userDistrict = user.district;
         if (user.role === 'wardAdmin' && !userDistrict) {
           const Ward = require('../../../models/Ward').default;
@@ -74,7 +74,7 @@ export const authOptions = {
           throw new Error('Invalid PIN code');
         }
         
-        // For ward admins, get district from their assigned ward
+        // For Ward Incharges, get district from their assigned ward
         let userDistrict = user.district;
         if (user.role === 'wardAdmin' && !userDistrict) {
           const Ward = require('../../../models/Ward').default;

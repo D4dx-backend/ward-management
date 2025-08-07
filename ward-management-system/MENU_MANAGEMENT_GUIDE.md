@@ -14,7 +14,7 @@ The menu management system allows you to organize navigation menus into categori
 ### 2. Role-Based Menus
 - **State Admin**: Full system access with comprehensive menu structure
 - **Coordinator**: Ward and cluster management focused menu
-- **Ward Admin**: Ward-specific operations menu
+- **Ward Incharge**: Ward-specific operations menu
 
 ### 3. Dynamic Menu Management
 - Add/remove menu categories
@@ -41,7 +41,7 @@ The menu management system allows you to organize navigation menus into categori
 5. **Forms & Surveys** - Surveys
 6. **Resources** - Instructions, Documents, Reset PIN
 
-### Ward Admin Menu Categories:
+### Ward Incharge Menu Categories:
 1. **Dashboard** (single item)
 2. **Reports** - Submit Reports, My Reports
 3. **Ward Management** - Ward Visits Record, Ward Profile

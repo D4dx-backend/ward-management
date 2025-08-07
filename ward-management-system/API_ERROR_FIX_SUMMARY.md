@@ -48,7 +48,7 @@ console.log(`Survey updated with ${newClusterVisits.length} ward-specific cluste
 ## Testing Steps
 
 ### 1. Test API Directly
-Visit: `/api/test-survey` (as ward admin)
+Visit: `/api/test-survey` (as Ward Incharge)
 - Should return JSON with ward info and cluster count
 - If this works, the API syntax is fixed
 

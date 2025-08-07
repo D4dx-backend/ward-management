@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     // Build query
     let query = {};
     
-    // For ward admins, only return their assigned wards
+    // For Ward Incharges, only return their assigned wards
     if (session.user.role === 'wardAdmin') {
       query.wardAdmin = session.user.id;
     } else {
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     // Get total count
     const totalCount = await Ward.countDocuments(query);
 
-    // For backward compatibility, return wards directly for ward admins
+    // For backward compatibility, return wards directly for Ward Incharges
     if (session.user.role === 'wardAdmin') {
       res.status(200).json(wards);
     } else {

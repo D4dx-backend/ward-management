@@ -1,7 +1,7 @@
 # Coordinator User Management - Implementation Summary
 
 ## Overview
-Added comprehensive user management functionality for coordinators to manage ward administrators in their district.
+Added comprehensive user management functionality for coordinators to manage Ward Inchargeistrators in their district.
 
 ## Features Implemented
 
@@ -9,24 +9,24 @@ Added comprehensive user management functionality for coordinators to manage war
 **Location**: `/coordinator/users`
 
 **Functionality**:
-- View all ward admins in coordinator's district
-- Create new ward admins
-- Edit existing ward admins
-- Delete ward admins
-- Reset ward admin PINs
-- Assign ward admins to wards
+- View all Ward Incharges in coordinator's district
+- Create new Ward Incharges
+- Edit existing Ward Incharges
+- Delete Ward Incharges
+- Reset Ward Incharge PINs
+- Assign Ward Incharges to wards
 - Search and pagination
 - WhatsApp notifications for new users
 
 ### 2. ✅ API Endpoints Created
 
 #### `/api/users/coordinator-district` (GET)
-- Returns all ward admins in the coordinator's district
+- Returns all Ward Incharges in the coordinator's district
 - Restricted to coordinators only
 - Excludes sensitive data (password, PIN)
 
 #### `/api/users/ward-admin` (POST)
-- Creates new ward admin users
+- Creates new Ward Incharge users
 - Validates input data
 - Hashes PIN codes securely
 - Assigns to wards if specified
@@ -35,7 +35,7 @@ Added comprehensive user management functionality for coordinators to manage war
 
 ### 3. ✅ Dashboard Integration
 Added compact management actions section to coordinator dashboard with:
-- Ward Admins management link
+- Ward Incharges management link
 - Ward Status link
 - Ward Reports link  
 - Ward Visits link
@@ -69,8 +69,8 @@ Added compact management actions section to coordinator dashboard with:
 
 #### New Files:
 1. `pages/coordinator/users/index.js` - Main user management page
-2. `pages/api/users/coordinator-district.js` - API to get district ward admins
-3. `pages/api/users/ward-admin.js` - API to create ward admins
+2. `pages/api/users/coordinator-district.js` - API to get district Ward Incharges
+3. `pages/api/users/ward-admin.js` - API to create Ward Incharges
 
 #### Modified Files:
 1. `pages/coordinator/index.js` - Added management actions section
@@ -97,7 +97,7 @@ Coordinator Dashboard → User Management → API Endpoints → Database
 
 ### Access Control:
 - **Coordinators only** can access user management
-- **District-based filtering** ensures coordinators only see their ward admins
+- **District-based filtering** ensures coordinators only see their Ward Incharges
 - **Ward assignment validation** prevents cross-district assignments
 
 ### Data Security:
@@ -144,7 +144,7 @@ Coordinator Dashboard → User Management → API Endpoints → Database
 2. **User import/export** functionality
 3. **Advanced filtering** (by ward, status, etc.)
 4. **User activity tracking** and reporting
-5. **Profile management** for ward admins
+5. **Profile management** for Ward Incharges
 
 ### Scalability Considerations:
 - **Caching implemented** for better performance

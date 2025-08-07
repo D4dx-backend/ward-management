@@ -65,7 +65,7 @@ export default function Clusters() {
       fetchClusters();
       fetchWards();
       
-      // Set selected ward from query parameter or for ward admin
+      // Set selected ward from query parameter or for Ward Incharge
       if (router.query.wardId) {
         setSelectedWard(router.query.wardId);
         setFormData(prev => ({
@@ -73,7 +73,7 @@ export default function Clusters() {
           wardId: router.query.wardId
         }));
       } else if (session.user.role === 'wardAdmin') {
-        // For ward admins, auto-select their ward once wards are loaded
+        // For Ward Incharges, auto-select their ward once wards are loaded
         // This will be handled in a separate useEffect after wards are fetched
       }
     }
@@ -228,10 +228,10 @@ export default function Clusters() {
     }
   };
 
-  // Auto-select ward for ward admins
+  // Auto-select ward for Ward Incharges
   useEffect(() => {
     if (session?.user?.role === 'wardAdmin' && wards.length > 0 && !selectedWard && !router.query.wardId) {
-      // Find the ward assigned to this ward admin
+      // Find the ward assigned to this Ward Incharge
       const userWard = wards.find(ward => ward.wardAdmin?._id === session.user.id);
       if (userWard) {
         setSelectedWard(userWard._id);

@@ -116,7 +116,7 @@ export default function WardReports() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Information</h2>
             <dl className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <dt className="text-sm font-medium text-gray-500">Ward Admin</dt>
+                <dt className="text-sm font-medium text-gray-500">Ward Incharge</dt>
                 <dd className="mt-1 text-sm text-gray-900">
                   {ward.wardAdmin?.name || 'Not assigned'}
                 </dd>

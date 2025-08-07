@@ -31,7 +31,7 @@ async function handleGet(req, res, session) {
     
     // Role-based filtering
     if (session.user.role === 'wardAdmin') {
-      // Ward admins can only see their own ward's data
+      // Ward Incharges can only see their own ward's data
       const ward = await Ward.findOne({ wardAdmin: session.user.id });
       if (!ward) {
         return res.status(403).json({ message: 'No ward assigned' });

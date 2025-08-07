@@ -215,7 +215,7 @@ export default async function handler(req, res) {
       });
     });
 
-    // Check for ward admins who haven't logged in recently
+    // Check for Ward Incharges who haven't logged in recently
     const inactiveAdmins = wards.filter(ward => {
       if (!ward.wardAdmin?.lastLogin) return true;
       const daysSinceLogin = Math.floor((now - new Date(ward.wardAdmin.lastLogin)) / (1000 * 60 * 60 * 24));

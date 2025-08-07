@@ -190,21 +190,45 @@ export const useDashboardData = (userRole) => {
       };
 
       const requests = endpoints[userRole] || [];
+      
+      if (requests.length === 0) {
+        console.warn(`No endpoints defined for user role: ${userRole}`);
+        setLoading(false);
+        return;
+      }
+      
       const responses = await Promise.allSettled(
-        requests.map(url => axios.get(url))
+        requests.map(url => {
+          console.log(`Fetching dashboard data from: ${url}`);
+          return axios.get(url);
+        })
       );
+      
+      // Log any failed requests
+      responses.forEach((response, index) => {
+        if (response.status === 'rejected') {
+          console.error(`Failed to fetch from ${requests[index]}:`, response.reason);
+        }
+      });
 
       // Process responses based on role
       let dashboardData = {};
       
       if (userRole === 'stateAdmin') {
         const [wardsRes, clustersRes, usersRes, formsRes] = responses;
+        
+        // Handle different response structures
+        const wardsData = wardsRes.status === 'fulfilled' ? wardsRes.value.data : null;
+        const clustersData = clustersRes.status === 'fulfilled' ? clustersRes.value.data : null;
+        const usersData = usersRes.status === 'fulfilled' ? usersRes.value.data : null;
+        const formsData = formsRes.status === 'fulfilled' ? formsRes.value.data : null;
+        
         dashboardData = {
           stats: {
-            totalWards: wardsRes.status === 'fulfilled' ? wardsRes.value.data.length : 0,
-            totalClusters: clustersRes.status === 'fulfilled' ? clustersRes.value.data.length : 0,
-            totalUsers: usersRes.status === 'fulfilled' ? usersRes.value.data.length : 0,
-            totalForms: formsRes.status === 'fulfilled' ? formsRes.value.data.length : 0
+            totalWards: Array.isArray(wardsData) ? wardsData.length : (wardsData?.wards ? wardsData.wards.length : 0),
+            totalClusters: Array.isArray(clustersData) ? clustersData.length : 0,
+            totalUsers: Array.isArray(usersData) ? usersData.length : (usersData?.users ? usersData.users.length : 0),
+            totalForms: Array.isArray(formsData) ? formsData.length : 0
           },
           recentReports: [],
           recentActivity: [],

@@ -28,7 +28,7 @@ UserSchema.pre('save', function(next) {
     if (!this.password) return next(new Error('Password is required for state admin'));
   }
   
-  // Coordinator and Ward Admin validation
+  // Coordinator and Ward Incharge validation
   if (this.role === 'coordinator' || this.role === 'wardAdmin') {
     if (!this.mobileNumber) return next(new Error('Mobile number is required'));
     if (this.mobileNumber.length < 10) return next(new Error('Mobile number must be at least 10 digits'));
@@ -38,9 +38,9 @@ UserSchema.pre('save', function(next) {
     }
   }
   
-  // Ward Admin specific validation
+  // Ward Incharge specific validation
   if (this.role === 'wardAdmin') {
-    if (!this.district) return next(new Error('District is required for ward admin'));
+    if (!this.district) return next(new Error('District is required for Ward Incharge'));
   }
   
   next();
@@ -79,7 +79,7 @@ UserSchema.index({
 - ✅ PIN Code (required, 4 digits)
 - ❌ District (not required)
 
-### Ward Admin
+### Ward Incharge
 - ✅ Name (required)
 - ❌ Email (not required)
 - ❌ Password (not required)
@@ -103,7 +103,7 @@ if (role === 'stateAdmin') {
   }
   
   if (role === 'wardAdmin' && (!district || !wardId)) {
-    return res.status(400).json({ message: 'District and ward selection are required for ward admin' });
+    return res.status(400).json({ message: 'District and ward selection are required for Ward Incharge' });
   }
 }
 ```
@@ -121,7 +121,7 @@ To test user creation:
    }
    ```
 
-2. **Create Ward Admin**:
+2. **Create Ward Incharge**:
    ```json
    {
      "name": "Jane Smith",

@@ -1,7 +1,7 @@
 # Form Editing Implementation Summary
 
 ## Overview
-This document outlines the implementation of form editing capabilities for ward admins and coordinators, allowing them to edit submitted forms until the form expires.
+This document outlines the implementation of form editing capabilities for Ward Incharges and coordinators, allowing them to edit submitted forms until the form expires.
 
 ## Features Implemented
 
@@ -12,7 +12,7 @@ This document outlines the implementation of form editing capabilities for ward 
 
 ### 2. ✅ My Reports Pages
 Created dedicated "My Reports" pages for both user types:
-- **Ward Admin**: `/ward/reports.js`
+- **Ward Incharge**: `/ward/reports.js`
 - **Coordinator**: `/coordinator/reports.js`
 
 **Features:**
@@ -24,7 +24,7 @@ Created dedicated "My Reports" pages for both user types:
 
 ### 3. ✅ View Report Pages
 Created view-only pages for submitted reports:
-- **Ward Admin**: `/ward/reports/view/[id].js`
+- **Ward Incharge**: `/ward/reports/view/[id].js`
 - **Coordinator**: `/coordinator/reports/view/[id].js`
 
 **Features:**
@@ -35,7 +35,7 @@ Created view-only pages for submitted reports:
 
 ### 4. ✅ Edit Report Pages
 Created edit pages for modifying submitted reports:
-- **Ward Admin**: `/ward/reports/edit/[id].js`
+- **Ward Incharge**: `/ward/reports/edit/[id].js`
 - **Coordinator**: `/coordinator/reports/edit/[id].js`
 
 **Features:**

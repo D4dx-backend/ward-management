@@ -6,6 +6,7 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import Modal from '../../components/Modal';
 
 export default function WardVisits() {
   const { data: session, status } = useSession();
@@ -16,6 +17,8 @@ export default function WardVisits() {
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [showVisitModal, setShowVisitModal] = useState(false);
   const [formData, setFormData] = useState({
     visitDate: new Date().toISOString().split('T')[0],
     visitTime: '10:00',
@@ -101,6 +104,34 @@ export default function WardVisits() {
       followUpRequired: false,
       followUpDate: '',
       attendees: ''
+    });
+  };
+
+  const handleViewVisit = (visit) => {
+    setSelectedVisit(visit);
+    setShowVisitModal(true);
+  };
+
+  const handleCloseVisitModal = () => {
+    setShowVisitModal(false);
+    setSelectedVisit(null);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return 'Not specified';
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
     });
   };
 
@@ -295,7 +326,11 @@ export default function WardVisits() {
             ) : (
               <div className="space-y-4">
                 {visits.map((visit) => (
-                  <div key={visit._id} className="border border-gray-200 rounded-lg p-4">
+                  <div 
+                    key={visit._id} 
+                    className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all duration-200"
+                    onClick={() => handleViewVisit(visit)}
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center space-x-4 mb-2">
@@ -311,22 +346,25 @@ export default function WardVisits() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-900 mb-2">{visit.purpose}</p>
-                        {visit.findings && (
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Findings:</strong> {visit.findings}
-                          </p>
-                        )}
-                        {visit.recommendations && (
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Recommendations:</strong> {visit.recommendations}
-                          </p>
-                        )}
-                        {visit.attendees && (
-                          <p className="text-sm text-gray-600">
-                            <strong>Attendees:</strong> {visit.attendees}
-                          </p>
-                        )}
+                        <p className="text-sm text-gray-900 mb-2">
+                          {visit.purpose.length > 100 ? `${visit.purpose.substring(0, 100)}...` : visit.purpose}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                            {visit.coordinator?.name && (
+                              <span>Visitor: {visit.coordinator.name}</span>
+                            )}
+                            {visit.attendees && (
+                              <span>Attendees: {visit.attendees.length > 30 ? `${visit.attendees.substring(0, 30)}...` : visit.attendees}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center text-blue-600">
+                            <span className="text-xs mr-1">View Details</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -335,6 +373,135 @@ export default function WardVisits() {
             )}
           </div>
         </Card>
+
+        {/* Visit Details Modal */}
+        <Modal
+          isOpen={showVisitModal}
+          onClose={handleCloseVisitModal}
+          title="Visit Details"
+          size="lg"
+        >
+          {selectedVisit && (
+            <div className="space-y-6">
+              {/* Visit Header */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Visit Date</label>
+                    <div className="text-sm text-gray-900">{formatDate(selectedVisit.visitDate)}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Visit Time</label>
+                    <div className="text-sm text-gray-900">{formatTime(selectedVisit.visitTime)}</div>
+                  </div>
+                  {selectedVisit.coordinator?.name && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Visitor</label>
+                      <div className="text-sm text-gray-900">{selectedVisit.coordinator.name}</div>
+                    </div>
+                  )}
+                  {selectedVisit.followUpRequired && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Status</label>
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          Follow-up Required
+                        </span>
+                        {selectedVisit.followUpDate && (
+                          <span className="text-sm text-gray-600">
+                            Due: {new Date(selectedVisit.followUpDate).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Purpose */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Purpose of Visit</label>
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.purpose}</p>
+                </div>
+              </div>
+
+              {/* Findings */}
+              {selectedVisit.findings && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Findings</label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.findings}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {selectedVisit.recommendations && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Recommendations</label>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.recommendations}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Attendees */}
+              {selectedVisit.attendees && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Attendees</label>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-900">{selectedVisit.attendees}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional Information */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Additional Information</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Recorded on:</span>
+                    <span className="ml-2 text-gray-900">
+                      {selectedVisit.createdAt ? new Date(selectedVisit.createdAt).toLocaleString() : 'Not available'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Last updated:</span>
+                    <span className="ml-2 text-gray-900">
+                      {selectedVisit.updatedAt ? new Date(selectedVisit.updatedAt).toLocaleString() : 'Not available'}
+                    </span>
+                  </div>
+                  {selectedVisit.recordedByRole && (
+                    <div>
+                      <span className="text-gray-600">Recorded by:</span>
+                      <span className="ml-2 text-gray-900">
+                        {selectedVisit.recordedByRole === 'wardAdmin' ? 'Ward Admin' : 'Coordinator'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                <Button variant="outline" onClick={handleCloseVisitModal}>
+                  Close
+                </Button>
+                {selectedVisit.followUpRequired && (
+                  <Button 
+                    onClick={() => {
+                      // Future: Add follow-up action functionality
+                      alert('Follow-up functionality will be implemented soon');
+                    }}
+                  >
+                    Mark Follow-up Complete
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </Layout>
   );

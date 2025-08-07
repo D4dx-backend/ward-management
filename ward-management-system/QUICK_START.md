@@ -24,7 +24,7 @@
 ## Features Overview
 
 ### State Admin Dashboard
-- **Users Management**: Create and manage coordinators and ward admins
+- **Users Management**: Create and manage coordinators and Ward Incharges
 - **Forms Management**: Create dynamic forms for weekly reports
 - **Reports Analysis**: View and export all submitted reports
 - **System Overview**: Dashboard with key statistics
@@ -32,10 +32,10 @@
 ### Coordinator Dashboard
 - **Ward Management**: Create and manage wards in their district
 - **Report Submission**: Submit weekly coordinator reports
-- **Ward Reports**: View reports from ward admins in their district
-- **User Management**: Assign ward admins to wards
+- **Ward Reports**: View reports from Ward Incharges in their district
+- **User Management**: Assign Ward Incharges to wards
 
-### Ward Admin Dashboard
+### Ward Incharge Dashboard
 - **Report Submission**: Submit weekly ward progress reports
 - **Report History**: View previously submitted reports
 
@@ -54,7 +54,7 @@ The application now features a modern, clean design inspired by EventHex with:
 ## Next Steps
 
 1. Create coordinators for different districts
-2. Create ward admins and assign them to wards
+2. Create Ward Incharges and assign them to wards
 3. Create form templates for weekly reports
 4. Start collecting and analyzing reports
 

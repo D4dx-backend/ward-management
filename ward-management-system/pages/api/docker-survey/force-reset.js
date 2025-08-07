@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
   
   try {
-    // Get the ward admin's ward
+    // Get the Ward Incharge's ward
     const ward = await Ward.findOne({ wardAdmin: session.user.id });
     
     if (!ward) {

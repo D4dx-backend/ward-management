@@ -5,7 +5,7 @@ This document outlines the enhancements made to the Ward Management System to ad
 
 1. **Submission Control Options**: Added options to control single vs multiple submissions when creating forms
 2. **Edit After Submission**: Added privilege to edit submitted forms when enabled during form creation
-3. **Ward Dashboard Updates**: Enhanced ward admin dashboard with latest requirements
+3. **Ward Dashboard Updates**: Enhanced Ward Incharge Dashboard with latest requirements
 4. **Instructions Display Fix**: Fixed text display issues in instructions pages
 
 ## 1. Form Submission Control Options
@@ -59,7 +59,7 @@ Added PUT endpoint for editing responses:
 
 ## 3. Ward Dashboard Updates
 
-### Enhanced Ward Admin Dashboard
+### Enhanced Ward Incharge Dashboard
 **File**: `pages/index.js` - `renderWardAdminDashboard()` function
 
 **New Features Added:**
@@ -95,7 +95,7 @@ Added PUT endpoint for editing responses:
 - Displays instructions with priority badges
 - Proper text formatting with `whitespace-pre-wrap` and `break-words`
 - File attachment support
-- Role-specific default guidelines for ward admins
+- Role-specific default guidelines for Ward Incharges
 - Error handling and loading states
 
 ### Text Display Improvements
@@ -136,7 +136,7 @@ Added PUT endpoint for editing responses:
 2. If editing is enabled, users will see an "Edit" option on their submitted responses
 3. If multiple submissions are disabled, users will get an error if they try to submit again
 
-### For Ward Admins (Dashboard)
+### For Ward Incharges (Dashboard)
 1. Enhanced dashboard shows more comprehensive information
 2. Quick actions provide easy access to common tasks
 3. Ward information card shows complete ward details
@@ -151,7 +151,7 @@ Added PUT endpoint for editing responses:
 
 ### Components Enhanced
 - Form creation interface with new control options
-- Ward admin dashboard with comprehensive layout
+- Ward Incharge Dashboard with comprehensive layout
 - Instructions page with proper text formatting
 
 ### Logging

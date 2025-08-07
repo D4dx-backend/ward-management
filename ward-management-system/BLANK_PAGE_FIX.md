@@ -109,7 +109,7 @@ const roleMapping = {
 ### **Expected Behavior Now**:
 1. **State Admin**: Can access both Instructions and Documents pages ✅
 2. **Coordinator**: Can access both Instructions and Documents pages ✅
-3. **Ward Admin**: Can access both Instructions and Documents pages ✅
+3. **Ward Incharge**: Can access both Instructions and Documents pages ✅
 4. **Unauthorized users**: Will be redirected to login ✅
 
 ## 🚀 **Resolution Status**

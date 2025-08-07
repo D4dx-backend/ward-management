@@ -103,7 +103,7 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
                             <div className="text-right">
                               {ward.wardAdmin ? (
                                 <div className="text-xs">
-                                  <span className="text-gray-500">Ward Admin:</span>
+                                  <span className="text-gray-500">Ward Incharge:</span>
                                   <p className="font-medium text-green-600">{ward.wardAdmin.name}</p>
                                 </div>
                               ) : (
@@ -128,14 +128,14 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
               </div>
             )}
 
-            {/* Ward Admin Assignments */}
+            {/* Ward Incharge Assignments */}
             {user?.role === 'wardAdmin' && (
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
                   <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  Ward Admin for {wardAdminWards.length} ward{wardAdminWards.length !== 1 ? 's' : ''}
+                  Ward Incharge for {wardAdminWards.length} ward{wardAdminWards.length !== 1 ? 's' : ''}
                 </h3>
                 
                 {wardAdminWards.length > 0 ? (
@@ -170,7 +170,7 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
                     <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    <p className="mt-2 text-sm text-gray-500">No wards assigned as ward admin</p>
+                    <p className="mt-2 text-sm text-gray-500">No wards assigned as Ward Incharge</p>
                   </div>
                 )}
               </div>
@@ -188,7 +188,7 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
                   <span className="text-gray-500">Role:</span>
                   <span className="ml-2 font-medium capitalize">
                     {user?.role === 'stateAdmin' ? 'State Admin' : 
-                     user?.role === 'coordinator' ? 'Coordinator' : 'Ward Admin'}
+                     user?.role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
                   </span>
                 </div>
                 {user?.district && (

@@ -5,7 +5,7 @@
 ### 1. ✅ **Instructions Added to Dashboard**
 **Status: IMPLEMENTED**
 
-**Location:** Ward Admin Dashboard after "Total Clusters"
+**Location:** Ward Incharge Dashboard after "Total Clusters"
 - **Stats Card**: Shows total instructions count with purple icon
 - **Recent Instructions Section**: Displays last 3 instructions with enhanced UI
 
@@ -22,7 +22,7 @@
 - **Target Audience Options**:
   - All users
   - All coordinators  
-  - All ward admins
+  - All Ward Incharges
   - Specific wards (multi-select)
   - Specific coordinators (multi-select)
 
@@ -70,7 +70,7 @@ const recentInstructions = await Instruction.find({
 **Status: ALREADY IMPLEMENTED**
 
 **Features:**
-- **Ward Admin Can Reply**: Full comment/reply functionality
+- **Ward Incharge Can Reply**: Full comment/reply functionality
 - **Visibility**: Comments visible to coordinators and state admins
 - **Reply Thread**: Shows user name, role, timestamp
 - **Expandable UI**: Show/hide comments section
@@ -92,7 +92,7 @@ allowReplies: { type: Boolean, default: true }
 
 ## 🎯 **User Experience**
 
-### Ward Admin Dashboard:
+### Ward Incharge Dashboard:
 1. **Instructions Stats Card**: Shows total count, purple icon, click-through
 2. **Recent Instructions Section**: 
    - Last 3 instructions displayed
@@ -124,8 +124,8 @@ allowReplies: { type: Boolean, default: true }
 ## 🔧 **Technical Implementation**
 
 ### Files Modified:
-1. **`pages/index.js`**: Added recent instructions section to ward admin dashboard
-2. **`pages/api/dashboard/stats.js`**: Enhanced to fetch recent instructions for ward admins
+1. **`pages/index.js`**: Added recent instructions section to Ward Incharge Dashboard
+2. **`pages/api/dashboard/stats.js`**: Enhanced to fetch recent instructions for Ward Incharges
 3. **Existing Files Verified**:
    - `pages/instructions.js`: Reply functionality working
    - `pages/admin/instructions.js`: Targeting functionality working

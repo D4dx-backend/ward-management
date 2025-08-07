@@ -17,9 +17,9 @@ async function initializeDockerSurveys() {
   try {
     console.log('Starting Docker Survey initialization...');
 
-    // Get all wards that have ward admins
+    // Get all wards that have Ward Incharges
     const wards = await Ward.find({ wardAdmin: { $ne: null } }).populate('wardAdmin', 'name email');
-    console.log(`Found ${wards.length} wards with ward admins`);
+    console.log(`Found ${wards.length} wards with Ward Incharges`);
 
     let created = 0;
     let existing = 0;

@@ -95,7 +95,7 @@ export default async function handler(req, res) {
         {
           _id: '6',
           action: 'USER_UPDATED',
-          details: 'Updated user profile: Jane Ward Admin',
+          details: 'Updated user profile: Jane Ward Incharge',
           user: { 
             _id: session.user.id,
             name: session.user.name, 

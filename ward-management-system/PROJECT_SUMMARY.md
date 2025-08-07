@@ -7,13 +7,13 @@ The Ward Management System is a Next.js application designed to manage coordinat
 ## Key Features
 
 1. **User Management**
-   - Three user roles: State Admin, Coordinator, and Ward Admin
+   - Three user roles: State Admin, Coordinator, and Ward Incharge
    - State Admin can create and manage all users
-   - Coordinators can manage ward admins in their district
+   - Coordinators can manage Ward Incharges in their district
 
 2. **Ward Management**
    - Coordinators can create and manage wards in their district
-   - Wards can be assigned to Ward Admins
+   - Wards can be assigned to Ward Incharges
 
 3. **Dynamic Form Creation**
    - State Admin can create custom forms for weekly reports
@@ -22,7 +22,7 @@ The Ward Management System is a Next.js application designed to manage coordinat
 
 4. **Report Collection**
    - Coordinators submit weekly work reports
-   - Ward Admins submit weekly ward progress reports
+   - Ward Incharges submit weekly ward progress reports
    - Reports are stored with metadata for analysis
 
 5. **Report Viewing**
@@ -41,11 +41,11 @@ The Ward Management System is a Next.js application designed to manage coordinat
 1. **User Model**
    - Basic user information (name, email, password)
    - Role (stateAdmin, coordinator, wardAdmin)
-   - District assignment for coordinators and ward admins
+   - District assignment for coordinators and Ward Incharges
 
 2. **Ward Model**
    - Ward information (name, district)
-   - Relationships to coordinator and ward admin
+   - Relationships to coordinator and Ward Incharge
 
 3. **Form Template Model**
    - Dynamic form definition with customizable fields
@@ -68,7 +68,7 @@ The Ward Management System is a Next.js application designed to manage coordinat
 
 3. **Ward Management**
    - CRUD operations for wards
-   - Assignment of ward admins
+   - Assignment of Ward Incharges
 
 4. **Form Management**
    - Creation and management of form templates

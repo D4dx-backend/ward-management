@@ -43,6 +43,16 @@ export default function SubmitReport() {
     }
   }, [status, session, router]);
 
+  // Handle automatic form selection from query parameter
+  useEffect(() => {
+    if (router.query.formId && activeForms.length > 0 && !selectedForm) {
+      const formToSelect = activeForms.find(f => f._id === router.query.formId);
+      if (formToSelect) {
+        handleFormSelect(router.query.formId);
+      }
+    }
+  }, [router.query.formId, activeForms, selectedForm]);
+
   const fetchActiveForms = async () => {
     try {
       setIsLoading(true);

@@ -237,7 +237,7 @@ export default function AdminDocuments() {
           >
             <option value="all">All</option>
             <option value="coordinators">Coordinators</option>
-            <option value="ward_admins">Ward Admins</option>
+            <option value="ward_admins">Ward Incharges</option>
           </select>
         </div>
       </div>
@@ -317,7 +317,7 @@ export default function AdminDocuments() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Documents Management</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage documents for coordinators and ward admins
+              Manage documents for coordinators and Ward Incharges
             </p>
           </div>
           <Button onClick={() => setShowCreateModal(true)}>
@@ -406,7 +406,7 @@ export default function AdminDocuments() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                         {document.targetAudience === 'coordinators' ? 'Coordinators' :
-                         document.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All'}
+                         document.targetAudience === 'ward_admins' ? 'Ward Incharges' : 'All'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -498,7 +498,7 @@ export default function AdminDocuments() {
                   </span>
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     {viewingDocument.targetAudience === 'coordinators' ? 'Coordinators' :
-                     viewingDocument.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                     viewingDocument.targetAudience === 'ward_admins' ? 'Ward Incharges' : 'All Users'}
                   </span>
                   {viewingDocument.downloadCount && (
                     <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">

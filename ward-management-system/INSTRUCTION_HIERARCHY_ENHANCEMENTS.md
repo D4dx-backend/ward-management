@@ -1,14 +1,14 @@
 # Instruction Page Hierarchy-Based Enhancements
 
 ## Overview
-Enhanced the instruction page with hierarchy-based reply and view count functionality that respects the organizational structure: State Admin > Coordinator > Ward Admin.
+Enhanced the instruction page with hierarchy-based reply and view count functionality that respects the organizational structure: State Admin > Coordinator > Ward Incharge.
 
 ## 1. Hierarchy-Based View Counts
 
 ### Enhanced View Tracking:
 - **Total View Count**: Shows overall views across all roles
 - **Role-Specific View Counts**: Tracks views by each role level
-  - Ward Admin Views
+  - Ward Incharge Views
   - Coordinator Views  
   - State Admin Views
 
@@ -16,8 +16,8 @@ Enhanced the instruction page with hierarchy-based reply and view count function
 - **Icons for Metrics**: Added eye icons for views and chat icons for replies
 - **Role-Based Display**: Higher roles can see subordinate role view counts
   - State Admins see all role view counts
-  - Coordinators see ward admin view counts
-  - Ward Admins see only total view count
+  - Coordinators see Ward Incharge view counts
+  - Ward Incharges see only total view count
 
 ### API Improvements:
 - **Hierarchy Stats Tracking**: Updated Instruction model to track role-specific views
@@ -26,7 +26,7 @@ Enhanced the instruction page with hierarchy-based reply and view count function
 ## 2. Hierarchy-Based Reply System
 
 ### Reply Permissions:
-- **All Roles Can Reply**: Ward Admins, Coordinators, and State Admins can all reply
+- **All Roles Can Reply**: Ward Incharges, Coordinators, and State Admins can all reply
 - **Role-Based Validation**: API validates user role before allowing replies
 - **Enhanced Error Handling**: Better error messages for unauthorized access
 
@@ -34,9 +34,9 @@ Enhanced the instruction page with hierarchy-based reply and view count function
 - **Color-Coded Roles**:
   - State Admin: Red badges and avatars
   - Coordinator: Green badges and avatars  
-  - Ward Admin: Blue badges and avatars
+  - Ward Incharge: Blue badges and avatars
 - **Hierarchy Badges**: Special star indicator for State Admin replies
-- **Role-Based Sorting**: Replies sorted by role hierarchy (State Admin first, then Coordinator, then Ward Admin)
+- **Role-Based Sorting**: Replies sorted by role hierarchy (State Admin first, then Coordinator, then Ward Incharge)
 
 ### Reply Display Enhancements:
 - **Avatar Colors**: Role-specific gradient backgrounds for user avatars
@@ -89,12 +89,12 @@ hierarchyStats: {
 - Highest priority in reply sorting
 
 ### Coordinator Features:
-- See ward admin view counts
+- See Ward Incharge view counts
 - Green color scheme for identification
 - Second priority in reply sorting
 - Can reply to all instructions
 
-### Ward Admin Features:
+### Ward Incharge Features:
 - See total view counts only
 - Blue color scheme for identification
 - Can reply to instructions

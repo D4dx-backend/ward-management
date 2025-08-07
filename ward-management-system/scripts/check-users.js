@@ -87,9 +87,9 @@ async function checkUsers() {
       console.log(`  - ${coord.name} (District: ${coord.district || 'Not Set'}) (Mobile: ${coord.mobileNumber || 'Not Set'})`);
     });
 
-    // Check for ward admins
+    // Check for Ward Incharges
     const wardAdmins = await User.find({ role: 'wardAdmin' });
-    console.log(`\nWard Admins available for ward assignment: ${wardAdmins.length}`);
+    console.log(`\nWard Incharges available for ward assignment: ${wardAdmins.length}`);
     wardAdmins.forEach(admin => {
       console.log(`  - ${admin.name} (District: ${admin.district || 'Not Set'}) (Mobile: ${admin.mobileNumber || 'Not Set'})`);
     });

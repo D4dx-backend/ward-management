@@ -57,23 +57,23 @@ UserSchema.pre('save', function(next) {
     }
   }
   
-  // Coordinator and Ward Admin validation
+  // Coordinator and Ward Incharge validation
   if (this.role === 'coordinator' || this.role === 'wardAdmin') {
     if (!this.mobileNumber) {
-      return next(new Error('Mobile number is required for coordinators and ward admins'));
+      return next(new Error('Mobile number is required for coordinators and Ward Incharges'));
     }
     if (this.mobileNumber.length < 10) {
       return next(new Error('Mobile number must be at least 10 digits'));
     }
     if (!this.pinCode) {
-      return next(new Error('PIN code is required for coordinators and ward admins'));
+      return next(new Error('PIN code is required for coordinators and Ward Incharges'));
     }
     if (this.pinCode.length !== 4 || !/^\d+$/.test(this.pinCode)) {
       return next(new Error('PIN code must be exactly 4 digits'));
     }
   }
   
-  // No additional validation needed for ward admin
+  // No additional validation needed for Ward Incharge
   
   next();
 });

@@ -140,7 +140,7 @@ export default function WardVisits() {
           recommendations: 'Prioritize water supply repairs. Continue infrastructure work.',
           followUpRequired: true,
           followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          attendees: 'Ward Admin, Local Representatives',
+          attendees: 'Ward Incharge, Local Representatives',
           remarks: 'Overall progress is satisfactory',
           coordinator: session?.user?.id,
           createdAt: new Date().toISOString()
@@ -154,7 +154,7 @@ export default function WardVisits() {
           findings: 'Waste management system needs improvement. Good community participation.',
           recommendations: 'Implement new waste collection schedule. Increase community awareness.',
           followUpRequired: false,
-          attendees: 'Ward Admin, Community Leaders, Residents',
+          attendees: 'Ward Incharge, Community Leaders, Residents',
           remarks: 'Community is cooperative and engaged',
           coordinator: session?.user?.id,
           createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -349,7 +349,7 @@ export default function WardVisits() {
             <div className="ml-3">
               <p className="text-sm">
                 <strong>Coordinator Ward Visits:</strong> Record and track your visits to wards under your coordination. 
-                You can view visits recorded by both yourself and ward administrators.
+                You can view visits recorded by both yourself and Ward Inchargeistrators.
               </p>
             </div>
           </div>
@@ -461,7 +461,7 @@ export default function WardVisits() {
                       name="attendees"
                       value={formData.attendees}
                       onChange={handleInputChange}
-                      placeholder="Ward Admin, Community Leaders..."
+                      placeholder="Ward Incharge, Community Leaders..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -707,7 +707,7 @@ export default function WardVisits() {
                                 ? 'bg-blue-100 text-blue-800' 
                                 : 'bg-green-100 text-green-800'
                             }`}>
-                              {visit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Admin Record'}
+                              {visit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Incharge Record'}
                             </span>
                           </div>
                         </div>
@@ -885,7 +885,7 @@ export default function WardVisits() {
                     <span>Your Visit</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ward Admin Record</span>
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Ward Incharge Record</span>
                     <span>Ward Record</span>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -993,7 +993,7 @@ export default function WardVisits() {
                           ? 'bg-blue-100 text-blue-800' 
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {selectedVisit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Admin Record'}
+                        {selectedVisit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Incharge Record'}
                       </span>
                     </div>
                   </div>

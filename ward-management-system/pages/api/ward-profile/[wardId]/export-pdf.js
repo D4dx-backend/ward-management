@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // Only coordinators and ward admins can export
+  // Only coordinators and Ward Incharges can export
   if (!['coordinator', 'wardAdmin'].includes(session.user.role)) {
     return res.status(403).json({ message: 'Access denied' });
   }

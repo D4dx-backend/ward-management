@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 
     // Update user credentials based on role
     if (isPIN) {
-      // For coordinators and ward admins, update pinCode (plain text)
+      // For coordinators and Ward Incharges, update pinCode (plain text)
       await User.findByIdAndUpdate(userId, {
         pinCode: newPassword,
         passwordResetAt: new Date()

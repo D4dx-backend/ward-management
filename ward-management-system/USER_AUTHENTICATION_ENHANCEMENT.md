@@ -16,7 +16,7 @@ This document outlines the enhancements made to the user authentication system t
 - **Login Method**: Mobile/PIN authentication
 - **Location**: District-based assignment
 
-### Ward Admin
+### Ward Incharge
 - **Authentication**: Mobile Number + 4-Digit PIN
 - **Required Fields**: Name, Mobile Number, PIN Code, District, Ward, Role
 - **Login Method**: Mobile/PIN authentication
@@ -27,13 +27,13 @@ This document outlines the enhancements made to the user authentication system t
 
 ### User Model Updates
 - Made `email` and `password` optional (required only for state admin)
-- Made `mobileNumber` and `pinCode` required for coordinators and ward admins
+- Made `mobileNumber` and `pinCode` required for coordinators and Ward Incharges
 - Added proper validation for PIN codes (exactly 4 digits)
-- Added unique constraints for mobile numbers within coordinator/ward admin roles
+- Added unique constraints for mobile numbers within coordinator/Ward Incharge roles
 
 ### Ward Model Integration
-- Ward admins are automatically assigned to their specific ward upon creation
-- Ward model updated to link ward admin users
+- Ward Incharges are automatically assigned to their specific ward upon creation
+- Ward model updated to link Ward Incharge users
 
 ## User Creation Process
 
@@ -41,22 +41,22 @@ This document outlines the enhancements made to the user authentication system t
 1. **Role Selection**: Determines which authentication fields are shown
 2. **Dynamic Form Fields**: 
    - State Admin: Shows email/password fields
-   - Coordinator/Ward Admin: Shows mobile/PIN fields
+   - Coordinator/Ward Incharge: Shows mobile/PIN fields
 3. **Location Assignment**:
    - Coordinators: Select district from Kerala districts dropdown
-   - Ward Admins: Select district first, then ward from filtered list
+   - Ward Incharges: Select district first, then ward from filtered list
 4. **Validation**: Role-specific validation for required fields
 
 ### API Enhancements
 - Updated user creation API to handle different authentication methods
-- Added ward assignment for ward admins
+- Added ward assignment for Ward Incharges
 - Enhanced validation for mobile numbers and PIN codes
 - Added activity logging for user creation
 
 ## Authentication Flow
 
 ### Dual Authentication Support
-- **Mobile/PIN**: Default method for coordinators and ward admins
+- **Mobile/PIN**: Default method for coordinators and Ward Incharges
 - **Email/Password**: Available for state admins
 - **Responsive Design**: Mobile devices default to mobile/PIN login
 - **Desktop**: Tab-based interface to switch between methods
@@ -150,7 +150,7 @@ This document outlines the enhancements made to the user authentication system t
 - District selection required from Kerala districts
 - No ward assignment
 
-### Ward Admin
+### Ward Incharge
 - Mobile number must be 10 digits and unique
 - PIN code must be exactly 4 digits
 - District and ward selection required
@@ -180,7 +180,7 @@ This document outlines the enhancements made to the user authentication system t
 ### Access Control
 - Role-based authentication methods
 - Hierarchical access structure maintained
-- Ward admin assignment prevents unauthorized access
+- Ward Incharge assignment prevents unauthorized access
 - Coordinator district boundaries enforced
 
 ## Future Enhancements

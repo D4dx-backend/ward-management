@@ -88,7 +88,7 @@ export default function CoordinatorInstructionManagement() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch instructions targeted to ward admins in coordinator's district
+      // Fetch instructions targeted to Ward Incharges in coordinator's district
       const [instructionsRes, wardAdminsRes] = await Promise.all([
         axios.get('/api/coordinator/instructions'),
         axios.get('/api/users/coordinator-district')
@@ -166,7 +166,7 @@ export default function CoordinatorInstructionManagement() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Instruction Management</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Monitor instructions sent to ward admins and track their responses
+              Monitor instructions sent to Ward Incharges and track their responses
             </p>
           </div>
           <Link href="/instructions" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -313,7 +313,7 @@ export default function CoordinatorInstructionManagement() {
                       </div>
                       {instruction.readingStats.replyCount > 0 && (
                         <div className="text-xs text-gray-500">
-                          from {instruction.readingStats.uniqueRepliers} ward admins
+                          from {instruction.readingStats.uniqueRepliers} Ward Incharges
                         </div>
                       )}
                     </td>
@@ -410,9 +410,9 @@ export default function CoordinatorInstructionManagement() {
                     </div>
                   </div>
 
-                  {/* Ward Admin Status */}
+                  {/* Ward Incharge Status */}
                   <div>
-                    <h4 className="text-md font-medium text-gray-900 mb-3">Ward Admin Status</h4>
+                    <h4 className="text-md font-medium text-gray-900 mb-3">Ward Incharge Status</h4>
                     <div className="space-y-2">
                       {selectedInstruction.wardAdminStatus?.map((status) => (
                         <div key={status.wardAdminId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

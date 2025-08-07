@@ -402,7 +402,7 @@ export default function AdminWards() {
                 displaySuffix: isAssignedToOtherWard ? ' - Already Assigned' : ''
               };
             })}
-            placeholder="No Ward Admin Assigned"
+            placeholder="No Ward Incharge Assigned"
             getOptionLabel={(admin) => `${admin.name}${admin.district ? ` (${admin.district})` : ''}${admin.displaySuffix || ''}`}
             getOptionValue={(admin) => admin._id}
             renderOption={(admin, isSelected) => (
@@ -416,10 +416,10 @@ export default function AdminWards() {
                 )}
               </div>
             )}
-            noOptionsMessage={wardAdmins.length === 0 ? "Loading ward admins..." : "No ward admins found"}
+            noOptionsMessage={wardAdmins.length === 0 ? "Loading Ward Incharges..." : "No Ward Incharges found"}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Each ward admin can only be assigned to one ward
+            Each Ward Incharge can only be assigned to one ward
           </p>
         </div>
         
@@ -582,7 +582,7 @@ export default function AdminWards() {
                     Coordinator
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">
-                    Ward Admin
+                    Ward Incharge
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/8">
                     Advance Data

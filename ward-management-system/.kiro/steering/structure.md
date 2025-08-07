@@ -19,7 +19,7 @@
   /api             # API routes
   /admin           # State admin pages
   /coordinator     # Coordinator pages
-  /ward            # Ward admin pages
+  /ward            # Ward Incharge pages
   /auth            # Authentication pages
 
 /components         # Reusable React components
@@ -80,5 +80,5 @@
 
 - State Admin: Full access to all routes
 - Coordinator: District-scoped access
-- Ward Admin: Ward-scoped access
+- Ward Incharge: Ward-scoped access
 - Navigation and API endpoints filtered by role

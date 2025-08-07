@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   await connectToDatabase();
 
   try {
-    // First, find the ward admin's ward
+    // First, find the Ward Incharge's ward
     const userWard = await Ward.findOne({ wardAdmin: session.user.id });
     if (!userWard) {
       return res.status(404).json({ message: 'No ward assigned to this user' });
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       const { limit } = req.query;
       const limitNum = limit ? parseInt(limit) : undefined;
 
-      // Find visits for the ward admin's ward
+      // Find visits for the Ward Incharge's ward
       const visits = await WardVisit.find({ 
         ward: userWard._id 
       })
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'Visit not found' });
       }
 
-      // Check if the visit belongs to the ward admin's ward
+      // Check if the visit belongs to the Ward Incharge's ward
       if (visit.ward.toString() !== userWard._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
         return res.status(404).json({ message: 'Visit not found' });
       }
 
-      // Check if the visit belongs to the ward admin's ward
+      // Check if the visit belongs to the Ward Incharge's ward
       if (visit.ward.toString() !== userWard._id.toString()) {
         return res.status(403).json({ message: 'Access denied' });
       }

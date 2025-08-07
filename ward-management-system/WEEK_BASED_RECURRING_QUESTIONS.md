@@ -193,7 +193,7 @@ const [searchFilters, setSearchFilters] = useState({
 
 ### Sample Test Data
 - Create responses across multiple weeks (e.g., weeks 30-35)
-- Include both coordinator and ward admin responses
+- Include both coordinator and Ward Incharge responses
 - Test with different question types (text, number, select)
 - Verify sub-questions are handled correctly
 

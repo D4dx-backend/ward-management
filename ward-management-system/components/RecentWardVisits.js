@@ -23,34 +23,8 @@ export default function RecentWardVisits() {
       setError('');
     } catch (error) {
       console.error('Error fetching recent visits:', error);
-      setError('Failed to fetch recent visits');
-      // Set sample data if API fails
-      setRecentVisits([
-        {
-          _id: '1',
-          visitDate: '2025-01-07T00:00:00.000Z',
-          visitTime: '10:30',
-          purpose: 'Routine inspection and data collection',
-          coordinator: { name: 'Faiz testing' },
-          createdAt: '2025-01-07T10:30:00.000Z'
-        },
-        {
-          _id: '2',
-          visitDate: '2025-01-05T00:00:00.000Z',
-          visitTime: '14:00',
-          purpose: 'Follow-up on previous recommendations',
-          coordinator: { name: 'Faiz testing' },
-          createdAt: '2025-01-05T14:00:00.000Z'
-        },
-        {
-          _id: '3',
-          visitDate: '2025-01-03T00:00:00.000Z',
-          visitTime: '09:15',
-          purpose: 'Monthly ward assessment',
-          coordinator: { name: 'Faiz testing' },
-          createdAt: '2025-01-03T09:15:00.000Z'
-        }
-      ]);
+      setError(`Failed to fetch recent visits: ${error.response?.data?.message || error.message}`);
+      setRecentVisits([]); // Set empty array instead of mock data
     } finally {
       setLoading(false);
     }
@@ -102,6 +76,23 @@ export default function RecentWardVisits() {
         </div>
       </div>
       <div className="p-6 space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="flex justify-between items-start">
+              <p className="text-sm">{error}</p>
+              <button
+                onClick={() => {
+                  setError('');
+                  fetchRecentVisits();
+                }}
+                className="ml-3 text-sm text-red-600 hover:text-red-500 underline"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+        
         {recentVisits.length > 0 ? (
           recentVisits.map((visit, index) => (
             <div 

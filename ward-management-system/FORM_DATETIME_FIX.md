@@ -125,7 +125,7 @@ const getFormAvailabilityStatus = (form) => {
 3. **Validation**: System ensures close date is after open date
 4. **Visual Feedback**: Forms list shows availability status
 
-### **For Coordinators/Ward Admins** (Form Submission):
+### **For Coordinators/Ward Incharges** (Form Submission):
 1. **Smart Filtering**: Only see forms currently available for submission
 2. **Automatic Updates**: Forms appear when they open, disappear when they close
 3. **No Confusion**: Can't submit to closed or future forms
@@ -138,11 +138,11 @@ const getFormAvailabilityStatus = (form) => {
 
 2. Before 9:00 AM today:
    - Status: "Upcoming" (yellow)
-   - Not visible to coordinators/ward admins
+   - Not visible to coordinators/Ward Incharges
 
 3. From 9:00 AM today to Friday 5:00 PM:
    - Status: "Open" (green)
-   - Visible and fillable by coordinators/ward admins
+   - Visible and fillable by coordinators/Ward Incharges
 
 4. After Friday 5:00 PM:
    - Status: "Closed" (red)

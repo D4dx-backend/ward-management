@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     // Process each ward to get status information
     const wardStatusList = await Promise.all(
       wards.map(async (ward) => {
-        // Get last login for ward admin
+        // Get last login for Ward Incharge
         const lastLogin = await LoginHistory.findOne({
           user: ward.wardAdmin?._id,
           isActive: false

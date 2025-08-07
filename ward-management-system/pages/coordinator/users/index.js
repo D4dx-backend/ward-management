@@ -23,7 +23,7 @@ export default function CoordinatorUsers() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Use cached API data - only get ward admins in coordinator's district
+  // Use cached API data - only get Ward Incharges in coordinator's district
   const { data: usersData, loading: usersLoading, error: usersError, refetch } = useApiData('/api/users/coordinator-district', {
     cacheKey: 'coordinator-users',
     cacheTTL: 2 * 60 * 1000 // 2 minutes cache
@@ -181,7 +181,7 @@ export default function CoordinatorUsers() {
       // Reset form and close modal
       resetForm();
       setShowCreateModal(false);
-      setSuccess('Ward admin created successfully!');
+      setSuccess('Ward Incharge created successfully!');
     } catch (error) {
       setError(error.response?.data?.message || error.message);
     }
@@ -226,7 +226,7 @@ export default function CoordinatorUsers() {
       resetForm();
       setShowEditModal(false);
       setEditingUser(null);
-      setSuccess('Ward admin updated successfully!');
+      setSuccess('Ward Incharge updated successfully!');
     } catch (error) {
       setError(error.response?.data?.message || error.message);
     }
@@ -273,7 +273,7 @@ export default function CoordinatorUsers() {
       setUsers(updatedUsers);
       setFilteredUsers(updatedUsers);
       closeDeleteModal();
-      setSuccess('Ward admin deleted successfully!');
+      setSuccess('Ward Incharge deleted successfully!');
       
       // Refresh cached data
       refetch();
@@ -337,7 +337,7 @@ export default function CoordinatorUsers() {
     }
   };
 
-  // Get available wards (not assigned to any ward admin)
+  // Get available wards (not assigned to any Ward Incharge)
   const getAvailableWards = () => {
     if (!wardsData) return [];
     return wardsData.filter(ward => 
@@ -430,7 +430,7 @@ export default function CoordinatorUsers() {
             ))}
           </select>
           <p className="text-xs text-gray-500 mt-1">
-            Ward admin can be assigned to a ward later
+            Ward Incharge can be assigned to a ward later
           </p>
         </div>
       </div>
@@ -467,7 +467,7 @@ export default function CoordinatorUsers() {
           Cancel
         </Button>
         <Button type="submit">
-          {isEdit ? 'Update Ward Admin' : 'Create Ward Admin'}
+          {isEdit ? 'Update Ward Incharge' : 'Create Ward Incharge'}
         </Button>
       </div>
     </form>
@@ -476,20 +476,20 @@ export default function CoordinatorUsers() {
   return (
     <Layout>
       <Head>
-        <title>Manage Ward Admins - Ward Management System</title>
+        <title>Manage Ward Incharges - Ward Management System</title>
       </Head>
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Admins</h1>
-            <p className="mt-1 text-sm text-gray-600">Manage ward administrators in your district</p>
+            <h1 className="text-2xl font-bold text-gray-900">Ward Incharges</h1>
+            <p className="mt-1 text-sm text-gray-600">Manage Ward Inchargeistrators in your district</p>
           </div>
           <Button onClick={() => setShowCreateModal(true)}>
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Create Ward Admin
+            Create Ward Incharge
           </Button>
         </div>
 
@@ -527,11 +527,11 @@ export default function CoordinatorUsers() {
           <div className="p-4 border-b border-gray-200">
             <SearchInput
               onSearch={setSearchTerm}
-              placeholder="Search ward admins by name, mobile, or ward..."
+              placeholder="Search Ward Incharges by name, mobile, or ward..."
               className="max-w-md"
             />
             <div className="mt-4 text-sm text-gray-600">
-              Showing {paginatedUsers.length} of {totalItems} ward admins
+              Showing {paginatedUsers.length} of {totalItems} Ward Incharges
             </div>
           </div>
           
@@ -540,7 +540,7 @@ export default function CoordinatorUsers() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Ward Admin
+                    Ward Incharge
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mobile
@@ -570,7 +570,7 @@ export default function CoordinatorUsers() {
                         </div>
                         <div className="ml-3">
                           <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-xs text-gray-500">Ward Admin</div>
+                          <div className="text-xs text-gray-500">Ward Incharge</div>
                         </div>
                       </div>
                     </td>
@@ -632,7 +632,7 @@ export default function CoordinatorUsers() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {searchTerm ? 'No ward admins found matching your search' : 'No ward admins found'}
+                          {searchTerm ? 'No Ward Incharges found matching your search' : 'No Ward Incharges found'}
                         </p>
                       </div>
                     </td>
@@ -659,7 +659,7 @@ export default function CoordinatorUsers() {
             setShowCreateModal(false);
             resetForm();
           }}
-          title="Create New Ward Admin"
+          title="Create New Ward Incharge"
           size="lg"
         >
           {renderUserForm(false)}
@@ -673,7 +673,7 @@ export default function CoordinatorUsers() {
             setEditingUser(null);
             resetForm();
           }}
-          title="Edit Ward Admin"
+          title="Edit Ward Incharge"
           size="lg"
         >
           {renderUserForm(true)}
@@ -684,10 +684,10 @@ export default function CoordinatorUsers() {
           isOpen={deleteModal.isOpen}
           onClose={closeDeleteModal}
           onConfirm={confirmDelete}
-          title="Delete Ward Admin"
-          message="Are you sure you want to delete this ward admin? This action cannot be undone and will remove all user data and access."
+          title="Delete Ward Incharge"
+          message="Are you sure you want to delete this Ward Incharge? This action cannot be undone and will remove all user data and access."
           itemName={deleteModal.userName}
-          confirmText="Delete Ward Admin"
+          confirmText="Delete Ward Incharge"
           isLoading={deleteModal.isDeleting}
         />
 
@@ -697,7 +697,7 @@ export default function CoordinatorUsers() {
           onClose={closeResetPasswordModal}
           onConfirm={confirmResetPassword}
           title="Reset PIN"
-          message="Are you sure you want to reset the PIN for this ward admin? A new PIN will be generated and sent via WhatsApp if available."
+          message="Are you sure you want to reset the PIN for this Ward Incharge? A new PIN will be generated and sent via WhatsApp if available."
           itemName={resetPasswordModal.userName}
           confirmText="Reset PIN"
           isLoading={resetPasswordModal.isResetting}

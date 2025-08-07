@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     const sampleInstructions = [
       {
         title: 'Weekly Report Submission Guidelines',
-        description: 'All coordinators and ward admins must submit their weekly reports by Friday 5 PM. Please ensure all required fields are completed and data is accurate. Late submissions will be flagged and may require explanation.',
+        description: 'All coordinators and Ward Incharges must submit their weekly reports by Friday 5 PM. Please ensure all required fields are completed and data is accurate. Late submissions will be flagged and may require explanation.',
         priority: 'high',
         targetAudience: 'all',
         isHighlighted: true,

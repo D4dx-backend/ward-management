@@ -15,7 +15,7 @@ However, the coordinators in the database had `district: null` (not set), so the
 - **Total Users**: 3
 - **State Admin**: 1 (State Admin)
 - **Coordinators**: 1 (shameer - District: Not Set)
-- **Ward Admins**: 1 (TYJK - District: Not Set)
+- **Ward Incharges**: 1 (TYJK - District: Not Set)
 
 ## Fix Applied
 Removed the district filtering from the coordinator dropdown to show all coordinators regardless of their district setting:
@@ -43,20 +43,20 @@ Removed the district filtering from the coordinator dropdown to show all coordin
 ## Changes Made
 1. **Removed district filtering** for coordinators (coordinators can work across districts)
 2. **Made district display conditional** - only shows district in parentheses if it exists
-3. **Maintained ward admin filtering** - ward admins still respect assignment constraints
+3. **Maintained Ward Incharge filtering** - Ward Incharges still respect assignment constraints
 
 ## Result
 - ✅ Coordinators now appear in the dropdown when creating wards
 - ✅ District information is displayed when available
 - ✅ No district filtering restrictions for coordinators
-- ✅ Ward admin constraints remain intact
+- ✅ Ward Incharge constraints remain intact
 
 ## Files Modified
 - `pages/admin/wards/index.js` - Updated coordinator dropdown filtering
 
 ## Testing
 - Coordinator "shameer" should now appear in the ward creation dropdown
-- Ward admin "TYJK" should appear in the ward admin dropdown (if not already assigned)
+- Ward Incharge "TYJK" should appear in the Ward Incharge dropdown (if not already assigned)
 - District information will show as empty for users without district set
 
 ## Future Considerations

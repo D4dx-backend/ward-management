@@ -57,11 +57,11 @@ export default function FixDockerSurvey() {
   };
 
   if (!session) {
-    return <Layout><div>Please log in as ward admin</div></Layout>;
+    return <Layout><div>Please log in as Ward Incharge</div></Layout>;
   }
 
   if (session.user.role !== 'wardAdmin') {
-    return <Layout><div>Access denied. Ward admin only.</div></Layout>;
+    return <Layout><div>Access denied. Ward Incharge only.</div></Layout>;
   }
 
   return (

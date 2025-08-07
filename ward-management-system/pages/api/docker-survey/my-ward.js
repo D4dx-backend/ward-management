@@ -31,13 +31,13 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized - No session found' });
   }
 
-  // Only ward admins can access this endpoint
+  // Only Ward Incharges can access this endpoint
   if (session.user.role !== 'wardAdmin') {
     console.log('Docker Survey API - Access denied for role:', session.user.role);
-    return res.status(403).json({ message: 'Access denied - Ward admin role required' });
+    return res.status(403).json({ message: 'Access denied - Ward Incharge role required' });
   }
 
-  // Get the ward admin's ward
+  // Get the Ward Incharge's ward
   const ward = await Ward.findOne({ wardAdmin: session.user.id });
   
   if (!ward) {

@@ -226,7 +226,7 @@ export default function AdminInstructions() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Instructions Management</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage instructions for coordinators and ward admins
+              Manage instructions for coordinators and Ward Incharges
             </p>
           </div>
           <Button onClick={() => {
@@ -492,7 +492,7 @@ export default function AdminInstructions() {
                 >
                   <option value="all">All Users</option>
                   <option value="coordinators">Coordinators</option>
-                  <option value="ward_admins">Ward Admins</option>
+                  <option value="ward_admins">Ward Incharges</option>
                 </select>
               </div>
             </div>
@@ -611,7 +611,7 @@ export default function AdminInstructions() {
                 >
                   <option value="all">All Users</option>
                   <option value="coordinators">Coordinators</option>
-                  <option value="ward_admins">Ward Admins</option>
+                  <option value="ward_admins">Ward Incharges</option>
                 </select>
               </div>
             </div>
@@ -683,7 +683,7 @@ export default function AdminInstructions() {
                   </span>
                   <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                     {viewingInstruction.targetAudience === 'coordinators' ? 'Coordinators' :
-                      viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Admins' : 'All Users'}
+                      viewingInstruction.targetAudience === 'ward_admins' ? 'Ward Incharges' : 'All Users'}
                   </span>
                 </div>
               </div>

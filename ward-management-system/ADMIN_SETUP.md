@@ -39,21 +39,21 @@ The system supports two authentication methods:
    - Login with email and password
    - Access through the admin login page
 
-2. **Mobile & PIN**: Used by coordinators and ward admins
+2. **Mobile & PIN**: Used by coordinators and Ward Incharges
    - Login with mobile number and 4-digit PIN
    - Mobile-first interface for field use
    - PIN codes are managed by the state admin
 
-## Creating Coordinators and Ward Admins
+## Creating Coordinators and Ward Incharges
 
-When creating coordinators and ward admins, you'll need to provide:
+When creating coordinators and Ward Incharges, you'll need to provide:
 
 1. Basic information (name, email, etc.)
 2. Mobile number (must be unique)
 3. 4-digit PIN code for mobile login
 4. District assignment
 
-Coordinators and ward admins can then log in using their mobile number and PIN code from any device, with a mobile-optimized interface.
+Coordinators and Ward Incharges can then log in using their mobile number and PIN code from any device, with a mobile-optimized interface.
 
 ## Security Note
 
@@ -61,7 +61,7 @@ For production environments, it is recommended to:
 
 1. Change the admin password immediately after the first login
 2. Use a strong, unique password for admin accounts
-3. Regularly rotate PIN codes for coordinators and ward admins
+3. Regularly rotate PIN codes for coordinators and Ward Incharges
 4. Consider enabling additional security measures like two-factor authentication
 
 ## Troubleshooting

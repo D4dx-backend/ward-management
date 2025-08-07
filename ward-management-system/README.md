@@ -4,7 +4,7 @@ A Next.js application for managing coordinators and wards across a state, with r
 
 ## Features
 
-- User management with three roles: State Admin, Coordinator, and Ward Admin
+- User management with three roles: State Admin, Coordinator, and Ward Incharge
 - Ward management for coordinators
 - Dynamic form creation for weekly reports
 - Two types of reports: Coordinator Work Reports and Ward Work Progress Reports
@@ -74,7 +74,7 @@ npm run dev
 ```
 
 2. Log in as the state admin and create coordinators for each district.
-3. Create ward admins and assign them to wards.
+3. Create Ward Incharges and assign them to wards.
 4. Create form templates for weekly reports.
 
 ## Project Structure
@@ -95,11 +95,11 @@ npm run dev
 
 ### Coordinator
 - Manage wards in their district
-- Assign ward admins to wards
+- Assign Ward Incharges to wards
 - Submit weekly coordinator reports
 - View ward reports from their district
 
-### Ward Admin
+### Ward Incharge
 - Submit weekly ward reports
 - View their own previous reports
 

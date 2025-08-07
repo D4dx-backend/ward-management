@@ -4,7 +4,7 @@
 
 ### 1. WhatsApp Message Customization
 **Problem**: The WhatsApp message for PIN reset was showing:
-- "Email: undefined" for coordinators/ward admins
+- "Email: undefined" for coordinators/Ward Incharges
 - Localhost URL instead of production URL
 - Email security reminders for PIN users
 
@@ -62,7 +62,7 @@ if (isPIN) {
 
 ## Authentication Flow
 
-### Mobile + PIN (Coordinators/Ward Admins)
+### Mobile + PIN (Coordinators/Ward Incharges)
 1. User enters mobile number and PIN
 2. System finds user by mobile number
 3. Compares entered PIN with `user.pinCode` (plain text)
