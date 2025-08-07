@@ -365,8 +365,6 @@ export default async function handler(req, res) {
         }
 
         let hasChanges = false;
-
-        let hasChanges = false;
         let updateLog = [];
 
         // Update specific question
