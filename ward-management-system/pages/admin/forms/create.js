@@ -33,10 +33,9 @@ export default function CreateForm() {
     title: '',
     description: '',
     formType: 'coordinatorReport',
-    isActive: true,
     isPublished: false,
     isSittingWardForm: false,
-    allowMultipleSubmissions: true,
+    allowMultipleSubmissions: false,
     allowEditAfterSubmission: false,
     enableDateTime: new Date().toISOString().slice(0, 16),
     closeDateTime: (() => {
@@ -424,9 +423,9 @@ export default function CreateForm() {
     setFormData({ ...formData, fields: updatedFields });
   };
 
-  const handleImportQuestions = () => {
-    let apiUrl = `/api/recurring-questions?formType=${formData.formType}&isActive=true`;
-    if (formData.isSittingWardForm) {
+  const handleImportQuestions = (targetType = 'regular') => {
+    let apiUrl = `/api/recurring-questions?formType=${formData.formType}`;
+    if (targetType === 'sittingWard' || formData.isSittingWardForm) {
       apiUrl += '&isSittingWard=true';
     }
     
@@ -434,7 +433,7 @@ export default function CreateForm() {
       .then(response => {
         setRecurringQuestions(response.data);
         setSelectedQuestions([]);
-        setImportType('regular');
+        setImportType(targetType);
         setShowImportModal(true);
       })
       .catch(error => {
@@ -466,13 +465,20 @@ export default function CreateForm() {
       expectedValue: question.expectedValue,
       maxAttempts: question.maxAttempts,
       recurringQuestionId: question._id,
-      order: formData.fields.length
+      order: importType === 'sittingWard' ? formData.sittingWardFields.length : formData.fields.length
     }));
 
-    setFormData({
-      ...formData,
-      fields: [...formData.fields, ...newFields]
-    });
+    if (importType === 'sittingWard') {
+      setFormData({
+        ...formData,
+        sittingWardFields: [...formData.sittingWardFields, ...newFields]
+      });
+    } else {
+      setFormData({
+        ...formData,
+        fields: [...formData.fields, ...newFields]
+      });
+    }
     
     setShowImportModal(false);
     setSelectedQuestions([]);
@@ -513,7 +519,6 @@ export default function CreateForm() {
         weekNumber,
         year,
         isPublished: shouldPublish,
-        isActive: shouldPublish ? true : formData.isActive, // Auto-activate when published
         fields: validFields,
         sittingWardFields: validSittingWardFields
       };
@@ -803,16 +808,28 @@ export default function CreateForm() {
               <div className="border-t border-gray-200 pt-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-lg font-semibold text-gray-900">Additional Questions for Sitting Wards</h2>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={addSittingWardField}
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    Add Sitting Ward Question
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handleImportQuestions('sittingWard')}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                      </svg>
+                      Import Questions
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addSittingWardField}
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Sitting Ward Question
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-6">
@@ -909,9 +926,16 @@ export default function CreateForm() {
           <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
             <div className="mt-3">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Import Questions
-                </h3>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Import Questions
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {importType === 'sittingWard' 
+                      ? 'Importing questions for sitting ward section' 
+                      : 'Importing questions for main form section'}
+                  </p>
+                </div>
                 <button
                   onClick={() => setShowImportModal(false)}
                   className="text-gray-400 hover:text-gray-600"
@@ -977,7 +1001,8 @@ export default function CreateForm() {
                   onClick={handleImportSelectedQuestions}
                   disabled={selectedQuestions.length === 0}
                 >
-                  Import {selectedQuestions.length} Question{selectedQuestions.length !== 1 ? 's' : ''}
+                  Import {selectedQuestions.length} Question{selectedQuestions.length !== 1 ? 's' : ''} 
+                  {importType === 'sittingWard' ? ' to Sitting Ward Section' : ' to Main Form'}
                 </Button>
               </div>
             </div>

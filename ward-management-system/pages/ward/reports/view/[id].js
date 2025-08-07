@@ -57,6 +57,23 @@ export default function ViewWardReport() {
     return now < closeDate && form.allowEditAfterSubmission;
   };
 
+  const getEditabilityMessage = (form) => {
+    if (!form) return 'Form information not available.';
+    
+    const now = new Date();
+    const closeDate = new Date(form.closeDateTime);
+    
+    if (!form.allowEditAfterSubmission) {
+      return 'Editing after submission has been disabled for this form.';
+    }
+    
+    if (now >= closeDate) {
+      return `This form expired on ${closeDate.toLocaleDateString()} at ${closeDate.toLocaleTimeString()}.`;
+    }
+    
+    return 'This report can be edited.';
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -306,7 +323,7 @@ export default function ViewWardReport() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-700">
-                  <strong>Note:</strong> This report is now view-only. The form has either expired or editing has been disabled by the administrator.
+                  <strong>Note:</strong> This report is now view-only. {getEditabilityMessage(report.formTemplate)}
                 </p>
               </div>
             </div>

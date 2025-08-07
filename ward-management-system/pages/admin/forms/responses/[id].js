@@ -214,20 +214,39 @@ export default function FormResponses() {
   };
 
   const renderFieldValue = (field, value) => {
-    if (!value) return 'N/A';
+    // Handle null, undefined, empty string, and empty arrays
+    if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0)) {
+      return <span className="text-gray-400 italic">No response</span>;
+    }
     
     switch (field.type) {
+      case 'multiselect':
       case 'checkbox':
-        return Array.isArray(value) ? value.join(', ') : value;
+        if (Array.isArray(value)) {
+          return value.length > 0 ? value.join(', ') : <span className="text-gray-400 italic">No response</span>;
+        }
+        return value;
+      case 'yesno':
+        return value === 'yes' ? 'Yes' : value === 'no' ? 'No' : value;
       case 'radio':
       case 'select':
         return value;
+      case 'textarea':
+        return (
+          <div className="whitespace-pre-wrap max-h-32 overflow-y-auto">
+            {value}
+          </div>
+        );
       case 'file':
         return value ? (
           <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
             View File
           </a>
-        ) : 'No file';
+        ) : <span className="text-gray-400 italic">No file uploaded</span>;
+      case 'date':
+        return value ? new Date(value).toLocaleDateString() : <span className="text-gray-400 italic">No date selected</span>;
+      case 'number':
+        return value !== null && value !== undefined ? value.toString() : <span className="text-gray-400 italic">No response</span>;
       default:
         return value;
     }
@@ -261,7 +280,7 @@ export default function FormResponses() {
       response.ward?.coordinator?.name || response.respondent?.name || 'Unknown',
       formatDate(response.submittedAt),
       ...form.fields.map(field => {
-        const value = response.responses?.[field._id || field.id];
+        const value = response.responses?.[field.label];
         if (!value) return 'N/A';
         if (Array.isArray(value)) return value.join('; ');
         return String(value).replace(/,/g, ';'); // Replace commas to avoid CSV issues
@@ -524,7 +543,7 @@ export default function FormResponses() {
                                       {field.required && <span className="text-red-500 ml-1">*</span>}
                                     </label>
                                     <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
-                                      {renderFieldValue(field, response.responses?.[field._id || field.id])}
+                                      {renderFieldValue(field, response.responses?.[field.label])}
                                     </div>
                                   </div>
                                   <div className="flex-shrink-0">

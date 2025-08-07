@@ -30,7 +30,7 @@ export default async function handler(req, res) {
             select: 'name _id'
           }
         })
-        .populate('formTemplate', 'title fields formType allowEditAfterSubmission')
+        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime')
         .lean();
 
       if (!response) {
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     try {
       // Find the response
       const response = await Response.findById(id)
-        .populate('formTemplate', 'title fields formType allowEditAfterSubmission');
+        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime');
 
       if (!response) {
         return res.status(404).json({ error: 'Response not found' });
@@ -146,7 +146,7 @@ export default async function handler(req, res) {
             select: 'name _id'
           }
         })
-        .populate('formTemplate', 'title fields formType');
+        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime');
 
       return res.status(200).json(populatedResponse);
     } catch (error) {

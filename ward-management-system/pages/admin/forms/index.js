@@ -94,17 +94,7 @@ export default function Forms() {
     }
   };
 
-  const toggleFormStatus = async (formId, isActive) => {
-    try {
-      await axios.put(`/api/forms/${formId}`, { isActive: !isActive });
-      setForms(forms.map(form => 
-        form._id === formId ? { ...form, isActive: !isActive } : form
-      ));
-    } catch (error) {
-      setError('Failed to update form status');
-      console.error(error);
-    }
-  };
+
 
   const togglePublishStatus = async (formId, isPublished) => {
     try {

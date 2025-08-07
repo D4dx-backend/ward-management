@@ -115,7 +115,10 @@ export default function ViewCoordinatorReport() {
   };
 
   const canEditReport = () => {
-    return formTemplate?.allowEditAfterSubmission || false;
+    if (!formTemplate?.allowEditAfterSubmission) return false;
+    const now = new Date();
+    const closeDate = new Date(formTemplate.closeDateTime);
+    return now < closeDate;
   };
 
   if (status === 'loading' || isLoading) {
@@ -215,9 +218,21 @@ export default function ViewCoordinatorReport() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Status</label>
-                <span className="mt-1 inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                  Submitted
-                </span>
+                <div className="mt-1 space-y-1">
+                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                    Submitted
+                  </span>
+                  {!canEditReport() && (
+                    <div className="text-xs text-gray-600">
+                      {!formTemplate?.allowEditAfterSubmission 
+                        ? 'Editing disabled for this form'
+                        : formTemplate?.closeDateTime && new Date() >= new Date(formTemplate.closeDateTime)
+                        ? `Form expired on ${new Date(formTemplate.closeDateTime).toLocaleDateString()}`
+                        : 'View only'
+                      }
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
