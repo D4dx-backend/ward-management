@@ -78,42 +78,32 @@ export const menuConfig = {
         { name: 'Dashboard', href: '/', icon: '📊' }
       ]
     },
-    'Reports': {
-      type: 'category',
-      icon: '📈',
+    'SIC Report': {
+      type: 'single',
       items: [
-        { name: 'Submit Reports', href: '/coordinator/reports/submit', icon: '📝' },
-        { name: 'My Reports', href: '/coordinator/reports', icon: '📈' },
-        { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
-        { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' },
-        { name: 'Form Submissions', href: '/coordinator/form-submissions', icon: '📋' }
+        { name: 'SIC Report', href: '/coordinator/sic-reports', icon: '📝' }
       ]
     },
-
-    'Ward Management': {
+    'Ward Visit': {
+      type: 'single',
+      items: [
+        { name: 'Ward Visit', href: '/coordinator/ward-visits', icon: '🚶' }
+      ]
+    },
+    'Ward Monitor': {
       type: 'category',
       icon: '🏘️',
       items: [
         { name: 'Ward Status', href: '/coordinator/ward-status', icon: '🔍' },
-        { name: 'Manage Wards', href: '/coordinator/wards', icon: '🏘️' },
-        { name: 'Ward Visits', href: '/coordinator/ward-visits', icon: '🚶' }
+        { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
+        { name: 'Ward Profile', href: '/coordinator/wards', icon: '🏘️' },
+        { name: 'Cluster Visit Details', href: '/coordinator/cluster-visit-details', icon: '📍' }
       ]
     },
-    'Cluster Management': {
-      type: 'category',
-      icon: '🏢',
+    'Survey Status': {
+      type: 'single',
       items: [
-        { name: 'Clusters', href: '/coordinator/clusters', icon: '🏢' },
-        { name: 'Cluster Visits', href: '/coordinator/cluster-visits', icon: '📍' }
-      ]
-    },
-    'Forms & Surveys': {
-      type: 'category',
-      icon: '📝',
-      items: [
-        { name: 'Docker Survey', href: '/coordinator/docker-surveys', icon: '🗂️' },
-        { name: 'Basic Survey', href: '/coordinator/basic-survey', icon: '📋' },
-        { name: 'Review Recurring Questions', href: '/coordinator/recurring-questions/review', icon: '📋' }
+        { name: 'Survey Status', href: '/coordinator/docker-surveys', icon: '🗂️' }
       ]
     },
     'Documentation': {
@@ -121,15 +111,7 @@ export const menuConfig = {
       icon: '📚',
       items: [
         { name: 'Guidelines & Instructions', href: '/instructions', icon: '📋' },
-        { name: 'Instruction Management', href: '/coordinator/instruction-management', icon: '📊' },
         { name: 'Document Library', href: '/documents', icon: '📄' }
-      ]
-    },
-    'Account Management': {
-      type: 'category',
-      icon: '👤',
-      items: [
-        { name: 'Reset PIN', href: '/reset-password', icon: '🔐' }
       ]
     }
   },
@@ -140,35 +122,36 @@ export const menuConfig = {
         { name: 'Dashboard', href: '/', icon: '📊' }
       ]
     },
-    'Reports': {
-      type: 'category',
-      icon: '📈',
+    'Ward Report': {
+      type: 'single',
       items: [
-        { name: 'Submit Reports', href: '/ward/reports/submit', icon: '📝' },
-        { name: 'My Reports', href: '/ward/reports', icon: '📈' }
+        { name: 'Ward Report', href: '/ward/reports', icon: '📋' }
+      ]
+    },
+    'Ward Visit': {
+      type: 'single',
+      items: [
+        { name: 'Ward Visit', href: '/ward/ward-visits', icon: '🚶' }
+      ]
+    },
+    'House Visit': {
+      type: 'single',
+      items: [
+        { name: 'House Visit', href: '/ward/cluster-visits', icon: '🏠' }
       ]
     },
     'Ward Management': {
       type: 'category',
       icon: '🏘️',
       items: [
-        { name: 'Ward Visits Record', href: '/ward/ward-visits', icon: '🚶' },
-        { name: 'Ward Profile', href: '/ward/profile', icon: '📋' }
+        { name: 'Ward Profile', href: '/ward/profile', icon: '📋' },
+        { name: 'Manage Cluster', href: '/ward/clusters', icon: '🏢' }
       ]
     },
-    'Cluster Management': {
-      type: 'category',
-      icon: '🏢',
+    'Survey Status': {
+      type: 'single',
       items: [
-        { name: 'Manage Clusters', href: '/ward/clusters', icon: '🏢' },
-        { name: 'Cluster Visits', href: '/ward/cluster-visits', icon: '📍' }
-      ]
-    },
-    'Forms & Surveys': {
-      type: 'category',
-      icon: '📝',
-      items: [
-        { name: 'Survey', href: '/ward/docker-survey', icon: '🗂️' }
+        { name: 'Survey Status', href: '/ward/docker-survey', icon: '🗂️' }
       ]
     },
     'Documentation': {

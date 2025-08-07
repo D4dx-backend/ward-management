@@ -7,7 +7,7 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 
-export default function WardVisits() {
+export default function WardVisitsSimple() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [visits, setVisits] = useState([]);
@@ -40,14 +40,11 @@ export default function WardVisits() {
   const fetchVisits = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching visits for user:', session?.user);
       const response = await axios.get('/api/ward-visits/ward-admin');
-      console.log('API response:', response.data);
       setVisits(response.data || []);
     } catch (error) {
       console.error('Error fetching visits:', error);
-      console.error('Error details:', error.response?.data);
-      setError(`Unable to load visits: ${error.response?.data?.message || error.message}`);
+      setError('Unable to load visits. Please try again.');
     } finally {
       setIsLoading(false);
     }

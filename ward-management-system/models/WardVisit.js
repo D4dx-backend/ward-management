@@ -67,6 +67,11 @@ const WardVisitSchema = new mongoose.Schema({
     default: 'completed'
   },
   recordedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  recordedByRole: {
     type: String,
     enum: ['coordinator', 'wardAdmin'],
     default: 'coordinator'

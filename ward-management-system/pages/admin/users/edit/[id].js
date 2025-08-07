@@ -207,8 +207,8 @@ export default function EditUser() {
               required
             >
               <option value="stateAdmin">State Admin</option>
-              <option value="coordinator">Coordinator</option>
-              <option value="wardAdmin">Ward Admin</option>
+              <option value="coordinator">State Incharge (SIC)</option>
+              <option value="wardAdmin">Ward Incharge</option>
             </select>
           </div>
 

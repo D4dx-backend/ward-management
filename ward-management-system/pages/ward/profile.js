@@ -617,15 +617,32 @@ export default function WardProfile() {
         return (
           <div className="space-y-1">
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*\\.?[0-9]*"
               value={fieldValue}
               onChange={handleChange}
+              onInput={(e) => {
+                e.target.value = e.target.value.replace(/[^0-9.]/g, '');
+                // Prevent multiple decimal points
+                const parts = e.target.value.split('.');
+                if (parts.length > 2) {
+                  e.target.value = parts[0] + '.' + parts.slice(1).join('');
+                }
+              }}
+              onKeyDown={(e) => {
+                const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                if (e.ctrlKey || e.metaKey || allowedKeys.includes(e.key) || (e.key >= '0' && e.key <= '9') || e.key === '.') {
+                  if (e.key === '.' && e.target.value.includes('.')) {
+                    e.preventDefault();
+                  }
+                  return;
+                }
+                e.preventDefault();
+              }}
               className={`${inputClasses} ${errorClasses}`}
               placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
               required={field.required}
-              min={field.validation?.min}
-              max={field.validation?.max}
-              step="any"
             />
             {field.helpText && (
               <p className="text-xs text-gray-500">{field.helpText}</p>

@@ -9,6 +9,7 @@ import Button from '../../components/Button';
 import RecentReports from '../../components/RecentReports';
 import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import PendingReports from '../../components/PendingReports';
+import RecentWardVisits from '../../components/RecentWardVisits';
 import InstructionModal from '../../components/InstructionModal';
 import ReportModal from '../../components/ReportModal';
 import PendingFormModal from '../../components/PendingFormModal';
@@ -225,7 +226,14 @@ export default function WardAdminDashboard() {
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Ward Admin Dashboard</h1>
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-2xl font-bold text-gray-900">Ward Admin Dashboard</h1>
+                {userInfo?.ward?.isSittingWard && (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                    🪑 Sitting Ward
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                 <div>
                   <span className="text-gray-600">Ward:</span>
@@ -478,90 +486,8 @@ export default function WardAdminDashboard() {
             </div>
           </div>
 
-          {/* Recent Instructions */}
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Instructions</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              {recentInstructions.length > 0 ? (
-                recentInstructions.slice(0, 5).map((instruction, index) => (
-                  <div 
-                    key={instruction._id || index}
-                    className="bg-blue-50 border border-blue-200 rounded-lg p-4 cursor-pointer hover:bg-blue-100 transition-colors"
-                    onClick={() => handleInstructionClick(instruction)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{instruction.title}</h3>
-                          <p className="text-sm text-gray-600">
-                            {instruction.description?.substring(0, 50)}...
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatDate(instruction.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {instruction.isHighlighted && (
-                          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                            New
-                          </span>
-                        )}
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                // Show sample instructions if no data
-                [
-                  { id: 1, title: 'Weekly Report Guidelines', description: 'Please follow the new guidelines for weekly reports...', date: '01/08/2025', isHighlighted: true },
-                  { id: 2, title: 'Cluster Visit Instructions', description: 'Updated instructions for cluster visits...', date: '30/07/2025', isHighlighted: false },
-                  { id: 3, title: 'Data Collection Protocol', description: 'New protocol for data collection...', date: '29/07/2025', isHighlighted: false }
-                ].map((instruction) => (
-                  <div 
-                    key={instruction.id}
-                    className="bg-blue-50 border border-blue-200 rounded-lg p-4 cursor-pointer hover:bg-blue-100 transition-colors"
-                    onClick={() => handleInstructionClick(instruction)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{instruction.title}</h3>
-                          <p className="text-sm text-gray-600">{instruction.description}</p>
-                          <p className="text-xs text-gray-500 mt-1">{instruction.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {instruction.isHighlighted && (
-                          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                            New
-                          </span>
-                        )}
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+          {/* Recent Ward Visits */}
+          <RecentWardVisits />
         </div>
 
         {/* Modals */}

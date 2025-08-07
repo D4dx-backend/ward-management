@@ -129,10 +129,22 @@ export default function RecurringQuestionRenderer({
       case 'number':
         return (
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             id={fieldId}
             value={currentAnswer}
             onChange={(e) => handleInputChange(e.target.value)}
+            onInput={(e) => {
+              e.target.value = e.target.value.replace(/[^0-9]/g, '');
+            }}
+            onKeyDown={(e) => {
+              const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+              if (e.ctrlKey || e.metaKey || allowedKeys.includes(e.key) || (e.key >= '0' && e.key <= '9')) {
+                return;
+              }
+              e.preventDefault();
+            }}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             disabled={disabled || isCompleted}
             required
