@@ -349,7 +349,10 @@ export default function WardAdminDashboard() {
             </div>
             <div className="p-6 space-y-4">
               {pendingReportsList.length > 0 ? (
-                pendingReportsList.map((report, index) => (
+                // Sort pending reports by due date (closest deadline first)
+                [...pendingReportsList]
+                  .sort((a, b) => new Date(a.closeDateTime) - new Date(b.closeDateTime))
+                  .map((report, index) => (
                   <div 
                     key={report._id || index}
                     className="bg-red-50 border border-red-200 rounded-lg p-4 cursor-pointer hover:bg-red-100 transition-colors"
@@ -367,7 +370,7 @@ export default function WardAdminDashboard() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                          Not Submitted
+                          Pending
                         </span>
                         <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -396,7 +399,11 @@ export default function WardAdminDashboard() {
             </div>
             <div className="p-6 space-y-4">
               {recentReports.length > 0 ? (
-                recentReports.slice(0, 5).map((report, index) => (
+                // Show recent reports sorted by submission date (newest first)
+                recentReports
+                  .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                  .slice(0, 5)
+                  .map((report, index) => (
                   <div 
                     key={report._id || index}
                     className="bg-green-50 border border-green-200 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors"
@@ -410,8 +417,11 @@ export default function WardAdminDashboard() {
                           </svg>
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{report.formTemplate?.title || report.form?.title || `Test Report ${index + 1}`}</h3>
+                          <h3 className="font-medium text-gray-900">{report.formTemplate?.title || report.form?.title || `Report ${index + 1}`}</h3>
                           <p className="text-sm text-gray-600">
+                            Week {report.weekNumber}, {report.year}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
                             Submitted: {formatDate(report.submittedAt)}
                           </p>
                         </div>

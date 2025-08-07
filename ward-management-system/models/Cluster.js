@@ -11,6 +11,11 @@ const ClusterSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  description: {
+    type: String,
+    trim: true,
+    default: '',
+  },
   ward: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Ward',
@@ -41,6 +46,29 @@ const ClusterSchema = new mongoose.Schema({
       lowercase: true,
       default: '',
     }
+  },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'pending'],
+    default: 'active',
+  },
+  householdCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  population: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  area: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  lastVisited: {
+    type: Date,
   },
   isActive: {
     type: Boolean,

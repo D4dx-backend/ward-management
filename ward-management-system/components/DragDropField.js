@@ -18,7 +18,9 @@ export default function DragDropField({
   onAddSubQuestionOption,
   onRemoveSubQuestionOption,
   onSubQuestionOptionChange,
-  fieldPrefix = "Question"
+  fieldPrefix = "Question",
+  showSections = true,
+  questionNumber = null
 }) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -98,7 +100,9 @@ export default function DragDropField({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
               </svg>
             </div>
-            <h3 className="text-md font-medium text-gray-900">{fieldPrefix} {index + 1}</h3>
+            <h3 className="text-md font-medium text-gray-900">
+              {questionNumber ? `${questionNumber}.` : `${index + 1}.`} {fieldPrefix}
+            </h3>
             {field.applicableToClusters && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 🏘️ Clusters
@@ -114,6 +118,25 @@ export default function DragDropField({
             Remove
           </Button>
         </div>
+
+        {showSections && (
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Section (Optional)
+            </label>
+            <input
+              type="text"
+              name="section"
+              value={field.section || ''}
+              onChange={(e) => onFieldChange(index, e)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., Basic Information, Health Data, etc."
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Group related questions together for better organization
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
@@ -284,7 +307,9 @@ export default function DragDropField({
               {field.subQuestions.map((subQuestion, subIndex) => (
                 <div key={subIndex} className="bg-gray-50 p-4 rounded-lg border">
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-gray-900">Follow-up Question {subIndex + 1}</h4>
+                    <h4 className="text-sm font-medium text-gray-900">
+                      {questionNumber ? `${questionNumber}.${subIndex + 1}` : `${index + 1}.${subIndex + 1}`} Follow-up Question
+                    </h4>
                     <Button
                       type="button"
                       variant="danger"

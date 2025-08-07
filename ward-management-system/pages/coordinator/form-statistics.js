@@ -9,6 +9,8 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import { ShimmerDashboard } from '../../components/Shimmer';
+import FormSubmissionsList from '../../components/FormSubmissionsList';
+import FormSubmissionViewer from '../../components/FormSubmissionViewer';
 
 export default function CoordinatorFormStatistics() {
   const { data: session, status } = useSession();
@@ -22,6 +24,10 @@ export default function CoordinatorFormStatistics() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [timeframe, setTimeframe] = useState('all'); // all, current-month, last-month
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState(null);
+  const [selectedSubmissionType, setSelectedSubmissionType] = useState(null);
+  const [showSubmissionViewer, setShowSubmissionViewer] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -43,92 +49,7 @@ export default function CoordinatorFormStatistics() {
       setError('');
     } catch (error) {
       console.error('Error fetching form statistics:', error);
-      setError('Failed to load form statistics');
-      
-      // Mock data for development
-      setStatistics({
-        overview: {
-          totalWards: 12,
-          totalForms: 8,
-          totalSubmissions: 156,
-          pendingSubmissions: 24,
-          completionRate: 86.7
-        },
-        wardWiseStats: [
-          {
-            wardId: 'w1',
-            wardName: 'Ward 1',
-            wardNumber: 1,
-            totalForms: 8,
-            submittedForms: 7,
-            pendingForms: 1,
-            completionRate: 87.5,
-            lastSubmission: new Date().toISOString(),
-            wardAdmin: {
-              name: 'Admin One',
-              email: 'admin1@example.com'
-            },
-            formBreakdown: [
-              { formId: 'f1', formTitle: 'Weekly Report', status: 'submitted', submittedAt: new Date().toISOString() },
-              { formId: 'f2', formTitle: 'Infrastructure Survey', status: 'submitted', submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-              { formId: 'f3', formTitle: 'Health Survey', status: 'pending', dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() }
-            ]
-          },
-          {
-            wardId: 'w2',
-            wardName: 'Ward 2',
-            wardNumber: 2,
-            totalForms: 8,
-            submittedForms: 5,
-            pendingForms: 3,
-            completionRate: 62.5,
-            lastSubmission: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            wardAdmin: {
-              name: 'Admin Two',
-              email: 'admin2@example.com'
-            },
-            formBreakdown: [
-              { formId: 'f1', formTitle: 'Weekly Report', status: 'submitted', submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
-              { formId: 'f2', formTitle: 'Infrastructure Survey', status: 'pending', dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
-              { formId: 'f3', formTitle: 'Health Survey', status: 'overdue', dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() }
-            ]
-          }
-        ],
-        formWiseStats: [
-          {
-            formId: 'f1',
-            formTitle: 'Weekly Report',
-            formType: 'recurring',
-            totalWards: 12,
-            submittedCount: 10,
-            pendingCount: 2,
-            overdueCount: 0,
-            completionRate: 83.3,
-            avgSubmissionTime: '2.5 days',
-            wardBreakdown: [
-              { wardId: 'w1', wardName: 'Ward 1', status: 'submitted', submittedAt: new Date().toISOString() },
-              { wardId: 'w2', wardName: 'Ward 2', status: 'submitted', submittedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() },
-              { wardId: 'w3', wardName: 'Ward 3', status: 'pending', dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() }
-            ]
-          },
-          {
-            formId: 'f2',
-            formTitle: 'Infrastructure Survey',
-            formType: 'one-time',
-            totalWards: 12,
-            submittedCount: 8,
-            pendingCount: 3,
-            overdueCount: 1,
-            completionRate: 66.7,
-            avgSubmissionTime: '5.2 days',
-            wardBreakdown: [
-              { wardId: 'w1', wardName: 'Ward 1', status: 'submitted', submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-              { wardId: 'w2', wardName: 'Ward 2', status: 'pending', dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() },
-              { wardId: 'w3', wardName: 'Ward 3', status: 'overdue', dueDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-            ]
-          }
-        ]
-      });
+      setError('Failed to load form statistics. Using real data from API.');
     } finally {
       setIsLoading(false);
     }
@@ -157,6 +78,18 @@ export default function CoordinatorFormStatistics() {
       console.error('Error loading details:', error);
       setError('Failed to load details');
     }
+  };
+
+  const handleViewSubmission = (submissionId, submissionType) => {
+    setSelectedSubmissionId(submissionId);
+    setSelectedSubmissionType(submissionType);
+    setShowSubmissionViewer(true);
+  };
+
+  const handleViewAllSubmissions = (wardId = null, formId = null) => {
+    setSelectedWard(wardId);
+    setSelectedForm(formId);
+    setShowSubmissionsModal(true);
   };
 
   const getStatusBadge = (status) => {
@@ -228,6 +161,13 @@ export default function CoordinatorFormStatistics() {
               <option value="last-month">Last Month</option>
               <option value="last-3-months">Last 3 Months</option>
             </select>
+            
+            <Button onClick={() => handleViewAllSubmissions()} variant="outline">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              View Submissions
+            </Button>
             
             <Button onClick={exportStatistics} variant="outline">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,13 +387,23 @@ export default function CoordinatorFormStatistics() {
                           }
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewDetails('ward', ward.wardId)}
-                          >
-                            View Details
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDetails('ward', ward.wardId)}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewAllSubmissions(ward.wardId)}
+                              className="bg-blue-50 text-blue-600 hover:bg-blue-100"
+                            >
+                              View Submissions
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -538,13 +488,23 @@ export default function CoordinatorFormStatistics() {
                           {form.avgSubmissionTime}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleViewDetails('form', form.formId)}
-                          >
-                            View Details
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDetails('form', form.formId)}
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewAllSubmissions(null, form.formId)}
+                              className="bg-green-50 text-green-600 hover:bg-green-100"
+                            >
+                              View Submissions
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -577,6 +537,9 @@ export default function CoordinatorFormStatistics() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date
                       </th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -598,6 +561,17 @@ export default function CoordinatorFormStatistics() {
                             : 'No date'
                           }
                         </td>
+                        <td className="px-4 py-3 text-right">
+                          {item.submissionId && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewSubmission(item.submissionId, item.type)}
+                            >
+                              View
+                            </Button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -606,6 +580,38 @@ export default function CoordinatorFormStatistics() {
             </div>
           )}
         </Modal>
+
+        {/* Submissions List Modal */}
+        <Modal
+          isOpen={showSubmissionsModal}
+          onClose={() => {
+            setShowSubmissionsModal(false);
+            setSelectedWard('');
+            setSelectedForm('');
+          }}
+          title="Form Submissions"
+          size="xl"
+        >
+          <FormSubmissionsList 
+            wardId={selectedWard} 
+            formId={selectedForm}
+          />
+        </Modal>
+
+        {/* Submission Viewer Modal */}
+        <FormSubmissionViewer
+          submissionId={selectedSubmissionId}
+          submissionType={selectedSubmissionType}
+          isOpen={showSubmissionViewer}
+          onClose={() => {
+            setShowSubmissionViewer(false);
+            setSelectedSubmissionId(null);
+            setSelectedSubmissionType(null);
+          }}
+          onUpdate={() => {
+            fetchStatistics();
+          }}
+        />
       </div>
     </Layout>
   );

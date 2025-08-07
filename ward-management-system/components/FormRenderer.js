@@ -29,35 +29,13 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
   useEffect(() => {
     // Initialize form data structure only if formData is empty or missing fields
     const initialData = {};
-    form.fields.forEach((field, fieldIndex) => {
-      if (!field.applicableToClusters) {
-        // Regular ward-level fields
-        const fieldKey = `field_${fieldIndex}`;
-        if (formData[fieldKey] === undefined) {
-          if (field.type === 'checkbox') {
-            initialData[fieldKey] = false;
-          } else {
-            initialData[fieldKey] = '';
-          }
-        }
-        
-        // Initialize sub-questions for ward-level fields
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          field.subQuestions.forEach((subQuestion, subIndex) => {
-            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            if (formData[subKey] === undefined) {
-              if (subQuestion.type === 'checkbox') {
-                initialData[subKey] = false;
-              } else {
-                initialData[subKey] = '';
-              }
-            }
-          });
-        }
-      } else {
-        // Cluster-level fields - initialize for each cluster
-        clusters.forEach(cluster => {
-          const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
+    
+    // Initialize regular form fields
+    if (form.fields) {
+      form.fields.forEach((field, fieldIndex) => {
+        if (!field.applicableToClusters) {
+          // Regular ward-level fields
+          const fieldKey = `field_${fieldIndex}`;
           if (formData[fieldKey] === undefined) {
             if (field.type === 'checkbox') {
               initialData[fieldKey] = false;
@@ -66,10 +44,10 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             }
           }
           
-          // Initialize sub-questions for cluster-level fields
+          // Initialize sub-questions for ward-level fields
           if (field.subQuestions && field.subQuestions.length > 0) {
             field.subQuestions.forEach((subQuestion, subIndex) => {
-              const subKey = `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
               if (formData[subKey] === undefined) {
                 if (subQuestion.type === 'checkbox') {
                   initialData[subKey] = false;
@@ -79,9 +57,92 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               }
             });
           }
-        });
-      }
-    });
+        } else {
+          // Cluster-level fields - initialize for each cluster
+          clusters.forEach(cluster => {
+            const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
+            if (formData[fieldKey] === undefined) {
+              if (field.type === 'checkbox') {
+                initialData[fieldKey] = false;
+              } else {
+                initialData[fieldKey] = '';
+              }
+            }
+            
+            // Initialize sub-questions for cluster-level fields
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                if (formData[subKey] === undefined) {
+                  if (subQuestion.type === 'checkbox') {
+                    initialData[subKey] = false;
+                  } else {
+                    initialData[subKey] = '';
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+
+    // Initialize sitting ward fields
+    if (form.sittingWardFields) {
+      form.sittingWardFields.forEach((field, fieldIndex) => {
+        if (!field.applicableToClusters) {
+          // Regular sitting ward fields
+          const fieldKey = `field_sitting_${fieldIndex}`;
+          if (formData[fieldKey] === undefined) {
+            if (field.type === 'checkbox') {
+              initialData[fieldKey] = false;
+            } else {
+              initialData[fieldKey] = '';
+            }
+          }
+          
+          // Initialize sub-questions for sitting ward fields
+          if (field.subQuestions && field.subQuestions.length > 0) {
+            field.subQuestions.forEach((subQuestion, subIndex) => {
+              const subKey = `field_sitting_${fieldIndex}_sub_${subIndex}`;
+              if (formData[subKey] === undefined) {
+                if (subQuestion.type === 'checkbox') {
+                  initialData[subKey] = false;
+                } else {
+                  initialData[subKey] = '';
+                }
+              }
+            });
+          }
+        } else {
+          // Cluster-level sitting ward fields - initialize for each cluster
+          clusters.forEach(cluster => {
+            const fieldKey = `field_sitting_${fieldIndex}_cluster_${cluster._id}`;
+            if (formData[fieldKey] === undefined) {
+              if (field.type === 'checkbox') {
+                initialData[fieldKey] = false;
+              } else {
+                initialData[fieldKey] = '';
+              }
+            }
+            
+            // Initialize sub-questions for cluster-level sitting ward fields
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = `field_sitting_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                if (formData[subKey] === undefined) {
+                  if (subQuestion.type === 'checkbox') {
+                    initialData[subKey] = false;
+                  } else {
+                    initialData[subKey] = '';
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+    }
     
     if (Object.keys(initialData).length > 0) {
       setFormData(prev => ({ ...prev, ...initialData }));
@@ -450,149 +511,211 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
     }
   };
 
-  return (
-    <div className="space-y-6">
-      {form.fields.map((field, fieldIndex) => {
-        if (!field.applicableToClusters) {
-          // Regular ward-level field
-          const fieldKey = `field_${fieldIndex}`;
-          const fieldError = errors[fieldKey];
-          const shouldShowSubQuestions = visibleSubQuestions[fieldIndex] !== false && 
-            (field.subQuestions?.length > 0 ? 
-              checkSubQuestionVisibility(field, formData[fieldKey]) : false);
+  // Helper function to render fields grouped by sections
+  const renderFieldsBySection = (fields, fieldPrefix = '') => {
+    // Group fields by section
+    const sections = {};
+    let questionCounter = 1;
+    
+    fields.forEach((field, index) => {
+      const sectionName = field.section || 'General Questions';
+      if (!sections[sectionName]) {
+        sections[sectionName] = [];
+      }
+      sections[sectionName].push({ 
+        ...field, 
+        originalIndex: index, 
+        questionNumber: questionCounter++,
+        fieldPrefix 
+      });
+    });
 
-          return (
-            <div key={fieldIndex} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
-                </label>
-                {renderField(field, fieldIndex)}
-                {fieldError && (
-                  <p className="mt-1 text-sm text-red-600">{fieldError}</p>
-                )}
+    return Object.entries(sections).map(([sectionName, sectionFields]) => (
+      <div key={`${fieldPrefix}-${sectionName}`} className="border border-gray-200 rounded-lg p-6 bg-gray-50">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+          <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          </svg>
+          {sectionName}
+        </h3>
+        <div className="space-y-6 bg-white rounded-lg p-4">
+          {sectionFields.map((field) => renderSingleField(field, field.originalIndex, field.questionNumber, field.fieldPrefix))}
+        </div>
+      </div>
+    ));
+  };
+
+  // Helper function to render a single field
+  const renderSingleField = (field, fieldIndex, questionNumber, fieldPrefix = '') => {
+    const actualFieldIndex = fieldPrefix ? `${fieldPrefix}_${fieldIndex}` : fieldIndex;
+    
+    if (!field.applicableToClusters) {
+      // Regular ward-level field
+      const fieldKey = `field_${actualFieldIndex}`;
+      const fieldError = errors[fieldKey];
+      const shouldShowSubQuestions = visibleSubQuestions[actualFieldIndex] !== false && 
+        (field.subQuestions?.length > 0 ? 
+          checkSubQuestionVisibility(field, formData[fieldKey]) : false);
+
+      return (
+        <div key={actualFieldIndex} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <span className="text-blue-600 font-semibold">{questionNumber}.</span> {field.label}
+              {field.required && <span className="text-red-500 ml-1">*</span>}
+            </label>
+            {renderField(field, actualFieldIndex)}
+            {fieldError && (
+              <p className="mt-1 text-sm text-red-600">{fieldError}</p>
+            )}
+          </div>
+
+          {/* Render sub-questions if they should be visible */}
+          {shouldShowSubQuestions && (
+            <div className="ml-6 pl-4 border-l-2 border-blue-200 space-y-4 bg-blue-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-700">Follow-up Questions:</h4>
+              {field.subQuestions.map((subQuestion, subIndex) => {
+                const subKey = `field_${actualFieldIndex}_sub_${subIndex}`;
+                const subError = errors[subKey];
+
+                return (
+                  <div key={subIndex}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="text-blue-600 font-semibold">{questionNumber}.{subIndex + 1}</span> {subQuestion.label}
+                      {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+                    {renderSubQuestion(subQuestion, actualFieldIndex, subIndex)}
+                    {subError && (
+                      <p className="mt-1 text-sm text-red-600">{subError}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      // Cluster-applicable field - render for each cluster
+      return (
+        <div key={actualFieldIndex} className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-2 mb-4">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <h3 className="text-lg font-medium text-blue-900">
+                <span className="text-blue-600 font-semibold">{questionNumber}.</span> {field.label}
+                {field.required && <span className="text-red-500 ml-1">*</span>}
+              </h3>
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Cluster Question
+              </span>
+            </div>
+            
+            {isLoadingClusters ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="text-sm text-gray-600 mt-2">Loading clusters...</p>
               </div>
+            ) : clusters.length === 0 ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-600">No clusters found for this ward.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {clusters.map((cluster) => {
+                  const fieldKey = `field_${actualFieldIndex}_cluster_${cluster._id}`;
+                  const fieldError = errors[fieldKey];
+                  const visibilityKey = `${actualFieldIndex}_cluster_${cluster._id}`;
+                  const shouldShowSubQuestions = visibleSubQuestions[visibilityKey] !== false && 
+                    (field.subQuestions?.length > 0 ? 
+                      checkSubQuestionVisibility(field, formData[fieldKey]) : false);
 
-              {/* Render sub-questions if they should be visible */}
-              {shouldShowSubQuestions && (
-                <div className="ml-6 pl-4 border-l-2 border-gray-200 space-y-4">
-                  <h4 className="text-sm font-medium text-gray-600">Additional Questions:</h4>
-                  {field.subQuestions.map((subQuestion, subIndex) => {
-                    const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-                    const subError = errors[subKey];
-
-                    return (
-                      <div key={subIndex}>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {subQuestion.label}
-                          {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
-                        </label>
-                        {renderSubQuestion(subQuestion, fieldIndex, subIndex)}
-                        {subError && (
-                          <p className="mt-1 text-sm text-red-600">{subError}</p>
+                  return (
+                    <div key={cluster._id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <h4 className="text-md font-medium text-gray-900">{cluster.name}</h4>
+                        {cluster.description && (
+                          <span className="text-sm text-gray-500">- {cluster.description}</span>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        } else {
-          // Cluster-applicable field - render for each cluster
-          return (
-            <div key={fieldIndex} className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center space-x-2 mb-4">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-blue-900">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </h3>
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Cluster Question
-                  </span>
-                </div>
-                
-                {isLoadingClusters ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                    <p className="text-sm text-gray-600 mt-2">Loading clusters...</p>
-                  </div>
-                ) : clusters.length === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-600">No clusters found for this ward.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {clusters.map((cluster) => {
-                      const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
-                      const fieldError = errors[fieldKey];
-                      const visibilityKey = `${fieldIndex}_cluster_${cluster._id}`;
-                      const shouldShowSubQuestions = visibleSubQuestions[visibilityKey] !== false && 
-                        (field.subQuestions?.length > 0 ? 
-                          checkSubQuestionVisibility(field, formData[fieldKey]) : false);
+                      
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {field.label} for {cluster.name}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </label>
+                        {renderField(field, actualFieldIndex, cluster._id)}
+                        {fieldError && (
+                          <p className="mt-1 text-sm text-red-600">{fieldError}</p>
+                        )}
 
-                      return (
-                        <div key={cluster._id} className="bg-white border border-gray-200 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            <h4 className="text-md font-medium text-gray-900">{cluster.name}</h4>
-                            {cluster.description && (
-                              <span className="text-sm text-gray-500">- {cluster.description}</span>
-                            )}
+                        {/* Render sub-questions for this cluster */}
+                        {shouldShowSubQuestions && (
+                          <div className="ml-4 pl-4 border-l-2 border-gray-200 space-y-3">
+                            <h5 className="text-sm font-medium text-gray-600">Additional Questions for {cluster.name}:</h5>
+                            {field.subQuestions.map((subQuestion, subIndex) => {
+                              const subKey = `field_${actualFieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                              const subError = errors[subKey];
+
+                              return (
+                                <div key={subIndex}>
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <span className="text-blue-600 font-semibold">{questionNumber}.{subIndex + 1}</span> {subQuestion.label}
+                                    {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                                  </label>
+                                  {renderSubQuestion(subQuestion, actualFieldIndex, subIndex, cluster._id)}
+                                  {subError && (
+                                    <p className="mt-1 text-sm text-red-600">{subError}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                          
-                          <div className="space-y-3">
-                            <label className="block text-sm font-medium text-gray-700">
-                              {field.label} for {cluster.name}
-                              {field.required && <span className="text-red-500 ml-1">*</span>}
-                            </label>
-                            {renderField(field, fieldIndex, cluster._id)}
-                            {fieldError && (
-                              <p className="mt-1 text-sm text-red-600">{fieldError}</p>
-                            )}
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+  };
 
-                            {/* Render sub-questions for this cluster */}
-                            {shouldShowSubQuestions && (
-                              <div className="ml-4 pl-4 border-l-2 border-gray-200 space-y-3">
-                                <h5 className="text-sm font-medium text-gray-600">Additional Questions for {cluster.name}:</h5>
-                                {field.subQuestions.map((subQuestion, subIndex) => {
-                                  const subKey = `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
-                                  const subError = errors[subKey];
+  return (
+    <div className="space-y-8">
+      {/* Regular Form Fields */}
+      {form.fields && form.fields.length > 0 && (
+        <div>
+          {renderFieldsBySection(form.fields)}
+        </div>
+      )}
 
-                                  return (
-                                    <div key={subIndex}>
-                                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        {subQuestion.label}
-                                        {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
-                                      </label>
-                                      {renderSubQuestion(subQuestion, fieldIndex, subIndex, cluster._id)}
-                                      {subError && (
-                                        <p className="mt-1 text-sm text-red-600">{subError}</p>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+      {/* Sitting Ward Fields */}
+      {form.sittingWardFields && form.sittingWardFields.length > 0 && (
+        <div className="border-t-4 border-blue-500 pt-8">
+          <div className="mb-6 p-4 bg-blue-100 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <div>
+                <h2 className="text-xl font-bold text-blue-900">Sitting Ward Questions</h2>
+                <p className="text-sm text-blue-700">Additional questions specific to sitting wards</p>
               </div>
             </div>
-          );
-        }
-      })}
+          </div>
+          {renderFieldsBySection(form.sittingWardFields, 'sitting')}
+        </div>
+      )}
     </div>
   );
 }

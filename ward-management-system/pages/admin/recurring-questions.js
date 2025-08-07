@@ -50,6 +50,7 @@ export default function RecurringQuestions() {
     question: '',
     fieldType: 'text',
     options: [],
+    subQuestions: [],
     isRecurring: false,
     recurringCondition: 'until_yes',
     expectedValue: '',
@@ -100,6 +101,7 @@ export default function RecurringQuestions() {
       question: '',
       fieldType: 'text',
       options: [],
+      subQuestions: [],
       isRecurring: false,
       recurringCondition: 'until_yes',
       expectedValue: '',
@@ -131,6 +133,48 @@ export default function RecurringQuestions() {
       options = value.split('\n').map(opt => opt.trim()).filter(opt => opt);
     }
     setFormData({ ...formData, options });
+  };
+
+  // Sub-questions handling
+  const addSubQuestion = () => {
+    const newSubQuestion = {
+      fieldId: 'subfield_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36),
+      question: '',
+      fieldType: 'text',
+      options: [],
+      isRequired: false,
+      dependsOn: { parentAnswer: '' },
+      validation: { required: false },
+      priority: 0
+    };
+    setFormData({
+      ...formData,
+      subQuestions: [...formData.subQuestions, newSubQuestion]
+    });
+  };
+
+  const removeSubQuestion = (index) => {
+    const updatedSubQuestions = formData.subQuestions.filter((_, i) => i !== index);
+    setFormData({ ...formData, subQuestions: updatedSubQuestions });
+  };
+
+  const updateSubQuestion = (index, field, value) => {
+    const updatedSubQuestions = [...formData.subQuestions];
+    if (field === 'options') {
+      // Handle options similar to main question
+      let options;
+      if (value.includes(',') && !value.includes('\n')) {
+        options = value.split(',').map(opt => opt.trim()).filter(opt => opt);
+      } else {
+        options = value.split('\n').map(opt => opt.trim()).filter(opt => opt);
+      }
+      updatedSubQuestions[index][field] = options;
+    } else if (field === 'dependsOn.parentAnswer') {
+      updatedSubQuestions[index].dependsOn = { parentAnswer: value };
+    } else {
+      updatedSubQuestions[index][field] = value;
+    }
+    setFormData({ ...formData, subQuestions: updatedSubQuestions });
   };
 
   const handleCreateSubmit = async (e) => {
@@ -176,6 +220,7 @@ export default function RecurringQuestions() {
       question: question.question,
       fieldType: question.fieldType,
       options: question.options || [],
+      subQuestions: question.subQuestions || [],
       isRecurring: question.isRecurring,
       recurringCondition: question.recurringCondition || 'until_yes',
       expectedValue: question.expectedValue || '',
@@ -593,6 +638,122 @@ export default function RecurringQuestions() {
                 </p>
               </div>
             )}
+
+            {/* Sub-questions Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h4 className="text-lg font-medium text-gray-900">Sub-questions</h4>
+                  <p className="text-sm text-gray-600">Add follow-up questions that depend on the main question's answer</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addSubQuestion}
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Sub-question
+                </Button>
+              </div>
+
+              {formData.subQuestions.map((subQuestion, index) => (
+                <div key={index} className="bg-gray-50 p-4 rounded-lg mb-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <h5 className="text-sm font-medium text-gray-900">Sub-question {index + 1}</h5>
+                    <button
+                      type="button"
+                      onClick={() => removeSubQuestion(index)}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Question *
+                      </label>
+                      <textarea
+                        value={subQuestion.question}
+                        onChange={(e) => updateSubQuestion(index, 'question', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows="2"
+                        placeholder="Enter the sub-question text"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Field Type *
+                        </label>
+                        <select
+                          value={subQuestion.fieldType}
+                          onChange={(e) => updateSubQuestion(index, 'fieldType', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          {FIELD_TYPES.map(type => (
+                            <option key={type.value} value={type.value}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Show when parent answer is
+                        </label>
+                        <input
+                          type="text"
+                          value={subQuestion.dependsOn?.parentAnswer || ''}
+                          onChange={(e) => updateSubQuestion(index, 'dependsOn.parentAnswer', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Leave empty to always show"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          This sub-question will only appear if the main question has this specific answer
+                        </p>
+                      </div>
+                    </div>
+
+                    {['select', 'multiselect'].includes(subQuestion.fieldType) && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Options (comma-separated or one per line) *
+                        </label>
+                        <textarea
+                          value={subQuestion.options.join('\n')}
+                          onChange={(e) => updateSubQuestion(index, 'options', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          rows="3"
+                          placeholder="Option 1, Option 2, Option 3"
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id={`subRequired_${index}`}
+                        checked={subQuestion.isRequired}
+                        onChange={(e) => updateSubQuestion(index, 'isRequired', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor={`subRequired_${index}`} className="ml-2 block text-sm text-gray-900">
+                        Required field
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <div className="border-t border-gray-200 pt-6">
               <div className="flex items-center mb-4">

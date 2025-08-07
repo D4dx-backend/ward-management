@@ -24,6 +24,51 @@ const RecurringQuestionSchema = new mongoose.Schema({
       return ['select', 'multiselect'].includes(this.fieldType);
     },
   },
+  // Sub-questions support
+  subQuestions: [{
+    fieldId: {
+      type: String,
+      required: true,
+      default: function() {
+        return 'subfield_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36);
+      }
+    },
+    question: {
+      type: String,
+      required: true,
+    },
+    fieldType: {
+      type: String,
+      enum: ['text', 'number', 'select', 'multiselect', 'textarea', 'date', 'yesno', 'email', 'phone'],
+      required: true,
+    },
+    options: {
+      type: [String],
+      required: function() {
+        return ['select', 'multiselect'].includes(this.fieldType);
+      },
+    },
+    isRequired: {
+      type: Boolean,
+      default: false,
+    },
+    dependsOn: {
+      parentAnswer: mongoose.Schema.Types.Mixed, // Show this sub-question only if parent has this answer
+    },
+    validation: {
+      required: {
+        type: Boolean,
+        default: false,
+      },
+      min: Number,
+      max: Number,
+      pattern: String,
+    },
+    priority: {
+      type: Number,
+      default: 0,
+    }
+  }],
   // Recurring logic
   isRecurring: {
     type: Boolean,
