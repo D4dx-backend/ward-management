@@ -100,6 +100,13 @@ export const menuConfig = {
         { name: 'Cluster Visit Details', href: '/coordinator/cluster-visit-details', icon: '📍' }
       ]
     },
+    'Reports & Analytics': {
+      type: 'category',
+      icon: '📈',
+      items: [
+        { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' }
+      ]
+    },
     'Survey Status': {
       type: 'single',
       items: [
