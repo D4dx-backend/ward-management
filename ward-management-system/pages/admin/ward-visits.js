@@ -143,7 +143,7 @@ export default function AdminWardVisits() {
           followUpRequired: true,
           followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
           followUpCompleted: false,
-          attendees: 'Ward Admin, Local Representatives',
+          attendees: 'Ward Incharge, Local Representatives',
           remarks: 'Overall progress is satisfactory',
           createdAt: new Date().toISOString()
         },
@@ -157,7 +157,7 @@ export default function AdminWardVisits() {
           findings: 'Waste management system needs improvement. Good community participation.',
           recommendations: 'Implement new waste collection schedule. Increase community awareness.',
           followUpRequired: false,
-          attendees: 'Ward Admin, Community Leaders, Residents',
+          attendees: 'Ward Incharge, Community Leaders, Residents',
           remarks: 'Community is cooperative and engaged',
           createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
         },
@@ -173,7 +173,7 @@ export default function AdminWardVisits() {
           followUpRequired: true,
           followUpDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           followUpCompleted: false,
-          attendees: 'Ward Admin, Technical Team',
+          attendees: 'Ward Incharge, Technical Team',
           remarks: 'Good progress on previous issues',
           createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
         }

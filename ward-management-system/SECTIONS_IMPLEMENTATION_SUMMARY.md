@@ -5,18 +5,18 @@ This document summarizes the implementation of the requested sections to ensure 
 
 ## ✅ Implemented Features
 
-### 1. Ward Visits Record Log in Ward Admin Menu
+### 1. Ward Visits Record Log in Ward Incharge Menu
 
 **Status**: ✅ **COMPLETED**
 
 **Implementation Details**:
-- **Navigation Menu**: Added "Ward Visits Record" to ward admin navigation menu
+- **Navigation Menu**: Added "Ward Visits Record" to Ward Incharge navigation menu
 - **Page Created**: `/ward/ward-visits.js` - Complete ward visits recording interface
-- **API Endpoint**: `/api/ward-visits/ward-admin.js` - Handles CRUD operations for ward admin visits
-- **Database Model**: Updated `WardVisit.js` model with `recordedBy` field to distinguish between coordinator and ward admin records
+- **API Endpoint**: `/api/ward-visits/ward-admin.js` - Handles CRUD operations for Ward Incharge visits
+- **Database Model**: Updated `WardVisit.js` model with `recordedBy` field to distinguish between coordinator and Ward Incharge records
 
 **Features**:
-- Ward admins can record visits by coordinators and officials to their ward
+- Ward Incharges can record visits by coordinators and officials to their ward
 - Comprehensive form with visit date, time, purpose, findings, recommendations
 - Follow-up tracking with due dates
 - Visit history with search and filter capabilities
@@ -91,7 +91,7 @@ const handleInputChange = (e) => {
 };
 ```
 
-### 3. Ward Admin "My Reports" Functionality
+### 3. Ward Incharge "My Reports" Functionality
 
 **Status**: ✅ **COMPLETED**
 
@@ -101,7 +101,7 @@ const handleInputChange = (e) => {
 - **Navigation**: "My Reports" menu item correctly points to `/ward/reports`
 
 **Features**:
-- Ward admins can view all their submitted reports
+- Ward Incharges can view all their submitted reports
 - Filter by week number and year
 - Proper role-based access control
 - Report details with form information, submission date, and status
@@ -111,11 +111,11 @@ const handleInputChange = (e) => {
 ```javascript
 // In /api/responses/index.js
 if (session.user.role === 'wardAdmin') {
-  // Ward admins can only see their own responses
+  // Ward Incharges can only see their own responses
   if (formType === 'wardReport') {
     query.respondent = session.user.id;
   } else {
-    // Ward admins can't see coordinator reports
+    // Ward Incharges can't see coordinator reports
     return res.status(403).json({ message: 'Forbidden' });
   }
 }
@@ -148,14 +148,14 @@ wardAdmin: [
 #### Ward Visits API
 - **Endpoint**: `/api/ward-visits/ward-admin.js`
 - **Methods**: GET, POST
-- **Authentication**: Ward admin role required
+- **Authentication**: Ward Incharge role required
 - **Features**: CRUD operations for ward visit records
 
 #### Responses API
 - **Endpoint**: `/api/responses/index.js`
 - **Methods**: GET, POST
 - **Authentication**: Role-based access control
-- **Features**: Proper filtering for ward admin reports
+- **Features**: Proper filtering for Ward Incharge reports
 
 ### Database Models
 
@@ -167,12 +167,12 @@ wardAdmin: [
 ## 🧪 Testing Checklist
 
 ### Ward Visits Record
-- [ ] Ward admin can access Ward Visits Record from navigation menu
-- [ ] Ward admin can record new visits with all required fields
+- [ ] Ward Incharge can access Ward Visits Record from navigation menu
+- [ ] Ward Incharge can record new visits with all required fields
 - [ ] Visit history displays correctly with proper formatting
 - [ ] Follow-up tracking works as expected
 - [ ] Form validation prevents invalid submissions
-- [ ] API properly restricts access to ward admins only
+- [ ] API properly restricts access to Ward Incharges only
 
 ### Ward Profile
 - [ ] Population field only accepts positive numbers
@@ -183,10 +183,10 @@ wardAdmin: [
 - [ ] Cancel operation resets form properly
 
 ### My Reports
-- [ ] Ward admin can access My Reports from navigation menu
+- [ ] Ward Incharge can access My Reports from navigation menu
 - [ ] Reports display correctly with proper filtering
 - [ ] Week number and year filters work
-- [ ] Only ward admin's own reports are visible
+- [ ] Only Ward Incharge's own reports are visible
 - [ ] Submit New Report link works correctly
 - [ ] Report details show accurate information
 
@@ -209,7 +209,7 @@ wardAdmin: [
 
 ## 📋 User Experience Improvements
 
-### Ward Admin Experience
+### Ward Incharge Experience
 1. **Streamlined Navigation**: Clear menu structure with logical grouping
 2. **Comprehensive Visit Recording**: Easy-to-use form with all necessary fields
 3. **Report Management**: Simple access to submitted reports with filtering
@@ -251,7 +251,7 @@ All requested sections have been successfully implemented and are working proper
 
 1. ✅ **Ward Visits Record Log**: Complete implementation with full CRUD functionality
 2. ✅ **Ward Profile Field Logic**: Fixed validation and input handling issues
-3. ✅ **My Reports for Ward Admin**: Proper filtering and display functionality
+3. ✅ **My Reports for Ward Incharge**: Proper filtering and display functionality
 
 The implementation follows best practices for:
 - **Security**: Role-based access control and input validation

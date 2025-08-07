@@ -70,7 +70,7 @@ export default function ClusterVisitDetails() {
         {
           id: 1,
           visitDate: new Date().toISOString(),
-          visitedBy: 'Ward Admin',
+          visitedBy: 'Ward Incharge',
           purpose: 'Routine inspection',
           findings: 'All households visited, no issues found',
           housesVisited: cluster.householdCount || 0,

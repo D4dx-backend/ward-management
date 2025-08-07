@@ -1,14 +1,14 @@
 # Docker Survey Static Form Implementation
 
 ## Overview
-The Docker Survey has been implemented as a static form that always shows the current ward status. Every ward admin can access and update their survey at any time, with the form displaying all questions with their current status.
+The Docker Survey has been implemented as a static form that always shows the current ward status. Every Ward Incharge can access and update their survey at any time, with the form displaying all questions with their current status.
 
 ## Key Features Implemented
 
 ### 1. Static Form Structure
 - **Always Available**: Every ward automatically gets a Docker Survey form
 - **Persistent Status**: Current status is always displayed for each question
-- **Real-time Updates**: Ward admins can update any question status at any time
+- **Real-time Updates**: Ward Incharges can update any question status at any time
 - **Default Initialization**: All questions start with "Not Started" status
 
 ### 2. Fixed Database Schema Issues
@@ -26,8 +26,8 @@ The Docker Survey has been implemented as a static form that always shows the cu
 
 ### 4. Enhanced API Endpoints
 
-#### `/api/docker-survey/my-ward` (Ward Admin Specific)
-- Automatically finds ward admin's assigned ward
+#### `/api/docker-survey/my-ward` (Ward Incharge Specific)
+- Automatically finds Ward Incharge's assigned ward
 - Creates survey if it doesn't exist
 - Initializes all questions with default status
 - Populates cluster visit data
@@ -80,7 +80,7 @@ Each question can have one of three statuses:
 
 ## User Experience
 
-### For Ward Admins
+### For Ward Incharges
 1. **Direct Access**: Navigate to "Docker Survey" in sidebar
 2. **Always Available**: Form is always accessible with current status
 3. **Easy Updates**: Click status buttons to change question status
@@ -151,7 +151,7 @@ const questionStatusSchema = {
 ## Setup Instructions
 
 ### For New Installations
-1. The system will automatically create Docker Surveys when ward admins first access them
+1. The system will automatically create Docker Surveys when Ward Incharges first access them
 2. All questions will be initialized with "Not Started" status
 3. Cluster visit data will be populated from existing clusters
 
@@ -179,7 +179,7 @@ const questionStatusSchema = {
 
 ## Benefits
 
-1. **Always Available**: Ward admins can access their survey anytime
+1. **Always Available**: Ward Incharges can access their survey anytime
 2. **Current Status Display**: Always shows the most up-to-date information
 3. **Easy Updates**: Simple interface for status changes
 4. **Progress Tracking**: Visual indicators of completion

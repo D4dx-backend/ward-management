@@ -1,7 +1,7 @@
 # Docker Survey Feature Implementation
 
 ## Overview
-The Docker Survey feature is a comprehensive survey system that allows ward admins to track the status of various survey questions, with visibility for coordinators and state admins. The feature includes docket survey questions, basic survey status, and cluster visit tracking.
+The Docker Survey feature is a comprehensive survey system that allows Ward Incharges to track the status of various survey questions, with visibility for coordinators and state admins. The feature includes docket survey questions, basic survey status, and cluster visit tracking.
 
 ## Features Implemented
 
@@ -20,7 +20,7 @@ The Docker Survey feature is a comprehensive survey system that allows ward admi
 - **GET**: Retrieves survey data for a specific ward
 - **PUT**: Updates survey question status, basic survey status, or cluster visits
 - Auto-creates survey if it doesn't exist
-- Populates ward and ward admin information
+- Populates ward and Ward Incharge information
 
 #### `/api/docker-survey/list.js`
 - **GET**: Lists all surveys with filtering based on user role
@@ -29,7 +29,7 @@ The Docker Survey feature is a comprehensive survey system that allows ward admi
 - Role-based filtering:
   - State Admin: All surveys
   - Coordinator: Only surveys from their assigned wards
-  - Ward Admin: Only their own survey
+  - Ward Incharge: Only their own survey
 
 #### `/api/docker-survey/export.js`
 - **GET**: Exports all survey data to CSV format (Admin only)
@@ -38,7 +38,7 @@ The Docker Survey feature is a comprehensive survey system that allows ward admi
 
 ### 3. User Interfaces
 
-#### Ward Admin Interface (`/ward/docker-survey`)
+#### Ward Incharge Interface (`/ward/docker-survey`)
 - **Tabbed Interface**: 
   - Docket Survey: All 14 questions with status management
   - Basic Survey: Single status tracking
@@ -63,7 +63,7 @@ The Docker Survey feature is a comprehensive survey system that allows ward admi
 - **System-wide Statistics**: Average completion rates and totals
 
 ### 4. Navigation Integration
-- Added "Docker Survey" link to ward admin navigation
+- Added "Docker Survey" link to Ward Incharge navigation
 - Added "Docker Surveys" link to coordinator and admin navigation
 - Consistent iconography and placement in sidebar
 
@@ -121,7 +121,7 @@ The system includes 14 predefined questions in Malayalam (exactly as specified i
 - **not_started**: Question/survey hasn't been started (Red)
 
 ### Security & Permissions
-- Ward admins can only access their own ward's survey
+- Ward Incharges can only access their own ward's survey
 - Coordinators can view surveys from their assigned wards
 - State admins have full access to all surveys
 - All endpoints require authentication
@@ -135,7 +135,7 @@ The system includes 14 predefined questions in Malayalam (exactly as specified i
 
 ## Usage Instructions
 
-### For Ward Admins
+### For Ward Incharges
 1. Navigate to "Docker Survey" in the sidebar
 2. Use the tabs to switch between Docket Survey, Basic Survey, and Cluster Visits
 3. Click status buttons to update question progress
@@ -166,7 +166,7 @@ The system includes 14 predefined questions in Malayalam (exactly as specified i
 - `pages/api/docker-survey/[wardId].js` - Ward-specific API
 - `pages/api/docker-survey/list.js` - List/statistics API
 - `pages/api/docker-survey/export.js` - Export API
-- `pages/ward/docker-survey.js` - Ward admin interface
+- `pages/ward/docker-survey.js` - Ward Incharge interface
 - `pages/coordinator/docker-surveys.js` - Coordinator interface
 - `pages/admin/docker-surveys.js` - Admin interface
 - `components/Layout.js` - Navigation updates

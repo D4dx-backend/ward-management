@@ -6,13 +6,13 @@ The instructions system has been significantly enhanced with advanced targeting,
 ## Key Features Implemented
 
 ### 1. Multi-Target Instructions
-- **Group Targeting**: Send to all coordinators, all ward admins, or specific groups
-- **Individual Targeting**: Send to specific coordinators, ward admins, or individual users
+- **Group Targeting**: Send to all coordinators, all Ward Incharges, or specific groups
+- **Individual Targeting**: Send to specific coordinators, Ward Incharges, or individual users
 - **Enhanced Targeting Options**:
   - `all_coordinators`: All coordinators group
-  - `all_ward_admins`: All ward admins group
+  - `all_ward_admins`: All Ward Incharges group
   - `specific_coordinators`: Specific coordinators group
-  - `specific_ward_admins`: Specific ward admins group
+  - `specific_ward_admins`: Specific Ward Incharges group
   - `individual_user`: Individual user targeting
 
 ### 2. Advanced Comment System
@@ -29,13 +29,13 @@ The instructions system has been significantly enhanced with advanced targeting,
 - **Coordinator View**:
   - All Instructions
   - For Coordinators (targeted specifically to coordinators)
-  - For Ward Admins (instructions they can see for ward admin guidance)
+  - For Ward Incharges (instructions they can see for Ward Incharge guidance)
   - Unread Messages
   - Read Messages
 
-- **Ward Admin View**:
+- **Ward Incharge View**:
   - All Instructions
-  - For Ward Admins (targeted specifically to ward admins)
+  - For Ward Incharges (targeted specifically to Ward Incharges)
   - From Coordinators (instructions from coordinator level)
   - Unread Messages
   - Read Messages
@@ -133,7 +133,7 @@ targetGroups: {
 
 ### Creating Targeted Instructions
 1. **For All Coordinators**: Set `targetGroups: 'all_coordinators'`
-2. **For Specific Ward Admins**: Set `targetGroups: 'specific_ward_admins'` and select wards
+2. **For Specific Ward Incharges**: Set `targetGroups: 'specific_ward_admins'` and select wards
 3. **Individual User**: Set `targetGroups: 'individual_user'` and select specific user
 
 ### Comment Management
@@ -153,7 +153,7 @@ targetGroups: {
 - **Clear Status**: Easy to see what's read vs unread
 - **Flexible Communication**: Choose appropriate comment type for response
 
-### For Ward Admins
+### For Ward Incharges
 - **Relevant Content**: See instructions targeted to their role
 - **Easy Navigation**: Tab-based interface for better organization
 - **Status Tracking**: Clear indication of new vs read instructions

@@ -100,7 +100,7 @@ async function fixUserIndexes() {
     });
     console.log('✅ Created district index (sparse)');
 
-    // 3. Fix any duplicate mobile numbers for coordinators/ward admins
+    // 3. Fix any duplicate mobile numbers for coordinators/Ward Incharges
     console.log('Checking for duplicate mobile numbers...');
     const duplicateMobiles = await User.aggregate([
       {
@@ -176,7 +176,7 @@ async function fixUserIndexes() {
         { role: 'stateAdmin', email: { $in: [null, ''] } },
         // State admin without password
         { role: 'stateAdmin', password: { $in: [null, ''] } },
-        // Coordinator/Ward admin without mobile number
+        // Coordinator/Ward Incharge without mobile number
         { 
           role: { $in: ['coordinator', 'wardAdmin'] }, 
           mobileNumber: { $in: [null, ''] } 

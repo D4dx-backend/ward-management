@@ -7,7 +7,7 @@ The Ward Visits Analysis had duplicate pages causing different views between liv
 ### **Duplicate Pages Found:**
 1. `/admin/ward-visits.js` - Admin view with comprehensive analysis
 2. `/coordinator/ward-visits.js` - Coordinator view for managing visits  
-3. `/ward/ward-visits.js` - Ward admin view for recording visits
+3. `/ward/ward-visits.js` - Ward Incharge view for recording visits
 
 ### **API Route Issues:**
 1. **Missing API endpoints** - The coordinator page was calling `/api/ward-visits` and `/api/wards/coordinator` but these didn't exist
@@ -41,8 +41,8 @@ Created `/admin/ward-visits-analysis.js` - A comprehensive Ward Visits Analysis 
 ### **Coordinator Pages:**
 - `/coordinator/ward-visits.js` - **FIXED: Now uses correct API endpoints**
 
-### **Ward Admin Pages:**
-- `/ward/ward-visits.js` - Ward admin recording page (unchanged)
+### **Ward Incharge Pages:**
+- `/ward/ward-visits.js` - Ward Incharge recording page (unchanged)
 
 ### **API Routes:**
 - `/api/admin/ward-visits.js` - Admin API (working)
@@ -65,7 +65,7 @@ Use `/admin/ward-visits-analysis` - This is the **REAL** implementation with:
 
 ### **For Recording Visits:**
 - **Coordinators:** Use `/coordinator/ward-visits` (now fixed)
-- **Ward Admins:** Use `/ward/ward-visits`
+- **Ward Incharges:** Use `/ward/ward-visits`
 
 ## Testing Checklist
 
@@ -76,7 +76,7 @@ Use `/admin/ward-visits-analysis` - This is the **REAL** implementation with:
 - [ ] Filtering works correctly for all parameters
 - [ ] Statistics calculate correctly based on filtered data
 - [ ] Coordinator can record new visits via `/coordinator/ward-visits`
-- [ ] Ward admin can record visits via `/ward/ward-visits`
+- [ ] Ward Incharge can record visits via `/ward/ward-visits`
 
 ## Environment Consistency
 

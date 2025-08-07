@@ -72,7 +72,7 @@ After reset, you should see:
 ## Technical Details
 
 ### Reset API Logic
-1. **Authentication**: Ensures only ward admins can reset
+1. **Authentication**: Ensures only Ward Incharges can reset
 2. **Ward Detection**: Gets user's assigned ward
 3. **Survey Deletion**: Removes existing survey document
 4. **Form Period Detection**: Queries FormTemplates for all state admin forms

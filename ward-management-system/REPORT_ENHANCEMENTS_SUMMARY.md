@@ -63,10 +63,10 @@ This document summarizes the enhancements made to the Ward Management System's r
 
 ### Coordinator:
 - Can view logs only from their assigned district
-- Filter by ward and ward admin users
-- Monitor ward admin activities under their supervision
+- Filter by ward and Ward Incharge users
+- Monitor Ward Incharge activities under their supervision
 
-### Ward Admin:
+### Ward Incharge:
 - Can only view their own activity logs
 - Limited to personal action history
 
@@ -157,10 +157,10 @@ This document summarizes the enhancements made to the Ward Management System's r
 
 ### For Coordinators:
 1. Access "Activity Logs" to monitor district activities
-2. Filter by ward or specific ward admin users
+2. Filter by ward or specific Ward Incharge users
 3. Monitor form submissions and report activities in your district
 
-### For Ward Admins:
+### For Ward Incharges:
 - Personal activity history available through standard reporting interfaces
 - All actions automatically logged for audit purposes
 

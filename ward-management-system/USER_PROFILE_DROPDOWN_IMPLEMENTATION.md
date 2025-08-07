@@ -46,7 +46,7 @@ This document outlines the implementation of a user profile dropdown in the top 
 - **User Information Display**: Shows user name, role, email, and district
 - **Profile Avatar**: Circular avatar with user's initial
 - **Account Settings Link**: Direct link to reset password/account settings
-- **Role-based Profile Link**: Shows "My Profile" for ward admins
+- **Role-based Profile Link**: Shows "My Profile" for Ward Incharges
 - **Sign Out Button**: Prominent sign out option
 - **Smooth Animations**: CSS transitions for open/close states
 - **Click Outside Handling**: Proper dropdown behavior
@@ -71,7 +71,7 @@ const handleMouseLeave = () => {
 const getRoleDisplayName = (role) => {
   switch (role) {
     case 'coordinator': return 'Coordinator';
-    case 'wardAdmin': return 'Ward Admin';
+    case 'wardAdmin': return 'Ward Incharge';
     case 'stateAdmin': return 'State Admin';
     default: return role;
   }
@@ -116,7 +116,7 @@ const getRoleDisplayName = (role) => {
 
 ### Information Display
 - **User Name**: Primary identification
-- **Role**: Formatted role display (e.g., "Ward Admin" instead of "wardAdmin")
+- **Role**: Formatted role display (e.g., "Ward Incharge" instead of "wardAdmin")
 - **Email**: User's email address (if available)
 - **District**: User's assigned district (if applicable)
 
@@ -173,7 +173,7 @@ className={`absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border bord
    - Confirmation behavior
 
 ### Role-specific Items:
-- **Ward Admin**: Additional "My Profile" link to `/ward/profile`
+- **Ward Incharge**: Additional "My Profile" link to `/ward/profile`
 
 ## Benefits
 

@@ -17,6 +17,9 @@ export default function WardClusterVisitStatus() {
   useEffect(() => {
     if (session?.user?.role === 'coordinator') {
       fetchWardClusterVisitData();
+    } else if (session?.user?.role && session.user.role !== 'coordinator') {
+      setIsLoading(false);
+      setError('This component is only available for coordinators');
     }
   }, [session]);
 
@@ -25,49 +28,15 @@ export default function WardClusterVisitStatus() {
       setIsLoading(true);
       setError('');
 
+      console.log('Fetching ward cluster visit data from API...');
       const response = await axios.get('/api/coordinator/ward-cluster-visits');
+      console.log('API response:', response.data);
+      
       setVisitData(response.data.wards || []);
     } catch (error) {
       console.error('Error fetching ward cluster visit data:', error);
-      setError('Failed to load ward cluster visit data');
-      
-      // Mock data for development
-      const mockData = [
-        {
-          _id: '1',
-          name: 'Ward 1',
-          wardNumber: 1,
-          totalClusters: 8,
-          visitedClusters: 6,
-          pendingClusters: 2,
-          visitPercentage: 75,
-          lastVisitDate: new Date().toISOString(),
-          status: 'good'
-        },
-        {
-          _id: '2',
-          name: 'Ward 2',
-          wardNumber: 2,
-          totalClusters: 12,
-          visitedClusters: 10,
-          pendingClusters: 2,
-          visitPercentage: 83,
-          lastVisitDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'excellent'
-        },
-        {
-          _id: '3',
-          name: 'Ward 3',
-          wardNumber: 3,
-          totalClusters: 6,
-          visitedClusters: 3,
-          pendingClusters: 3,
-          visitPercentage: 50,
-          lastVisitDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'average'
-        }
-      ];
-      setVisitData(mockData);
+      setError(`Failed to load ward cluster visit data: ${error.response?.data?.message || error.message}`);
+      setVisitData([]); // Set empty array instead of mock data
     } finally {
       setIsLoading(false);
     }
@@ -77,42 +46,20 @@ export default function WardClusterVisitStatus() {
     try {
       setSelectedWard(ward);
       
+      console.log(`Fetching cluster details for ward ${ward._id}...`);
       // Fetch detailed cluster visit data for this ward
       const response = await axios.get(`/api/coordinator/wards/${ward._id}/cluster-visits`);
+      console.log('Ward cluster details response:', response.data);
+      
       setWardClusterDetails(response.data.clusters || []);
       setShowWardModal(true);
     } catch (error) {
       console.error('Error fetching ward cluster details:', error);
       
-      // Mock cluster details
-      const mockClusters = [
-        {
-          _id: '1',
-          name: 'Cluster A',
-          status: 'visited',
-          lastVisited: new Date().toISOString(),
-          visitCount: 3,
-          householdCount: 45
-        },
-        {
-          _id: '2',
-          name: 'Cluster B',
-          status: 'visited',
-          lastVisited: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-          visitCount: 2,
-          householdCount: 38
-        },
-        {
-          _id: '3',
-          name: 'Cluster C',
-          status: 'pending',
-          lastVisited: null,
-          visitCount: 0,
-          householdCount: 52
-        }
-      ];
-      setWardClusterDetails(mockClusters);
-      setShowWardModal(true);
+      // Show error message instead of mock data
+      setError(`Failed to load cluster details: ${error.response?.data?.message || error.message}`);
+      setWardClusterDetails([]);
+      setShowWardModal(true); // Still show modal but with error message
     }
   };
 
@@ -147,6 +94,11 @@ export default function WardClusterVisitStatus() {
       day: 'numeric'
     });
   };
+
+  // Don't render for non-coordinators
+  if (session?.user?.role && session.user.role !== 'coordinator') {
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -196,7 +148,18 @@ export default function WardClusterVisitStatus() {
 
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <p className="text-sm">{error}</p>
+              <div className="flex justify-between items-start">
+                <p className="text-sm">{error}</p>
+                <button
+                  onClick={() => {
+                    setError('');
+                    fetchWardClusterVisitData();
+                  }}
+                  className="ml-3 text-sm text-red-600 hover:text-red-500 underline"
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           )}
 
@@ -314,7 +277,21 @@ export default function WardClusterVisitStatus() {
 
             <div className="space-y-3">
               <h4 className="font-medium text-gray-900">Cluster Details</h4>
-              {wardClusterDetails.map((cluster) => (
+              {wardClusterDetails.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">No cluster data available for this ward</p>
+                  <button
+                    onClick={() => handleWardClick(selectedWard)}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-500 underline"
+                  >
+                    Retry loading cluster details
+                  </button>
+                </div>
+              ) : (
+                wardClusterDetails.map((cluster) => (
                 <div
                   key={cluster._id}
                   className={`p-3 rounded-lg border ${
@@ -356,7 +333,8 @@ export default function WardClusterVisitStatus() {
                     </div>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-gray-200">

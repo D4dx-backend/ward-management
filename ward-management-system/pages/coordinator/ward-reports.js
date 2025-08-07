@@ -196,7 +196,7 @@ export default function CoordinatorWardReports() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Reports</h1>
-            <p className="mt-1 text-sm text-gray-600">Monitor ward progress reports submitted by ward admins in your district</p>
+            <p className="mt-1 text-sm text-gray-600">Monitor ward progress reports submitted by Ward Incharges in your district</p>
           </div>
           <Button
             onClick={() => fetchWardReports(false)}
@@ -394,7 +394,7 @@ export default function CoordinatorWardReports() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-blue-700">
-                <strong>Note:</strong> This page shows ward reports submitted by ward admins in your district.
+                <strong>Note:</strong> This page shows ward reports submitted by Ward Incharges in your district.
                 To view your own coordinator reports, go to <strong>Reports → My Reports</strong> in the navigation menu.
               </p>
             </div>

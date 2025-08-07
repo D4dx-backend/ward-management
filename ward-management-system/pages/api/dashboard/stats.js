@@ -106,7 +106,7 @@ export default async function handler(req, res) {
       const pastDaysOfYear = (currentDate - startOfYear) / 86400000;
       const currentWeek = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
       
-      // Get ward admins in coordinator's district
+      // Get Ward Incharges in coordinator's district
       const wardAdmins = await User.find({ 
         role: 'wardAdmin', 
         district: session.user.district 
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
           
           const submittedAdminIds = submittedThisWeek.map(r => r.respondent._id.toString());
           
-          // Find ward admins who haven't submitted this week
+          // Find Ward Incharges who haven't submitted this week
           const pendingAdmins = wardAdmins.filter(admin => 
             !submittedAdminIds.includes(admin._id.toString())
           );
@@ -284,20 +284,20 @@ export default async function handler(req, res) {
       stats.pendingReportsList = pendingReportsList;
 
     } else if (session.user.role === 'wardAdmin') {
-      // Ward Admin Dashboard Stats
+      // Ward Incharge Dashboard Stats
       
-      // Get ward admin's wards
+      // Get Ward Incharge's wards
       const userWards = await Ward.find({ wardAdmin: session.user.id });
       const wardIds = userWards.map(ward => ward._id);
       
-      // Get clusters count for the ward admin's wards
+      // Get clusters count for the Ward Incharge's wards
       const Cluster = require('../../../models/Cluster').default;
       const totalClusters = await Cluster.countDocuments({ 
         ward: { $in: wardIds } 
       });
       stats.clusters = totalClusters;
 
-      // Get instructions count for ward admin
+      // Get instructions count for Ward Incharge
       const ward = userWards[0]; // Get the first ward
       const instructionsCount = await Instruction.countDocuments({
         isActive: true,
@@ -309,7 +309,7 @@ export default async function handler(req, res) {
       });
       stats.instructions = instructionsCount;
 
-      // Get recent instructions for ward admin (last 3)
+      // Get recent instructions for Ward Incharge (last 3)
       const recentInstructions = await Instruction.find({
         isActive: true,
         $or: [
@@ -324,10 +324,10 @@ export default async function handler(req, res) {
 
       stats.recentInstructions = recentInstructions;
 
-      // Get the district from the ward admin's ward
+      // Get the district from the Ward Incharge's ward
       const userDistrict = userWards.length > 0 ? userWards[0].district : session.user.district;
 
-      // Count all reports submitted by this ward admin
+      // Count all reports submitted by this Ward Incharge
       const totalSubmittedReports = await Response.countDocuments({ 
         respondent: session.user.id 
       });
@@ -373,7 +373,7 @@ export default async function handler(req, res) {
         isSubmitted: false
       }));
 
-      // Get recent activity logs for ward admin (last 10)
+      // Get recent activity logs for Ward Incharge (last 10)
       const logs = await ActivityLog.find({
         $or: [
           { user: session.user.id },
@@ -391,7 +391,7 @@ export default async function handler(req, res) {
 
       recentLogs.push(...logs);
 
-      // Get recent reports by ward admin (last 10) - sorted by submission date, newest first
+      // Get recent reports by Ward Incharge (last 10) - sorted by submission date, newest first
       const reports = await Response.find({ respondent: session.user.id })
         .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name role')
@@ -412,7 +412,7 @@ export default async function handler(req, res) {
 
       recentReports.push(...transformedReports);
 
-      // Get recent login history for ward admin (last 10)
+      // Get recent login history for Ward Incharge (last 10)
       const logins = await LoginHistory.find({ user: session.user.id })
         .populate('user', 'name role')
         .populate({
@@ -424,6 +424,13 @@ export default async function handler(req, res) {
         .limit(10);
 
       recentLogins.push(...logins);
+
+      // Get ward visits count for Ward Incharge
+      const WardVisit = require('../../../models/WardVisit').default;
+      const wardVisitsCount = await WardVisit.countDocuments({ 
+        ward: { $in: wardIds }
+      });
+      stats.wardVisits = wardVisitsCount;
     }
 
     return res.status(200).json({
@@ -435,6 +442,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    return res.status(500).json({ message: 'Error fetching dashboard data' });
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      userRole: session?.user?.role,
+      userId: session?.user?.id
+    });
+    return res.status(500).json({ 
+      message: 'Error fetching dashboard data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 }

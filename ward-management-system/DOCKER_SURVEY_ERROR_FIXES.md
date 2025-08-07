@@ -90,7 +90,7 @@ The Docker Survey should now work properly with:
 
 ## Testing Recommendations
 
-1. **Ward Admin Access**: Verify ward admins can access their survey
+1. **Ward Incharge Access**: Verify Ward Incharges can access their survey
 2. **Status Updates**: Test changing question statuses
 3. **Basic Survey**: Test basic survey status changes
 4. **Cluster Visits**: Test cluster visit data updates
@@ -98,7 +98,7 @@ The Docker Survey should now work properly with:
 
 ## Key Features Working
 
-### For Ward Admins
+### For Ward Incharges
 - Access Docker Survey from sidebar
 - View all 14 Malayalam questions with current status
 - Update any question status at any time
@@ -111,4 +111,4 @@ The Docker Survey should now work properly with:
 - Track completion rates
 - Export data for analysis
 
-The Docker Survey is now functioning as a proper static form that maintains current status and allows real-time updates by ward admins.
+The Docker Survey is now functioning as a proper static form that maintains current status and allows real-time updates by Ward Incharges.

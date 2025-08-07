@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       const coordinatorWards = await Ward.find({ coordinator: session.user.id });
       const wardIds = coordinatorWards.map(ward => ward._id);
 
-      // Get all visits for these wards (both coordinator and ward admin recorded)
+      // Get all visits for these wards (both coordinator and Ward Incharge recorded)
       const visits = await WardVisit.find({ 
         ward: { $in: wardIds }
       })

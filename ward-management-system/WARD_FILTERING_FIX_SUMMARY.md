@@ -54,7 +54,7 @@ if (validClusterVisits.length !== survey.clusterVisits.length) {
 ## How to Debug
 
 ### Step 1: Access Debug Page
-1. Login as a ward admin
+1. Login as a Ward Incharge
 2. Navigate to: `/ward/debug-survey-clusters`
 3. This will show you:
    - How many clusters are in the survey document

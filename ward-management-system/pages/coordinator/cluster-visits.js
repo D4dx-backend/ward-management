@@ -110,7 +110,7 @@ export default function CoordinatorClusterVisits() {
           visited: visited,
           visitDate: visited && Math.random() > 0.3 ? new Date(weekStart.getTime() + Math.random() * 7 * 24 * 60 * 60 * 1000) : null,
           visitType: visitType,
-          recordedBy: visitType === 'coordinator' ? session?.user?.name || 'Current User' : 'Ward Admin',
+          recordedBy: visitType === 'coordinator' ? session?.user?.name || 'Current User' : 'Ward Incharge',
           canEdit: visitType === 'coordinator', // Only coordinator can edit their own visits
           visitDetails: visited ? {
             purpose: ['Routine monitoring', 'Data collection', 'Issue resolution', 'Community meeting'][Math.floor(Math.random() * 4)],
@@ -332,7 +332,7 @@ export default function CoordinatorClusterVisits() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Ward Admin Visits
+                  Ward Incharge Visits
                 </button>
                 <button
                   onClick={() => handleFilterChange('visitType', 'all')}
@@ -350,8 +350,8 @@ export default function CoordinatorClusterVisits() {
               {filters.visitType === 'coordinator'
                 ? 'Showing visits recorded by you as coordinator'
                 : filters.visitType === 'ward_admin'
-                ? 'Showing visits recorded by ward administrators'
-                : 'Showing all visits from both coordinators and ward administrators'
+                ? 'Showing visits recorded by Ward Inchargeistrators'
+                : 'Showing all visits from both coordinators and Ward Inchargeistrators'
               }
             </p>
           </div>
@@ -572,7 +572,7 @@ export default function CoordinatorClusterVisits() {
                                   ? 'bg-blue-100 text-blue-800' 
                                   : 'bg-purple-100 text-purple-800'
                               }`}>
-                                {cluster.visitType === 'coordinator' ? 'Coordinator' : 'Ward Admin'}
+                                {cluster.visitType === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
                               </span>
                             )}
                           </div>

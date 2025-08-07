@@ -10,17 +10,17 @@
 - ✅ API endpoints handle sitting ward forms correctly
 - ✅ Conditional display (only shows for wardReport type)
 
-### 2. ✅ **Ward Admin Cluster Creation Authorization**
+### 2. ✅ **Ward Incharge Cluster Creation Authorization**
 **Status: FIXED**
 
-**Issue:** Ward admins were getting "Unauthorized" error when creating clusters
+**Issue:** Ward Incharges were getting "Unauthorized" error when creating clusters
 **Root Cause:** Frontend only allowed `stateAdmin` and `coordinator` to see create buttons
 **Fix Applied:**
 ```javascript
 // Before: Only stateAdmin and coordinator could create
 {['stateAdmin', 'coordinator'].includes(session?.user?.role) && (
 
-// After: Ward admin can also create clusters
+// After: Ward Incharge can also create clusters
 {['stateAdmin', 'coordinator', 'wardAdmin'].includes(session?.user?.role) && (
 ```
 
@@ -36,7 +36,7 @@
 **Status: VERIFIED - Already Implemented**
 - ✅ Bulk create button present in cluster management
 - ✅ Bulk create modal implemented
-- ✅ Functionality working for ward admins
+- ✅ Functionality working for Ward Incharges
 
 ### 4. ✅ **Docket Survey Progress Calculation Fix**
 **Status: FIXED**
@@ -108,7 +108,7 @@ let totalCount = Object.keys(questions).length; // Only count docket survey ques
 ### ✅ **All Requirements Met:**
 
 1. **✅ Sitting Ward Feature**: Properly implemented in both create and edit forms
-2. **✅ Ward Admin Authorization**: Fixed - ward admins can now create clusters
+2. **✅ Ward Incharge Authorization**: Fixed - Ward Incharges can now create clusters
 3. **✅ Coordinator Name Optional**: Fixed - no longer mandatory
 4. **✅ Bulk Cluster Creation**: Already working properly
 5. **✅ Progress Calculation**: Fixed - only counts docket survey questions
@@ -118,7 +118,7 @@ let totalCount = Object.keys(questions).length; // Only count docket survey ques
 ### 🚀 **Ready for Production**
 
 All issues have been identified and resolved:
-- ✅ No authorization errors for ward admins
+- ✅ No authorization errors for Ward Incharges
 - ✅ Progress calculation is accurate (docket survey only)
 - ✅ Navigation and labels updated appropriately
 - ✅ Draft and publish workflow working correctly
@@ -126,7 +126,7 @@ All issues have been identified and resolved:
 
 ### 📋 **Testing Recommendations**
 
-1. **Cluster Creation**: Test ward admin can create clusters without authorization errors
+1. **Cluster Creation**: Test Ward Incharge can create clusters without authorization errors
 2. **Progress Calculation**: Verify progress only reflects docket survey completion
 3. **Navigation**: Confirm menu items show "Surveys" instead of "Docket Survey"
 4. **Draft Workflow**: Test save as draft → publish → unpublish flow

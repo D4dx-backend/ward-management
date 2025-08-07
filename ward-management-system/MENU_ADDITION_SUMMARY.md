@@ -11,7 +11,7 @@ The user management menu has been added to the **sidebar navigation** (not the d
   type: 'category',
   icon: '👥',
   items: [
-    { name: 'Ward Admins', href: '/coordinator/users', icon: '👤' }
+    { name: 'Ward Incharges', href: '/coordinator/users', icon: '👤' }
   ]
 }
 ```
@@ -20,15 +20,15 @@ The user management menu has been added to the **sidebar navigation** (not the d
 1. **Login as Coordinator**
 2. **Look at the left sidebar navigation**
 3. **Find "User Management" section** (with 👥 icon)
-4. **Click to expand** and see "Ward Admins" option
-5. **Click "Ward Admins"** to access the user management page
+4. **Click to expand** and see "Ward Incharges" option
+5. **Click "Ward Incharges"** to access the user management page
 
 ### **Navigation Hierarchy**:
 ```
 Coordinator Sidebar Menu:
 ├── 📊 Dashboard
 ├── 👥 User Management          ← NEW SECTION
-│   └── 👤 Ward Admins         ← NEW MENU ITEM
+│   └── 👤 Ward Incharges         ← NEW MENU ITEM
 ├── 📈 Reports
 │   ├── 📝 Submit Reports
 │   ├── 📈 My Reports
@@ -50,7 +50,7 @@ The "User Management" section is positioned **second in the menu**, right after 
 ### **Visual Appearance**:
 - **Category Header**: "User Management" with 👥 icon
 - **Expandable**: Click to expand/collapse the submenu
-- **Menu Item**: "Ward Admins" with 👤 icon
+- **Menu Item**: "Ward Incharges" with 👤 icon
 - **Active State**: Highlights when on the user management page
 - **Hover Effects**: Interactive hover states for better UX
 
@@ -71,6 +71,6 @@ The "User Management" section is positioned **second in the menu**, right after 
 2. Look at the **left sidebar**
 3. Find **"User Management"** section (👥 icon)
 4. Click to expand it
-5. Click **"Ward Admins"** to manage users
+5. Click **"Ward Incharges"** to manage users
 
 The menu is now properly integrated into the navigation system and will be visible to all coordinators!

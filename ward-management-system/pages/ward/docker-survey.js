@@ -49,7 +49,7 @@ export default function DockerSurvey() {
     if (session?.user?.id && session?.user?.role === 'wardAdmin') {
       fetchSurvey();
     } else if (session?.user?.role && session?.user?.role !== 'wardAdmin') {
-      setError('Access denied. Only ward admins can access this survey.');
+      setError('Access denied. Only Ward Incharges can access this survey.');
       setLoading(false);
     }
   }, [session]);
@@ -204,7 +204,7 @@ export default function DockerSurvey() {
             </h2>
             <p className="text-gray-600 mb-4">
               {error || (session?.user?.role !== 'wardAdmin' 
-                ? 'You must be a ward admin to access this survey.'
+                ? 'You must be a Ward Incharge to access this survey.'
                 : 'Unable to load your Docker Survey. You may not have a ward assigned.'
               )}
             </p>

@@ -30,7 +30,7 @@ export default async function handler(req, res) {
 
     const wardIds = coordinatorWards.map(ward => ward._id);
 
-    // Get all ward admins in coordinator's district
+    // Get all Ward Incharges in coordinator's district
     const wardAdmins = await User.find({
       role: 'wardAdmin',
       district: session.user.district
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
 
     const wardAdminIds = wardAdmins.map(admin => admin._id);
 
-    // Find instructions that target ward admins in this coordinator's district
+    // Find instructions that target Ward Incharges in this coordinator's district
     const instructions = await Instruction.find({
       isActive: true,
       $or: [
@@ -54,14 +54,14 @@ export default async function handler(req, res) {
     // For each instruction, get reading and reply statistics
     const instructionsWithStats = await Promise.all(
       instructions.map(async (instruction) => {
-        // Get all ward admins who should see this instruction
+        // Get all Ward Incharges who should see this instruction
         let targetWardAdmins = [];
         
         if (instruction.targetAudience === 'ward_admins') {
-          // All ward admins in coordinator's district
+          // All Ward Incharges in coordinator's district
           targetWardAdmins = wardAdmins;
         } else if (instruction.targetAudience === 'specific_wards' || instruction.targetAudience === 'ward_or_group') {
-          // Ward admins of specific wards
+          // Ward Incharges of specific wards
           const targetWards = await Ward.find({
             _id: { $in: instruction.targetWards },
             coordinator: session.user.id
@@ -72,17 +72,17 @@ export default async function handler(req, res) {
             .map(ward => ward.wardAdmin);
         }
 
-        // Get ward admin status details
+        // Get Ward Incharge status details
         const wardAdminStatus = await Promise.all(
           targetWardAdmins.map(async (admin) => {
             const ward = await Ward.findOne({ wardAdmin: admin._id });
             
-            // Check if this ward admin has read the instruction
+            // Check if this Ward Incharge has read the instruction
             const readRecord = instruction.readBy.find(record => 
               record.user.toString() === admin._id.toString()
             );
             
-            // Count replies from this ward admin
+            // Count replies from this Ward Incharge
             const replyCount = instruction.replies ? 
               instruction.replies.filter(reply => 
                 reply.user.toString() === admin._id.toString()

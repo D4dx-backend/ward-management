@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   await connectToDatabase();
 
   try {
-    // Get all ward admins in the coordinator's district
+    // Get all Ward Incharges in the coordinator's district
     const wardAdmins = await User.find({
       role: 'wardAdmin',
       district: session.user.district

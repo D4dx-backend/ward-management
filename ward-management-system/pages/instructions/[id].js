@@ -339,7 +339,7 @@ export default function InstructionDetail() {
                   Target: {
                     instruction.targetAudience === 'all' ? 'All Users' :
                     instruction.targetAudience === 'coordinators' ? 'All Coordinators' :
-                    instruction.targetAudience === 'ward_admins' ? 'All Ward Admins' :
+                    instruction.targetAudience === 'ward_admins' ? 'All Ward Incharges' :
                     instruction.targetAudience === 'specific_wards' ? `Specific Wards (${instruction.targetWards?.length || 0})` :
                     instruction.targetAudience === 'specific_coordinators' ? `Specific Coordinators (${instruction.targetCoordinators?.length || 0})` :
                     instruction.targetAudience === 'ward_or_group' ? `Ward/Group (${instruction.targetWards?.length || 0} wards)` :
@@ -350,7 +350,7 @@ export default function InstructionDetail() {
               {instruction.hierarchyStats && (
                 <div className="mt-2 text-xs text-blue-600">
                   <span className="bg-blue-100 px-2 py-1 rounded mr-2">
-                    Ward Admin Views: {instruction.hierarchyStats.wardAdminViews || 0}
+                    Ward Incharge Views: {instruction.hierarchyStats.wardAdminViews || 0}
                   </span>
                   <span className="bg-blue-100 px-2 py-1 rounded mr-2">
                     Coordinator Views: {instruction.hierarchyStats.coordinatorViews || 0}
@@ -486,7 +486,7 @@ export default function InstructionDetail() {
                               <div className="flex items-center space-x-2 text-xs text-gray-500">
                                 {reply.user?.role && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800">
-                                    {reply.user.role === 'wardAdmin' ? 'Ward Admin' : 
+                                    {reply.user.role === 'wardAdmin' ? 'Ward Incharge' : 
                                      reply.user.role === 'coordinator' ? 'Coordinator' : 
                                      reply.user.role === 'stateAdmin' ? 'State Admin' : reply.user.role}
                                   </span>
@@ -547,7 +547,7 @@ export default function InstructionDetail() {
                               <span className="text-xs text-gray-500">
                                 {threadReply.user?.role && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 mr-2">
-                                    {threadReply.user.role === 'wardAdmin' ? 'Ward Admin' : 
+                                    {threadReply.user.role === 'wardAdmin' ? 'Ward Incharge' : 
                                      threadReply.user.role === 'coordinator' ? 'Coordinator' : 
                                      threadReply.user.role === 'stateAdmin' ? 'State Admin' : threadReply.user.role}
                                   </span>

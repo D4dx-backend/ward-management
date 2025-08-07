@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
   
   if (!session || session.user.role !== 'wardAdmin') {
-    return res.status(401).json({ message: 'Unauthorized - Ward admin only' });
+    return res.status(401).json({ message: 'Unauthorized - Ward Incharge only' });
   }
 
   try {

@@ -126,7 +126,7 @@ export default function WardClusters() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Add ward ID to form data (will be auto-determined by API for ward admins)
+      // Add ward ID to form data (will be auto-determined by API for Ward Incharges)
       const response = await axios.post('/api/clusters', formData);
       setClusters([...clusters, response.data]);
       resetForm();

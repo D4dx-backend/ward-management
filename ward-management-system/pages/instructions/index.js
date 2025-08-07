@@ -345,7 +345,7 @@ export default function Instructions() {
   const getTargetAudienceLabel = (targetAudience) => {
     switch (targetAudience) {
       case 'ward_admins':
-        return 'Ward Admins';
+        return 'Ward Incharges';
       case 'coordinators':
         return 'Coordinators';
       case 'state_admins':
@@ -435,7 +435,7 @@ export default function Instructions() {
             }`}>
               {session.user.role === 'stateAdmin' ? 'State Admin' :
                session.user.role === 'coordinator' ? 'Coordinator' :
-               'Ward Admin'}
+               'Ward Incharge'}
             </span>
           </div>
         </div>

@@ -53,11 +53,11 @@ export default async function handler(req, res) {
           query.district = session.user.district;
         }
       } else if (session.user.role === 'wardAdmin') {
-        // Ward admins can only see their own responses
+        // Ward Incharges can only see their own responses
         if (formType === 'wardReport') {
           query.respondent = session.user.id;
         } else {
-          // Ward admins can't see coordinator reports
+          // Ward Incharges can't see coordinator reports
           return res.status(403).json({ message: 'Forbidden' });
         }
       }
@@ -165,9 +165,9 @@ export default async function handler(req, res) {
           return res.status(403).json({ message: 'Only coordinators can submit coordinator reports' });
         }
       } else if (formTemplate.formType === 'wardReport') {
-        // Only ward admins can submit ward reports
+        // Only Ward Incharges can submit ward reports
         if (session.user.role !== 'wardAdmin') {
-          return res.status(403).json({ message: 'Only ward admins can submit ward reports' });
+          return res.status(403).json({ message: 'Only Ward Incharges can submit ward reports' });
         }
         
         // Validate ward ID
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ message: 'Ward ID is required for ward reports' });
         }
         
-        // Check if ward exists and user is the ward admin
+        // Check if ward exists and user is the Ward Incharge
         const ward = await Ward.findById(wardId);
         
         if (!ward) {

@@ -1,13 +1,13 @@
-# Ward Admin Reports Display Issue - Fix Summary
+# Ward Incharge Reports Display Issue - Fix Summary
 
 ## Problem
-Ward admin submitted reports were not showing in the ward admin's report menu, even though the data was being stored correctly in the database.
+Ward Incharge submitted reports were not showing in the Ward Incharge's report menu, even though the data was being stored correctly in the database.
 
 ## Root Causes Identified
 
 ### 1. API Filtering Issue
 **File:** `pages/api/responses/index.js`
-**Problem:** The API was filtering ward reports by ward IDs instead of by the respondent (ward admin) who submitted them.
+**Problem:** The API was filtering ward reports by ward IDs instead of by the respondent (Ward Incharge) who submitted them.
 **Original Code:**
 ```javascript
 const userWards = await Ward.find({ wardAdmin: session.user.id });
@@ -49,14 +49,14 @@ setReports(response.data || []);
 ```
 
 ## Data Verification
-The debug showed that ward admin reports were being stored correctly:
+The debug showed that Ward Incharge reports were being stored correctly:
 - 14 total ward report responses in the database
-- Multiple ward admins had successfully submitted reports
+- Multiple Ward Incharges had successfully submitted reports
 - Data structure was correct with proper relationships to formTemplate, respondent, and ward
 
 ## Testing Results
 After the fixes:
-- API correctly returns only the ward admin's own submitted reports
+- API correctly returns only the Ward Incharge's own submitted reports
 - Frontend properly displays the report data
 - All table columns show correct information
 - Search and filtering work as expected
@@ -66,4 +66,4 @@ After the fixes:
 2. `pages/ward/reports.js` - Fixed field references and removed redundant filtering
 
 ## Impact
-Ward admins can now properly view their submitted reports in the reports menu, with all functionality (search, filter, view, edit) working correctly.
+Ward Incharges can now properly view their submitted reports in the reports menu, with all functionality (search, filter, view, edit) working correctly.

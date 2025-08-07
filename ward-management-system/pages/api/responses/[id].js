@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         }
         return res.status(200).json(response);
       } else if (session.user.role === 'wardAdmin') {
-        // Ward admins can only view their own responses
+        // Ward Incharges can only view their own responses
         if (response.respondent._id.toString() !== session.user.id) {
           return res.status(403).json({ error: 'Access denied' });
         }

@@ -331,11 +331,11 @@ export default function CoordinatorWardProfile() {
           </div>
         </Card>
 
-        {/* Ward Admin Information */}
+        {/* Ward Incharge Information */}
         {ward?.wardAdmin && (
           <Card>
             <div className="p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Ward Admin</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Ward Incharge</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>

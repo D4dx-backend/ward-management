@@ -1,14 +1,14 @@
-# Cluster Management Privileges for Ward Admins
+# Cluster Management Privileges for Ward Incharges
 
 ## Overview
-Updated the cluster management system to provide full cluster management privileges to ward admins for their own wards, while maintaining the existing admin/coordinator access to all clusters.
+Updated the cluster management system to provide full cluster management privileges to Ward Incharges for their own wards, while maintaining the existing admin/coordinator access to all clusters.
 
 ## Changes Made
 
 ### 1. New Ward-Specific Cluster Page
 **File**: `pages/ward/clusters.js`
-- Dedicated cluster management interface for ward admins
-- Shows only clusters belonging to the ward admin's ward
+- Dedicated cluster management interface for Ward Incharges
+- Shows only clusters belonging to the Ward Incharge's ward
 - Full CRUD operations (Create, Read, Update, Delete)
 - Clean, focused interface without ward selection (auto-filtered)
 - Search functionality within ward clusters
@@ -19,16 +19,16 @@ Updated the cluster management system to provide full cluster management privile
 - `pages/api/ward/clusters/[id].js` - Get, update, delete specific cluster
 
 **Features**:
-- Automatic ward filtering based on authenticated ward admin
-- Security: Ward admins can only access their own ward's clusters
+- Automatic ward filtering based on authenticated Ward Incharge
+- Security: Ward Incharges can only access their own ward's clusters
 - Validation: Prevents duplicate cluster numbers within the same ward
 - Full CRUD operations with proper error handling
 
 ### 3. Navigation Updates
 **File**: `components/Layout.js`
-- Changed ward admin navigation from "View Clusters" to "Manage Clusters"
+- Changed Ward Incharge navigation from "View Clusters" to "Manage Clusters"
 - Updated link from `/admin/clusters` to `/ward/clusters`
-- Ward admins now have dedicated cluster management access
+- Ward Incharges now have dedicated cluster management access
 
 ### 4. Docker Survey Integration
 **File**: `pages/api/docker-survey/[wardId].js`
@@ -48,7 +48,7 @@ Updated the cluster management system to provide full cluster management privile
 
 ## User Experience Improvements
 
-### For Ward Admins
+### For Ward Incharges
 - **Dedicated Interface**: Clean, focused cluster management page
 - **Full Control**: Can create, edit, and delete clusters in their ward
 - **Integrated Workflow**: Direct link from Docker Survey to cluster management
@@ -62,7 +62,7 @@ Updated the cluster management system to provide full cluster management privile
 ## Security Features
 
 ### Access Control
-- Ward admins can only access clusters in their assigned ward
+- Ward Incharges can only access clusters in their assigned ward
 - API endpoints validate ward ownership before any operations
 - Session-based authentication required for all operations
 
@@ -73,7 +73,7 @@ Updated the cluster management system to provide full cluster management privile
 
 ## API Endpoints Summary
 
-### Ward Admin Endpoints
+### Ward Incharge Endpoints
 - `GET /api/ward/clusters` - List ward's clusters
 - `POST /api/ward/clusters` - Create new cluster in ward
 - `GET /api/ward/clusters/[id]` - Get specific cluster
@@ -89,7 +89,7 @@ Updated the cluster management system to provide full cluster management privile
 
 ## Navigation Structure
 
-### Ward Admin Navigation
+### Ward Incharge Navigation
 ```
 - Dashboard
 - Report Forms
@@ -141,15 +141,15 @@ Updated the cluster management system to provide full cluster management privile
 
 ## Benefits
 
-1. **Empowered Ward Admins**: Can now fully manage their ward's cluster structure
+1. **Empowered Ward Incharges**: Can now fully manage their ward's cluster structure
 2. **Improved Workflow**: Seamless integration between Docker Survey and cluster management
-3. **Better Data Quality**: Ward admins can maintain accurate cluster information
+3. **Better Data Quality**: Ward Incharges can maintain accurate cluster information
 4. **Reduced Admin Burden**: Ward-level cluster management reduces central admin workload
 5. **Enhanced User Experience**: Role-appropriate interfaces and permissions
 
 ## Future Enhancements
 
-1. **Bulk Operations**: Add bulk create/update functionality for ward admins
+1. **Bulk Operations**: Add bulk create/update functionality for Ward Incharges
 2. **Cluster Analytics**: Add cluster-specific reporting and analytics
 3. **Mobile Optimization**: Improve mobile responsiveness for field use
 4. **Audit Trail**: Add detailed logging for cluster changes
@@ -169,4 +169,4 @@ Updated the cluster management system to provide full cluster management privile
 - `pages/ward/docker-survey.js`
 - `pages/admin/clusters/index.js`
 
-This update provides ward admins with the necessary tools to effectively manage their ward's cluster structure while maintaining security and data integrity across the system.
+This update provides Ward Incharges with the necessary tools to effectively manage their ward's cluster structure while maintaining security and data integrity across the system.

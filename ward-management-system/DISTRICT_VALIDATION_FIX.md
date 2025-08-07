@@ -1,7 +1,7 @@
 # District Validation Fix
 
 ## Issue
-Users were getting the error "District is required for ward admin" when creating or editing ward admin users, even though district should be optional for ward admins.
+Users were getting the error "District is required for Ward Incharge" when creating or editing Ward Incharge users, even though district should be optional for Ward Incharges.
 
 ## Root Cause
 The validation was happening in the user edit form (`pages/admin/users/edit/[id].js`) where the district field was marked as required for all non-state admin users.
@@ -19,7 +19,7 @@ The validation was happening in the user edit form (`pages/admin/users/edit/[id]
 
 ## Verification
 - District field is now optional in user creation and editing
-- Ward admins can be created without specifying a district
+- Ward Incharges can be created without specifying a district
 - Existing functionality for coordinators remains intact
 - API endpoints already supported optional district field
 
@@ -33,7 +33,7 @@ The validation was happening in the user edit form (`pages/admin/users/edit/[id]
 
 ## Testing
 After this fix:
-1. ✅ Ward admins can be created without district
-2. ✅ Ward admins can be edited without district requirement
+1. ✅ Ward Incharges can be created without district
+2. ✅ Ward Incharges can be edited without district requirement
 3. ✅ District can still be provided if needed
 4. ✅ Coordinators can still use district field as before

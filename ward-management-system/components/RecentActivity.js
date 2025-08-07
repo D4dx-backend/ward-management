@@ -98,7 +98,7 @@ const RecentActivity = ({ logs = [], title = "Recent Activity", userRole = "stat
       case 'coordinator':
         return '/coordinator/logs';
       case 'wardAdmin':
-        return '/ward/logs'; // Ward admins can view their activity logs
+        return '/ward/logs'; // Ward Incharges can view their activity logs
       default:
         return '/admin/logs';
     }

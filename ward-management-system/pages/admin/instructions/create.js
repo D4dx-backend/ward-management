@@ -149,7 +149,7 @@ export default function CreateInstruction() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Create New Instruction</h1>
-          <p className="mt-1 text-sm text-gray-600">Create instructions or documents for coordinators and ward admins</p>
+          <p className="mt-1 text-sm text-gray-600">Create instructions or documents for coordinators and Ward Incharges</p>
         </div>
 
         {error && (
@@ -208,7 +208,7 @@ export default function CreateInstruction() {
                 >
                   <option value="all">All Users</option>
                   <option value="coordinators">Coordinators Only</option>
-                  <option value="ward_admins">Ward Admins Only</option>
+                  <option value="ward_admins">Ward Incharges Only</option>
                 </select>
               </div>
 

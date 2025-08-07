@@ -26,18 +26,18 @@
 - Standardized button layouts and spacing
 - Added consistent hover effects and transitions
 
-### 3. ✅ Cluster Access Control for Ward Admins
-**Problem**: Ward admins could create/edit clusters, but should only view them
+### 3. ✅ Cluster Access Control for Ward Incharges
+**Problem**: Ward Incharges could create/edit clusters, but should only view them
 **Solution**:
 - Updated `pages/admin/clusters/index.js` to restrict create/edit access
 - Changed button visibility from `['stateAdmin', 'wardAdmin']` to `['stateAdmin', 'coordinator']`
-- Added "View Only" indicator for ward admins
-- Updated Layout navigation to show "View Clusters" instead of "Clusters" for ward admins
+- Added "View Only" indicator for Ward Incharges
+- Updated Layout navigation to show "View Clusters" instead of "Clusters" for Ward Incharges
 
 **Access Control**:
 - **State Admin**: Full access (create, edit, delete)
 - **Coordinator**: Can create and edit clusters
-- **Ward Admin**: View only access with clear indicator
+- **Ward Incharge**: View only access with clear indicator
 
 ### 4. ✅ Clickable Dashboard Tiles
 **Problem**: Dashboard stats cards and reports were not clickable
@@ -49,7 +49,7 @@
 **Clickable Elements**:
 - **State Admin Dashboard**: Users → /admin/users, Wards → /admin/wards, Forms → /admin/forms, Reports → /admin/reports
 - **Coordinator Dashboard**: Wards → /coordinator/wards, Reports → /coordinator/ward-reports
-- **Ward Admin Dashboard**: Reports → /ward/reports, Pending → /ward/reports/submit, Ward Profile → /ward/basic-data
+- **Ward Incharge Dashboard**: Reports → /ward/reports, Pending → /ward/reports/submit, Ward Profile → /ward/basic-data
 - **Pending Reports**: Navigate to appropriate report pages
 - **Recent Activity**: Navigate to reports pages
 
@@ -72,7 +72,7 @@
 
 ### Component Updates
 1. **StatsCard.js**: Added clickability with hover effects and navigation arrows
-2. **Layout.js**: Updated ward admin navigation to show "View Clusters"
+2. **Layout.js**: Updated Ward Incharge navigation to show "View Clusters"
 3. **ward/reports/submit.js**: Complete styling overhaul to match coordinator page
 4. **admin/clusters/index.js**: Implemented role-based access control
 5. **ward/basic-data.js**: Fixed form loading and data fetching logic

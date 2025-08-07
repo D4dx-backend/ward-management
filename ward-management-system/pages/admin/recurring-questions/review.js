@@ -424,7 +424,7 @@ export default function ReviewRecurringQuestions() {
                                     ? 'bg-blue-100 text-blue-800' 
                                     : 'bg-green-100 text-green-800'
                                 }`}>
-                                  {response.formType === 'coordinatorReport' ? 'Coordinator' : 'Ward Admin'}
+                                  {response.formType === 'coordinatorReport' ? 'Coordinator' : 'Ward Incharge'}
                                 </span>
                               </td>
                               <td className="px-6 py-4">

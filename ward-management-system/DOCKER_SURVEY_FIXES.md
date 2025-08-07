@@ -1,16 +1,16 @@
 # Docker Survey Loading Issue Fixes
 
 ## Problem Identified
-The Docker Survey page was stuck in an infinite loading state for ward admins because:
-1. The page was trying to access `session.user.ward` which doesn't exist for ward admins
-2. Ward admins have their ward assigned through the Ward model's `wardAdmin` field, not directly on the user object
+The Docker Survey page was stuck in an infinite loading state for Ward Incharges because:
+1. The page was trying to access `session.user.ward` which doesn't exist for Ward Incharges
+2. Ward Incharges have their ward assigned through the Ward model's `wardAdmin` field, not directly on the user object
 3. The API endpoint required a ward ID parameter that wasn't being provided correctly
 
 ## Solutions Implemented
 
-### 1. New API Endpoint for Ward Admins
+### 1. New API Endpoint for Ward Incharges
 **File**: `pages/api/docker-survey/my-ward.js`
-- Created a dedicated endpoint that automatically finds the ward admin's assigned ward
+- Created a dedicated endpoint that automatically finds the Ward Incharge's assigned ward
 - Eliminates the need to pass ward ID from the frontend
 - Includes proper authentication and role checking
 - Auto-creates survey if it doesn't exist with cluster data
@@ -38,7 +38,7 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 
 ## Key Features
 
-### For Ward Admins
+### For Ward Incharges
 - **Automatic Ward Detection**: No need to specify ward ID
 - **Real-time Updates**: Changes save immediately with visual feedback
 - **Cluster Integration**: Auto-populates cluster visit tracking
@@ -61,7 +61,7 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 ## Technical Improvements
 
 ### API Enhancements
-- **Automatic Ward Resolution**: Server-side ward lookup for ward admins
+- **Automatic Ward Resolution**: Server-side ward lookup for Ward Incharges
 - **Proper Error Handling**: Comprehensive error responses
 - **Data Validation**: Input validation and sanitization
 - **Performance Optimization**: Efficient database queries
@@ -79,7 +79,7 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 
 ## User Experience Enhancements
 
-### Ward Admin Experience
+### Ward Incharge Experience
 1. **Seamless Access**: Direct access without configuration
 2. **Intuitive Interface**: Clear tabs and organized sections
 3. **Real-time Feedback**: Immediate status updates
@@ -100,7 +100,7 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 ## Files Modified/Created
 
 ### New Files
-- `pages/api/docker-survey/my-ward.js` - Ward admin specific API endpoint
+- `pages/api/docker-survey/my-ward.js` - Ward Incharge specific API endpoint
 - `DOCKER_SURVEY_FIXES.md` - This documentation
 
 ### Modified Files
@@ -110,7 +110,7 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 
 ## Testing Recommendations
 
-1. **Ward Admin Access**: Verify ward admins can access their survey without issues
+1. **Ward Incharge Access**: Verify Ward Incharges can access their survey without issues
 2. **Data Persistence**: Ensure status changes are saved correctly
 3. **Cluster Integration**: Test cluster visit data updates
 4. **Role-based Access**: Verify proper access control for different roles
@@ -124,4 +124,4 @@ The Docker Survey page was stuck in an infinite loading state for ward admins be
 4. **Mobile Optimization**: Enhanced mobile experience
 5. **Audit Trail**: Detailed change history and audit logs
 
-The Docker Survey system now provides a robust, user-friendly interface for ward admins to manage their surveys while giving coordinators and state admins comprehensive oversight and monitoring capabilities.
+The Docker Survey system now provides a robust, user-friendly interface for Ward Incharges to manage their surveys while giving coordinators and state admins comprehensive oversight and monitoring capabilities.

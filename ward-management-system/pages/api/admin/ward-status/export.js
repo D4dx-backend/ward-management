@@ -62,7 +62,7 @@ async function exportWardStatus(res) {
   // Process each ward to get status information
   const wardStatusData = await Promise.all(
     wards.map(async (ward) => {
-      // Get last login for ward admin
+      // Get last login for Ward Incharge
       const lastLogin = await LoginHistory.findOne({
         user: ward.wardAdmin?._id,
         isActive: false
@@ -101,9 +101,9 @@ async function exportWardStatus(res) {
         'Coordinator ID': ward.coordinator._id.toString(),
         'Coordinator Name': ward.coordinator.name,
         'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-        'Ward Admin ID': ward.wardAdmin?._id.toString() || '',
-        'Ward Admin Name': ward.wardAdmin?.name || '',
-        'Ward Admin Mobile': ward.wardAdmin?.mobileNumber || '',
+        'Ward Incharge ID': ward.wardAdmin?._id.toString() || '',
+        'Ward Incharge Name': ward.wardAdmin?.name || '',
+        'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
         'Last Login': lastLoginDate ? new Date(lastLoginDate).toLocaleString() : 'Never',
         'Days Since Login': daysSinceLogin || 'N/A',
         'Status': statusColor,
@@ -147,9 +147,9 @@ async function exportRelationships(res) {
           'Coordinator MongoDB ID': ward.coordinator._id.toString(),
           'Coordinator Name': ward.coordinator.name,
           'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-          'Ward Admin MongoDB ID': ward.wardAdmin?._id.toString() || '',
-          'Ward Admin Name': ward.wardAdmin?.name || '',
-          'Ward Admin Mobile': ward.wardAdmin?.mobileNumber || '',
+          'Ward Incharge MongoDB ID': ward.wardAdmin?._id.toString() || '',
+          'Ward Incharge Name': ward.wardAdmin?.name || '',
+          'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
           'Cluster MongoDB ID': '',
           'Cluster Name': '',
           'Cluster Number': '',
@@ -167,9 +167,9 @@ async function exportRelationships(res) {
         'Coordinator MongoDB ID': ward.coordinator._id.toString(),
         'Coordinator Name': ward.coordinator.name,
         'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-        'Ward Admin MongoDB ID': ward.wardAdmin?._id.toString() || '',
-        'Ward Admin Name': ward.wardAdmin?.name || '',
-        'Ward Admin Mobile': ward.wardAdmin?.mobileNumber || '',
+        'Ward Incharge MongoDB ID': ward.wardAdmin?._id.toString() || '',
+        'Ward Incharge Name': ward.wardAdmin?.name || '',
+        'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
         'Cluster MongoDB ID': cluster._id.toString(),
         'Cluster Name': cluster.name,
         'Cluster Number': cluster.clusterNumber,

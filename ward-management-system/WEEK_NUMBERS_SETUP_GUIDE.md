@@ -23,7 +23,7 @@ If no such forms exist, the system shows the old structure.
 2. This will create 5 test forms with proper week numbers
 3. You should see weeks like "Week 30, 2025", "Week 31, 2025" appear
 
-### Step 2B: If You're a Ward Admin
+### Step 2B: If You're a Ward Incharge
 1. Ask a state admin to create forms with proper week numbers
 2. Or ask them to use the forms manager to create test forms
 
@@ -94,7 +94,7 @@ const stateAdminForms = forms.filter(form =>
 1. Go to `/debug/forms-manager`
 2. Click "Create Test Forms"
 
-**For Ward Admin:**
+**For Ward Incharge:**
 1. After forms exist, go to Docker Survey
 2. Click "Reset Structure" button
 3. See actual week numbers appear

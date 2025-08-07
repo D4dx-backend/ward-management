@@ -179,7 +179,7 @@
 If you need test data for testing:
 
 1. Ensure you have some recurring questions created
-2. Ensure you have users (coordinators/ward admins) and wards
+2. Ensure you have users (coordinators/Ward Incharges) and wards
 3. As a stateAdmin, make a POST request to `/api/recurring-questions/test-data`
 4. This will create 20 sample responses for testing
 

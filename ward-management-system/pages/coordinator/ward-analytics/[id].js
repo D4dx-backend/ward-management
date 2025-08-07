@@ -162,7 +162,7 @@ export default function WardAnalytics() {
                   <div className="text-lg font-semibold text-gray-900">{wardData.district}</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600">Ward Admin</div>
+                  <div className="text-sm text-gray-600">Ward Incharge</div>
                   <div className="text-lg font-semibold text-gray-900">
                     {wardData.wardAdmin?.name || 'Not assigned'}
                   </div>

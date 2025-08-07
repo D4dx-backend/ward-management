@@ -88,7 +88,7 @@ export default async function handler(req, res) {
       
       // Ward-wise statistics CSV
       csvContent += 'Ward Statistics\n';
-      csvContent += 'Ward Name,Ward Number,Ward Admin,Total Forms,Submitted Forms,Pending Forms,Completion Rate,Last Submission\n';
+      csvContent += 'Ward Name,Ward Number,Ward Incharge,Total Forms,Submitted Forms,Pending Forms,Completion Rate,Last Submission\n';
       
       for (const ward of wards) {
         const wardSubmissions = [

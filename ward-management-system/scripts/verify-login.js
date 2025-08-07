@@ -55,10 +55,10 @@ async function verifyLogin() {
       }
     }
 
-    // Check Ward Admins (for reference)
+    // Check Ward Incharges (for reference)
     const wardAdmins = await User.find({ role: 'wardAdmin' });
     if (wardAdmins.length > 0) {
-      console.log('🏢 WARD ADMIN LOGIN(S):');
+      console.log('🏢 Ward Incharge LOGIN(S):');
       for (const admin of wardAdmins) {
         console.log(`   Name: ${admin.name}`);
         console.log(`   Mobile: ${admin.mobileNumber}`);

@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   }
   
   if (req.method === 'PUT') {
-    // Only state admins and ward admins can update clusters
+    // Only state admins and Ward Incharges can update clusters
     if (!['stateAdmin', 'wardAdmin'].includes(session.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
     }

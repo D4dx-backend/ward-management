@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     await connectToDatabase();
 
-    // Find ward admins without ward assignments
+    // Find Ward Incharges without ward assignments
     const wardAdmins = await User.find({ role: 'wardAdmin' });
     const wardsWithAdmins = await Ward.find({ wardAdmin: { $exists: true, $ne: null } });
     const assignedAdminIds = wardsWithAdmins.map(w => w.wardAdmin.toString());
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       !assignedAdminIds.includes(admin._id.toString())
     );
 
-    // Find wards without ward admins
+    // Find wards without Ward Incharges
     const wardsWithoutAdmins = await Ward.find({ 
       $or: [
         { wardAdmin: { $exists: false } },
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      message: 'Ward admin assignment check completed',
+      message: 'Ward Incharge assignment check completed',
       unassignedAdmins: unassignedAdmins.map(a => ({ name: a.name, email: a.email, id: a._id })),
       wardsWithoutAdmins: wardsWithoutAdmins.map(w => ({ name: w.name, id: w._id })),
       newAssignments: assignments,
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Ward admin fix error:', error);
+    console.error('Ward Incharge fix error:', error);
     return res.status(500).json({ 
       message: 'Fix failed', 
       error: error.message 

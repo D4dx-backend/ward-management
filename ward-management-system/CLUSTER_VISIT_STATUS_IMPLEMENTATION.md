@@ -1,7 +1,7 @@
 # Cluster Visit Status Implementation
 
 ## Overview
-Added a "Cluster Visit Status (Recent 4 Weeks)" component to the ward admin dashboard that tracks cluster visits over the past 4 weeks, focusing on the current week with a redesigned interface for ward admins.
+Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge Dashboard that tracks cluster visits over the past 4 weeks, focusing on the current week with a redesigned interface for Ward Incharges.
 
 ## Files Created/Modified
 
@@ -116,7 +116,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the ward admin dash
 
 ## Usage Instructions
 
-### For Ward Admins
+### For Ward Incharges
 1. **Dashboard Access**: Navigate to `/admin` to view the dashboard
 2. **Week Overview**: See 4 weeks of cluster visit data at a glance
 3. **Current Week Focus**: Current week is highlighted in blue
@@ -179,6 +179,6 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the ward admin dash
 
 ## Conclusion
 
-The Cluster Visit Status implementation provides ward admins with a comprehensive, user-friendly interface to monitor cluster visits over recent weeks. The focus on the current week, combined with clear visual indicators and detailed drill-down capabilities, makes it easy to identify areas needing attention and track overall performance trends.
+The Cluster Visit Status implementation provides Ward Incharges with a comprehensive, user-friendly interface to monitor cluster visits over recent weeks. The focus on the current week, combined with clear visual indicators and detailed drill-down capabilities, makes it easy to identify areas needing attention and track overall performance trends.
 
-The modular design allows for easy maintenance and future enhancements, while the robust API ensures reliable data delivery. The component successfully bridges the gap between high-level overview and detailed operational data, making it a valuable tool for ward administration.
+The modular design allows for easy maintenance and future enhancements, while the robust API ensures reliable data delivery. The component successfully bridges the gap between high-level overview and detailed operational data, making it a valuable tool for Ward Inchargeistration.

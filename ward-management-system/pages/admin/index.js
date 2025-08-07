@@ -155,6 +155,15 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-3">
                 <p className="text-sm">{error}</p>
+                <button 
+                  onClick={() => {
+                    setError('');
+                    refetch();
+                  }}
+                  className="mt-2 text-sm text-red-600 hover:text-red-500 underline"
+                >
+                  Try again
+                </button>
               </div>
             </div>
           </div>

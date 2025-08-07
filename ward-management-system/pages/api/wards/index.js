@@ -40,7 +40,7 @@ export default async function handler(req, res) {
           .populate('coordinator', 'name email')
           .populate('wardAdmin', 'name email');
       } else {
-        // Ward admin can only see their ward
+        // Ward Incharge can only see their ward
         wards = await Ward.find({ wardAdmin: session.user.id })
           .populate('coordinator', 'name email')
           .populate('wardAdmin', 'name email');
@@ -123,19 +123,19 @@ export default async function handler(req, res) {
         coordinator = coordinatorId;
       }
       
-      // Verify ward admin if provided
+      // Verify Ward Incharge if provided
       let wardAdmin = null;
       if (wardAdminId) {
         const wardAdminUser = await User.findById(wardAdminId);
         if (!wardAdminUser || wardAdminUser.role !== 'wardAdmin') {
-          return res.status(400).json({ message: 'Invalid ward admin ID' });
+          return res.status(400).json({ message: 'Invalid Ward Incharge ID' });
         }
         
-        // Check if this ward admin is already assigned to another ward
+        // Check if this Ward Incharge is already assigned to another ward
         const existingAssignment = await Ward.findOne({ wardAdmin: wardAdminId });
         if (existingAssignment) {
           return res.status(400).json({ 
-            message: `Ward admin ${wardAdminUser.name} is already assigned to ward "${existingAssignment.name}". Each ward admin can only be assigned to one ward.` 
+            message: `Ward Incharge ${wardAdminUser.name} is already assigned to ward "${existingAssignment.name}". Each Ward Incharge can only be assigned to one ward.` 
           });
         }
         
@@ -174,7 +174,7 @@ export default async function handler(req, res) {
       await newWard.save();
       console.log('Ward saved successfully:', newWard._id);
       
-      // Populate coordinator and ward admin details
+      // Populate coordinator and Ward Incharge details
       const savedWard = await Ward.findById(newWard._id)
         .populate('coordinator', 'name email')
         .populate('wardAdmin', 'name email');

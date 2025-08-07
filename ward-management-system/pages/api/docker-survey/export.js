@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       'Ward Number',
       'Panchayath',
       'District',
-      'Ward Admin',
+      'Ward Incharge',
       'Admin Email',
       'Completion Rate (%)',
       'Population Census',

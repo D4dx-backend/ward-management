@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // Only state admin, coordinators, and ward admins can access activity logs
+  // Only state admin, coordinators, and Ward Incharges can access activity logs
   if (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator' && session.user.role !== 'wardAdmin') {
     return res.status(403).json({ message: 'Forbidden' });
   }
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     if (session.user.role === 'coordinator') {
       query.district = session.user.district;
     } else if (session.user.role === 'wardAdmin') {
-      // Ward admins can only see their own activity logs
+      // Ward Incharges can only see their own activity logs
       query.user = session.user.id;
     }
 

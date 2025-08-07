@@ -1,7 +1,7 @@
 # Simplified User Creation System
 
 ## Overview
-The user creation system has been simplified to remove district and ward requirements for coordinators and ward admins, making it easier to create users with minimal information.
+The user creation system has been simplified to remove district and ward requirements for coordinators and Ward Incharges, making it easier to create users with minimal information.
 
 ## User Creation Requirements
 
@@ -15,15 +15,15 @@ The user creation system has been simplified to remove district and ward require
 
 ### Coordinator
 - ✅ **Name** (required)
-- ✅ **Mobile Number** (required, unique among coordinators/ward admins)
+- ✅ **Mobile Number** (required, unique among coordinators/Ward Incharges)
 - ✅ **PIN Code** (required, exactly 4 digits)
 - ❌ Email (not required)
 - ❌ Password (not required)
 - ❌ District (not required)
 
-### Ward Admin
+### Ward Incharge
 - ✅ **Name** (required)
-- ✅ **Mobile Number** (required, unique among coordinators/ward admins)
+- ✅ **Mobile Number** (required, unique among coordinators/Ward Incharges)
 - ✅ **PIN Code** (required, exactly 4 digits)
 - ❌ Email (not required)
 - ❌ Password (not required)
@@ -36,7 +36,7 @@ The user creation system has been simplified to remove district and ward require
 - **Method**: Email + Password
 - **Page**: `/auth/signin` (Email & Password tab)
 
-### Coordinator/Ward Admin Login
+### Coordinator/Ward Incharge Login
 - **Method**: Mobile Number + 4-Digit PIN
 - **Page**: `/auth/signin` (Mobile & PIN tab - default on mobile)
 
@@ -67,10 +67,10 @@ POST /api/users
 }
 ```
 
-**Ward Admin Example**:
+**Ward Incharge Example**:
 ```json
 {
-  "name": "Bob Ward Admin",
+  "name": "Bob Ward Incharge",
   "role": "wardAdmin",
   "mobileNumber": "9876543211",
   "pinCode": "5678"
@@ -81,13 +81,13 @@ POST /api/users
 
 ### Mobile Number
 - Must be at least 10 digits
-- Must be unique among coordinators and ward admins
-- Only required for coordinators and ward admins
+- Must be unique among coordinators and Ward Incharges
+- Only required for coordinators and Ward Incharges
 
 ### PIN Code
 - Must be exactly 4 digits
 - Must contain only numbers
-- Only required for coordinators and ward admins
+- Only required for coordinators and Ward Incharges
 
 ### Email
 - Must be valid email format
@@ -107,7 +107,7 @@ POST /api/users
 
 2. **Authentication Details** (dynamic based on role):
    - **State Admin**: Email + Password fields
-   - **Coordinator/Ward Admin**: Mobile Number + PIN Code fields
+   - **Coordinator/Ward Incharge**: Mobile Number + PIN Code fields
 
 3. **No Location Fields**: District and ward selection removed completely
 

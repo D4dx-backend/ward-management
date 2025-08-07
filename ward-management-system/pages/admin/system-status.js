@@ -104,7 +104,7 @@ export default function SystemStatus() {
       const wardAdmins = users.filter(u => u.role === 'wardAdmin').length;
       
       newStatus.users = 'healthy';
-      newDetails.users = `Users: ${stateAdmins} State Admins, ${coordinators} Coordinators, ${wardAdmins} Ward Admins`;
+      newDetails.users = `Users: ${stateAdmins} State Admins, ${coordinators} Coordinators, ${wardAdmins} Ward Incharges`;
     } catch (error) {
       newStatus.users = 'error';
       newDetails.users = `Users system error: ${error.message}`;
@@ -263,7 +263,7 @@ export default function SystemStatus() {
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    User Management (State Admin, Coordinator, Ward Admin)
+                    User Management (State Admin, Coordinator, Ward Incharge)
                   </li>
                   <li className="flex items-center text-green-600">
                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

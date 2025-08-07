@@ -87,7 +87,7 @@ export default function EditUser() {
       // Validate form
       if (formData.role !== 'stateAdmin') {
         if (!formData.mobileNumber) {
-          throw new Error('Mobile number is required for coordinators and ward admins');
+          throw new Error('Mobile number is required for coordinators and Ward Incharges');
         }
         
         if (formData.pinCode && formData.pinCode.length !== 4) {

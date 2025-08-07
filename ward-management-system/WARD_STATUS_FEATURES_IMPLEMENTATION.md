@@ -107,7 +107,7 @@ This document summarizes the implementation of the requested ward status feature
   },
   wardAdmin: {
     _id: "ward_admin_mongodb_id",
-    name: "Ward Admin Name",
+    name: "Ward Incharge Name",
     mobileNumber: "Mobile Number"
   },
   lastLogin: "2025-01-26T10:30:00.000Z",
@@ -166,7 +166,7 @@ if (daysSinceLogin >= 7) {
 #### Role-Based Access
 - **State Admin**: Full access to all wards and export functions
 - **Coordinator**: Access only to their assigned wards
-- **Ward Admin**: No access to ward status features (as per requirements)
+- **Ward Incharge**: No access to ward status features (as per requirements)
 
 #### API Security
 - Session-based authentication
@@ -202,7 +202,7 @@ pages/
 
 ### For Coordinators
 1. Navigate to "Ward Status" to view their ward statuses
-2. Monitor ward admin login activity
+2. Monitor Ward Incharge login activity
 3. Track report submission progress
 4. Export their ward data as needed
 

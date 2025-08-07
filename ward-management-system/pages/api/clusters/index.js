@@ -25,10 +25,10 @@ export default async function handler(req, res) {
       
       // Role-based filtering
       if (session.user.role === 'wardAdmin') {
-        // Ward admins can only see clusters in their ward
+        // Ward Incharges can only see clusters in their ward
         const ward = await Ward.findOne({ wardAdmin: session.user.id });
         if (!ward) {
-          console.log('Ward admin has no ward assigned:', session.user.id);
+          console.log('Ward Incharge has no ward assigned:', session.user.id);
           return res.status(200).json([]); // Return empty array instead of error
         }
         query.ward = ward._id;
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   }
   
   if (req.method === 'POST') {
-    // Only state admins, coordinators, and ward admins can create clusters
+    // Only state admins, coordinators, and Ward Incharges can create clusters
     if (!['stateAdmin', 'coordinator', 'wardAdmin'].includes(session.user.role)) {
       return res.status(403).json({ message: 'Forbidden - Invalid role' });
     }
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       
       console.log('Cluster creation request:', { name, clusterNumber, wardId, coordinator });
       
-      // For ward admins, auto-determine wardId from their assignment
+      // For Ward Incharges, auto-determine wardId from their assignment
       if (session.user.role === 'wardAdmin' && !wardId) {
         const userWard = await Ward.findOne({ wardAdmin: session.user.id });
         if (!userWard) {

@@ -77,7 +77,7 @@ export default function CoordinatorActivity() {
         {
           _id: '3',
           action: 'USER_CREATED',
-          details: 'Created new ward admin: Jane Smith',
+          details: 'Created new Ward Incharge: Jane Smith',
           user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
           timestamp: new Date(Date.now() - 7200000).toISOString(),
           ipAddress: '192.168.1.100'
@@ -85,7 +85,7 @@ export default function CoordinatorActivity() {
         {
           _id: '4',
           action: 'WARD_ADMIN_ASSIGNED',
-          details: 'Assigned ward admin to Panchayath Ward 2',
+          details: 'Assigned Ward Incharge to Panchayath Ward 2',
           user: { name: session?.user?.name || 'Current User', role: 'coordinator' },
           timestamp: new Date(Date.now() - 86400000).toISOString(),
           ipAddress: '192.168.1.100'
@@ -206,7 +206,7 @@ export default function CoordinatorActivity() {
                   <option value="USER_UPDATED">User Updated</option>
                   <option value="WARD_CREATED">Ward Created</option>
                   <option value="WARD_UPDATED">Ward Updated</option>
-                  <option value="WARD_ADMIN_ASSIGNED">Ward Admin Assigned</option>
+                  <option value="WARD_ADMIN_ASSIGNED">Ward Incharge Assigned</option>
                   <option value="REPORT_SUBMITTED">Report Submitted</option>
                   <option value="REPORT_REVIEWED">Report Reviewed</option>
                 </select>

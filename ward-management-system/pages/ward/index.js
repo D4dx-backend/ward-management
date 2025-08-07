@@ -94,7 +94,7 @@ export default function WardAdminDashboard() {
   };
 
   useEffect(() => {
-    // Check if user is authenticated and is ward admin
+    // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
@@ -218,7 +218,7 @@ export default function WardAdminDashboard() {
   return (
     <Layout>
       <Head>
-        <title>Ward Admin Dashboard - Ward Management System</title>
+        <title>Ward Incharge Dashboard - Ward Management System</title>
       </Head>
 
       <div className="min-h-screen bg-gray-50 p-6">
@@ -227,7 +227,7 @@ export default function WardAdminDashboard() {
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Ward Admin Dashboard</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Ward Incharge Dashboard</h1>
                 {userInfo?.ward?.isSittingWard && (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
                     🪑 Sitting Ward
@@ -262,7 +262,7 @@ export default function WardAdminDashboard() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
           {/* Reports Submitted */}
           <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -343,6 +343,28 @@ export default function WardAdminDashboard() {
               </svg>
             </div>
           </div>
+
+          {/* Ward Visits */}
+          <Link href="/ward/ward-visits" className="block">
+            <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <span className="text-indigo-600 text-lg">👥</span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Ward Visits</p>
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-gray-900">{stats?.wardVisits || 0}</p>
+                </div>
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
+          </Link>
         </div>
 
         {/* Cluster Visit Status - Recent 4 Weeks */}

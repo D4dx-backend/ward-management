@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
       // Process ward data with enhanced information
       const processedWards = wards.map(ward => {
-        // Get ward admin's last login
+        // Get Ward Incharge's last login
         const lastLogin = ward.wardAdmin?.lastLogin;
         const daysSinceLogin = lastLogin ? 
           Math.floor((new Date() - new Date(lastLogin)) / (1000 * 60 * 60 * 24)) : null;

@@ -89,14 +89,14 @@ export default function FixWardAssignments() {
   return (
     <Layout>
       <Head>
-        <title>Fix Ward Admin Assignments - Ward Management System</title>
+        <title>Fix Ward Incharge Assignments - Ward Management System</title>
       </Head>
 
       <div className="max-w-4xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Fix Ward Admin Assignments</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Fix Ward Incharge Assignments</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Check and fix duplicate ward admin assignments. Each ward admin should only be assigned to one ward.
+            Check and fix duplicate Ward Incharge assignments. Each Ward Incharge should only be assigned to one ward.
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export default function FixWardAssignments() {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Checking Ward Assignments...</h3>
-                  <p className="mt-2 text-sm text-gray-500">Please wait while we analyze the ward admin assignments.</p>
+                  <p className="mt-2 text-sm text-gray-500">Please wait while we analyze the Ward Incharge assignments.</p>
                 </div>
               </div>
             </div>
@@ -149,7 +149,7 @@ export default function FixWardAssignments() {
                 </div>
                 <div className="bg-green-50 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">{checkResult.summary.totalUniqueAdmins}</div>
-                  <div className="text-sm text-green-800">Unique Ward Admins</div>
+                  <div className="text-sm text-green-800">Unique Ward Incharges</div>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <div className="text-2xl font-bold text-yellow-600">{checkResult.summary.duplicateAdminsFound}</div>
@@ -193,7 +193,7 @@ export default function FixWardAssignments() {
               {/* Duplicate Assignments Details */}
               {checkResult.duplicateAssignments.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-md font-medium text-gray-900 mb-3">Ward Admins with Multiple Assignments:</h3>
+                  <h3 className="text-md font-medium text-gray-900 mb-3">Ward Incharges with Multiple Assignments:</h3>
                   <div className="space-y-3">
                     {checkResult.duplicateAssignments.map((duplicate, index) => (
                       <div key={index} className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg">
@@ -225,10 +225,10 @@ export default function FixWardAssignments() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-green-800">
-                        No duplicate ward admin assignments found!
+                        No duplicate Ward Incharge assignments found!
                       </p>
                       <p className="text-sm text-green-700 mt-1">
-                        All ward admins are correctly assigned to only one ward each.
+                        All Ward Incharges are correctly assigned to only one ward each.
                       </p>
                     </div>
                   </div>
@@ -324,10 +324,10 @@ export default function FixWardAssignments() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-green-800">
-                        No duplicate ward admin assignments found!
+                        No duplicate Ward Incharge assignments found!
                       </p>
                       <p className="text-sm text-green-700 mt-1">
-                        All ward admins are correctly assigned to only one ward each.
+                        All Ward Incharges are correctly assigned to only one ward each.
                       </p>
                     </div>
                   </div>

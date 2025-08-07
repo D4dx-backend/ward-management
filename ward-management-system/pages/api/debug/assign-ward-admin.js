@@ -30,10 +30,10 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'Ward not found' });
     }
 
-    // Verify admin exists and is a ward admin
+    // Verify admin exists and is a Ward Incharge
     const admin = await User.findById(adminId);
     if (!admin || admin.role !== 'wardAdmin') {
-      return res.status(400).json({ message: 'Invalid ward admin' });
+      return res.status(400).json({ message: 'Invalid Ward Incharge' });
     }
 
     // Check if admin is already assigned to another ward
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
     const updatedWard = await Ward.findById(wardId).populate('wardAdmin', 'name email');
 
     return res.status(200).json({
-      message: 'Ward admin assigned successfully',
+      message: 'Ward Incharge assigned successfully',
       ward: {
         id: updatedWard._id,
         name: updatedWard.name,
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Assign ward admin error:', error);
+    console.error('Assign Ward Incharge error:', error);
     return res.status(500).json({ 
       message: 'Assignment failed', 
       error: error.message 

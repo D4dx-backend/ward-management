@@ -11,17 +11,17 @@ async function debugWardAdmin() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Find all ward admin users
+    // Find all Ward Incharge users
     const wardAdmins = await User.find({ role: 'wardAdmin' }).select('name email mobileNumber');
-    console.log('\n=== Ward Admin Users ===');
-    console.log(`Found ${wardAdmins.length} ward admin users:`);
+    console.log('\n=== Ward Incharge Users ===');
+    console.log(`Found ${wardAdmins.length} Ward Incharge users:`);
     
     for (const admin of wardAdmins) {
       console.log(`- ${admin.name} (ID: ${admin._id})`);
       console.log(`  Email: ${admin.email || 'Not set'}`);
       console.log(`  Mobile: ${admin.mobileNumber || 'Not set'}`);
       
-      // Check if this ward admin is assigned to any ward
+      // Check if this Ward Incharge is assigned to any ward
       const assignedWard = await Ward.findOne({ wardAdmin: admin._id })
         .populate('coordinator', 'name')
         .select('name wardNumber panchayath district coordinator');
@@ -36,13 +36,13 @@ async function debugWardAdmin() {
       console.log('');
     }
 
-    // Check for wards without ward admins
+    // Check for wards without Ward Incharges
     const wardsWithoutAdmin = await Ward.find({ wardAdmin: { $exists: false } })
       .populate('coordinator', 'name')
       .select('name wardNumber panchayath district coordinator');
     
-    console.log('\n=== Wards Without Ward Admin ===');
-    console.log(`Found ${wardsWithoutAdmin.length} wards without ward admin:`);
+    console.log('\n=== Wards Without Ward Incharge ===');
+    console.log(`Found ${wardsWithoutAdmin.length} wards without Ward Incharge:`);
     
     for (const ward of wardsWithoutAdmin) {
       console.log(`- ${ward.name} (#${ward.wardNumber})`);
@@ -51,13 +51,13 @@ async function debugWardAdmin() {
       console.log('');
     }
 
-    // Check for wards with null ward admin
+    // Check for wards with null Ward Incharge
     const wardsWithNullAdmin = await Ward.find({ wardAdmin: null })
       .populate('coordinator', 'name')
       .select('name wardNumber panchayath district coordinator');
     
-    console.log('\n=== Wards With Null Ward Admin ===');
-    console.log(`Found ${wardsWithNullAdmin.length} wards with null ward admin:`);
+    console.log('\n=== Wards With Null Ward Incharge ===');
+    console.log(`Found ${wardsWithNullAdmin.length} wards with null Ward Incharge:`);
     
     for (const ward of wardsWithNullAdmin) {
       console.log(`- ${ward.name} (#${ward.wardNumber})`);

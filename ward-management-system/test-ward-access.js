@@ -11,21 +11,21 @@ async function testWardAccess() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Find a ward admin user
+    // Find a Ward Incharge user
     const wardAdmin = await User.findOne({ role: 'wardAdmin' });
     if (!wardAdmin) {
-      console.log('No ward admin found');
+      console.log('No Ward Incharge found');
       return;
     }
 
-    console.log(`Testing access for ward admin: ${wardAdmin.name} (ID: ${wardAdmin._id})`);
+    console.log(`Testing access for Ward Incharge: ${wardAdmin.name} (ID: ${wardAdmin._id})`);
 
-    // Find the ward assigned to this ward admin
+    // Find the ward assigned to this Ward Incharge
     const assignedWard = await Ward.findOne({ wardAdmin: wardAdmin._id });
     if (!assignedWard) {
-      console.log('❌ Ward admin is not assigned to any ward');
+      console.log('❌ Ward Incharge is not assigned to any ward');
       
-      // Check if there are any wards without ward admin
+      // Check if there are any wards without Ward Incharge
       const unassignedWards = await Ward.find({ 
         $or: [
           { wardAdmin: { $exists: false } },
@@ -35,18 +35,18 @@ async function testWardAccess() {
       
       if (unassignedWards.length > 0) {
         console.log(`Found unassigned ward: ${unassignedWards[0].name}`);
-        console.log('Assigning ward admin to this ward...');
+        console.log('Assigning Ward Incharge to this ward...');
         
         unassignedWards[0].wardAdmin = wardAdmin._id;
         await unassignedWards[0].save();
         
-        console.log('✅ Ward admin assigned successfully');
+        console.log('✅ Ward Incharge assigned successfully');
       }
       
       return;
     }
 
-    console.log(`✅ Ward admin is assigned to: ${assignedWard.name} (#${assignedWard.wardNumber})`);
+    console.log(`✅ Ward Incharge is assigned to: ${assignedWard.name} (#${assignedWard.wardNumber})`);
     console.log(`Ward ID: ${assignedWard._id}`);
 
     // Test the access verification logic

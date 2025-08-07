@@ -114,7 +114,7 @@ Coordinator Dashboard
 
 ### Before Redesign:
 - Generic ward list without cluster focus
-- Mixed report types (ward admin + coordinator)
+- Mixed report types (Ward Incharge + coordinator)
 - No cluster visit tracking
 - Limited drill-down capabilities
 

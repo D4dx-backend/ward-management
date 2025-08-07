@@ -23,7 +23,7 @@ This document outlines the implementation of advanced features for the Ward Mana
 - **Ward List View**: Shows only wards assigned to the coordinator
 - **Detailed Ward View**: Comprehensive ward information including:
   - Ward overview with population, households, area statistics
-  - Ward administrator contact information
+  - Ward Inchargeistrator contact information
   - Recent reports with status tracking
   - Cluster information and management links
   - Dynamic forms status and completion tracking
@@ -58,7 +58,7 @@ const [wardResponse, reportsResponse, clustersResponse, formsResponse] = await P
 ### 2. ✅ **Single Form Submission Restriction**
 
 #### **Requirement**: 
-- Form should only allow submission of one form per coordinator and ward admin
+- Form should only allow submission of one form per coordinator and Ward Incharge
 - Prevent multiple form submissions
 
 #### **Implementation**:
@@ -255,7 +255,7 @@ coordinator: [
 
 #### **Role-based Access Control**:
 - **Coordinators**: Can only access their assigned wards
-- **Ward Admins**: Can only submit one form
+- **Ward Incharges**: Can only submit one form
 - **Administrators**: Full access to visit analytics
 - **Data Isolation**: Users see only relevant data
 
@@ -281,7 +281,7 @@ coordinator: [
 3. **Trend Analysis**: Historical data and patterns
 4. **Actionable Insights**: Identify areas needing attention
 
-### **Ward Admin Experience**:
+### **Ward Incharge Experience**:
 1. **Simplified Form Process**: One form submission policy
 2. **Clear Status Indication**: Know when form is submitted
 3. **Data Preservation**: Access to previously submitted data

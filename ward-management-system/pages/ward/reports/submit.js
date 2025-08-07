@@ -39,7 +39,7 @@ export default function SubmitWardReport() {
   };
 
   useEffect(() => {
-    // Check if user is authenticated and is ward admin
+    // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
@@ -155,11 +155,11 @@ export default function SubmitWardReport() {
       
       setActiveForms(availableForms);
       
-      // Handle both response formats (array for ward admin, object for others)
+      // Handle both response formats (array for Ward Incharge, object for others)
       const wardsData = Array.isArray(wardsResponse.data) ? wardsResponse.data : (wardsResponse.data.wards || []);
       setUserWards(wardsData);
 
-      // Auto-select ward for ward admin
+      // Auto-select ward for Ward Incharge
       if (wardsData.length > 0) {
         setSelectedWard(wardsData[0]._id);
       }

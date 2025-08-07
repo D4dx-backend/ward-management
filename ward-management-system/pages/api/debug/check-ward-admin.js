@@ -27,12 +27,12 @@ export default async function handler(req, res) {
       userWard = await Ward.findOne({ wardAdmin: session.user.id });
     }
 
-    // Get all ward admins and their assignments
+    // Get all Ward Incharges and their assignments
     const allWardAdmins = await User.find({ role: 'wardAdmin' });
     const wardAssignments = await Ward.find({ wardAdmin: { $exists: true, $ne: null } })
       .populate('wardAdmin', 'name email');
 
-    // Find unassigned ward admins
+    // Find unassigned Ward Incharges
     const assignedAdminIds = wardAssignments.map(w => w.wardAdmin._id.toString());
     const unassignedAdmins = allWardAdmins.filter(admin => 
       !assignedAdminIds.includes(admin._id.toString())
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Check ward admin error:', error);
+    console.error('Check Ward Incharge error:', error);
     return res.status(500).json({ 
       message: 'Check failed', 
       error: error.message 

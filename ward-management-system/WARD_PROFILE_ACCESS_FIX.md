@@ -1,7 +1,7 @@
 # Ward Profile Access Fix
 
 ## Issue Description
-Ward admin users were getting "Access denied to this ward" error when trying to access their ward profile page.
+Ward Incharge users were getting "Access denied to this ward" error when trying to access their ward profile page.
 
 ## Root Cause
 The `verifyWardAccess` function in the ward profile API endpoints was incorrectly trying to populate a `ward` field on the User model, which doesn't exist. The correct approach is to find the ward where the user is assigned as `wardAdmin`.
@@ -40,11 +40,11 @@ Enhanced error handling and debugging to provide better error messages and loggi
 ## Access Control Logic
 1. **State Admin**: Access to all wards
 2. **Coordinator**: Access to wards where `coordinator` field matches user ID
-3. **Ward Admin**: Access to wards where `wardAdmin` field matches user ID
+3. **Ward Incharge**: Access to wards where `wardAdmin` field matches user ID
 
 ## Testing
 Created test scripts to verify:
-- Ward admin assignments are correct
+- Ward Incharge assignments are correct
 - Access verification logic works properly
 - Error handling provides useful feedback
 
@@ -54,8 +54,8 @@ Created test scripts to verify:
 - Created debug scripts for troubleshooting ward assignments
 
 ## Verification Steps
-1. Check that ward admin users are properly assigned to wards
-2. Verify that the ward profile page loads correctly for ward admins
+1. Check that Ward Incharge users are properly assigned to wards
+2. Verify that the ward profile page loads correctly for Ward Incharges
 3. Confirm that access control prevents unauthorized access
 4. Test PDF export functionality
 

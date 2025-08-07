@@ -70,7 +70,7 @@ const debugCoordinatorReports = async () => {
       } else {
         coordinatorWards.forEach(ward => {
           console.log(`    - ${ward.name} (${ward._id})`);
-          console.log(`      Ward Admin: ${ward.wardAdmin?.name || 'Not assigned'}`);
+          console.log(`      Ward Incharge: ${ward.wardAdmin?.name || 'Not assigned'}`);
         });
         
         // Find ward reports from these wards

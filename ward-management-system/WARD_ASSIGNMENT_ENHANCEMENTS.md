@@ -5,11 +5,11 @@ Enhanced the ward and user management system to better handle ward assignments w
 
 ## Key Enhancements Implemented
 
-### 1. Ward Admin Assignment Constraint
-- **One Ward Admin per Ward**: Each ward admin can only be assigned to one ward
-- **Smart Filtering**: Ward creation/editing only shows available ward admins (not already assigned)
-- **Visual Indicators**: Shows "Already Assigned" status for unavailable ward admins
-- **Edit Protection**: When editing a ward, the current ward admin remains selectable
+### 1. Ward Incharge Assignment Constraint
+- **One Ward Incharge per Ward**: Each Ward Incharge can only be assigned to one ward
+- **Smart Filtering**: Ward creation/editing only shows available Ward Incharges (not already assigned)
+- **Visual Indicators**: Shows "Already Assigned" status for unavailable Ward Incharges
+- **Edit Protection**: When editing a ward, the current Ward Incharge remains selectable
 
 ### 2. Coordinator Assignment Flexibility
 - **Multiple Ward Assignment**: Coordinators can be assigned to multiple wards
@@ -33,7 +33,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 
 ### 5. New Components
 - **`UserWardsModal`**: Comprehensive modal showing user ward assignments
-- **Enhanced Ward Form**: Improved ward admin selection with availability checking
+- **Enhanced Ward Form**: Improved Ward Incharge selection with availability checking
 
 ## Features by User Role
 
@@ -48,7 +48,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 - View their own ward assignments
 - No restrictions on ward assignment
 
-### Ward Admin
+### Ward Incharge
 - Can only be assigned to one ward at a time
 - Clear indication when already assigned to a ward
 - View their assigned ward details
@@ -56,7 +56,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 ## Technical Implementation
 
 ### Database Constraints
-- Ward admin uniqueness enforced at application level
+- Ward Incharge uniqueness enforced at application level
 - Proper filtering in ward creation/editing forms
 - Real-time availability checking
 
@@ -75,8 +75,8 @@ Enhanced the ward and user management system to better handle ward assignments w
 ### Creating a Ward
 1. Select district and panchayath
 2. Choose coordinator (all available)
-3. Choose ward admin (only unassigned ones shown)
-4. System prevents assigning already-assigned ward admins
+3. Choose Ward Incharge (only unassigned ones shown)
+4. System prevents assigning already-assigned Ward Incharges
 
 ### Viewing User Assignments
 1. Go to Users page
@@ -85,7 +85,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 4. Modal shows all assignments with full details
 
 ### Managing Ward Assignments
-- Ward admins show as "Already Assigned" when unavailable
+- Ward Incharges show as "Already Assigned" when unavailable
 - Coordinators can be assigned to multiple wards without restrictions
 - Clear feedback on assignment status
 
@@ -102,7 +102,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 - Intuitive interface for managing assignments
 
 ### For System Integrity
-- Prevents double-assignment of ward admins
+- Prevents double-assignment of Ward Incharges
 - Maintains data consistency
 - Provides audit trail of assignments
 
@@ -113,7 +113,7 @@ Enhanced the ward and user management system to better handle ward assignments w
 - `components/UserWardsModal.js` - Ward assignments modal component
 
 ### Modified Files
-- `pages/admin/wards/index.js` - Enhanced ward admin selection
+- `pages/admin/wards/index.js` - Enhanced Ward Incharge selection
 - `pages/admin/users/index.js` - Added ward counts and view wards functionality
 
 ## Future Enhancements

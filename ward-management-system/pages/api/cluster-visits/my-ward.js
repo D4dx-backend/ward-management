@@ -24,12 +24,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
-  // Only ward admins can access this endpoint
+  // Only Ward Incharges can access this endpoint
   if (session.user.role !== 'wardAdmin') {
-    return res.status(403).json({ message: 'Access denied - Ward admin role required' });
+    return res.status(403).json({ message: 'Access denied - Ward Incharge role required' });
   }
 
-  // Get the ward admin's ward
+  // Get the Ward Incharge's ward
   const ward = await Ward.findOne({ wardAdmin: session.user.id });
   
   if (!ward) {
@@ -165,12 +165,44 @@ export default async function handler(req, res) {
 
         console.log(`✅ Successfully updated ${updatedVisits.length} cluster visits`);
 
-        // Return updated data
-        const responseData = updatedVisits.map(cv => ({
+        // Get fresh data after update to ensure consistency
+        const freshClusterVisits = await ClusterVisit.find({ ward: ward._id })
+          .sort({ clusterName: 1 });
+
+        // Get form weeks again to ensure consistency
+        const FormTemplate = require('../../../models/FormTemplate').default;
+        const forms = await FormTemplate.find({})
+          .populate('createdBy', 'role')
+          .sort({ createdAt: -1 });
+
+        const stateAdminForms = forms.filter(form => 
+          form.createdBy && 
+          form.createdBy.role === 'stateAdmin' && 
+          form.weekNumber && 
+          form.year
+        );
+
+        const formWeeks = new Set();
+        stateAdminForms.forEach(form => {
+          formWeeks.add(`${form.year}-${form.weekNumber}`);
+        });
+
+        const sortedFormWeeks = Array.from(formWeeks)
+          .map(weekKey => {
+            const [year, weekNumber] = weekKey.split('-').map(Number);
+            return { year, weekNumber };
+          })
+          .sort((a, b) => {
+            if (a.year !== b.year) return b.year - a.year;
+            return b.weekNumber - a.weekNumber;
+          });
+
+        // Return fresh data in the same format as GET
+        const responseData = freshClusterVisits.map(cv => ({
           _id: cv._id,
           clusterId: cv.cluster,
           clusterName: cv.clusterName,
-          formWeeks: cv.formWeeks,
+          formWeeks: sortedFormWeeks,
           weeklyData: Object.fromEntries(cv.weeklyData),
           totalHouses: cv.totalHouses,
           totalDays: cv.totalDays,
@@ -183,7 +215,10 @@ export default async function handler(req, res) {
             name: ward.name,
             wardNumber: ward.wardNumber
           },
+          formWeeks: sortedFormWeeks,
           clusterVisits: responseData,
+          totalClusters: responseData.length,
+          totalWeeks: sortedFormWeeks.length,
           message: `Updated ${updatedVisits.length} cluster visits successfully`
         });
 

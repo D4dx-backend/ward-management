@@ -36,7 +36,7 @@ export default async function handler(req, res) {
           .sort({ name: 1 });
         
       } else if (session.user.role === 'wardAdmin') {
-        // Ward admins can only see their own wards
+        // Ward Incharges can only see their own wards
         wards = await Ward.find({ wardAdmin: session.user.id })
           .populate('wardAdmin', 'name email')
           .sort({ name: 1 });

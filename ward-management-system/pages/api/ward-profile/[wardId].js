@@ -109,12 +109,12 @@ async function verifyWardAccess(user, wardId) {
     }
 
     if (user.role === 'wardAdmin') {
-      // Check if ward admin is assigned to this ward
+      // Check if Ward Incharge is assigned to this ward
       const ward = await Ward.findOne({
         _id: wardId,
         wardAdmin: user.id
       });
-      console.log('Ward admin ward check result:', !!ward);
+      console.log('Ward Incharge ward check result:', !!ward);
       console.log('Ward found:', ward ? { id: ward._id, name: ward.name, wardAdmin: ward.wardAdmin } : null);
       return !!ward;
     }

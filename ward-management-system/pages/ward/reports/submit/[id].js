@@ -36,7 +36,7 @@ export default function SubmitSpecificWardReport() {
   };
 
   useEffect(() => {
-    // Check if user is authenticated and is ward admin
+    // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
@@ -133,7 +133,7 @@ export default function SubmitSpecificWardReport() {
       setForm(formData);
       setUserWards(wardsResponse.data);
 
-      // Auto-select ward for ward admin
+      // Auto-select ward for Ward Incharge
       if (wardsResponse.data.length > 0 && !existingResponse) {
         setSelectedWard(wardsResponse.data[0]._id);
       }

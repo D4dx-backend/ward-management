@@ -25,7 +25,7 @@ export default function WardActivityLogs() {
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    // Check if user is authenticated and is ward admin
+    // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
@@ -103,7 +103,7 @@ export default function WardActivityLogs() {
         if (match) {
           const filters = JSON.parse(match[1]);
           let parts = [];
-          
+
           if (filters.formType) {
             parts.push(`${filters.formType.replace('Report', ' Reports')}`);
           }
@@ -113,14 +113,14 @@ export default function WardActivityLogs() {
           if (filters.weekNumber) {
             parts.push(`week ${filters.weekNumber}`);
           }
-          
+
           return `Viewed ${parts.join(' ') || 'reports'}`;
         }
       } catch (e) {
         // If parsing fails, fall back to original description
       }
     }
-    
+
     return log.description;
   };
 

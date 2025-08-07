@@ -100,14 +100,14 @@ export default function CreateUser() {
         }
       } else {
         if (!formData.mobileNumber || !formData.pinCode) {
-          throw new Error('Mobile number and PIN code are required for coordinators and ward admins');
+          throw new Error('Mobile number and PIN code are required for coordinators and Ward Incharges');
         }
         
         if (formData.pinCode.length !== 4 || !/^\d+$/.test(formData.pinCode)) {
           throw new Error('PIN code must be exactly 4 digits');
         }
         
-        // No additional validation needed for ward admin
+        // No additional validation needed for Ward Incharge
       }
 
       // Submit form
@@ -234,7 +234,7 @@ export default function CreateUser() {
                 </div>
               )}
 
-              {/* Coordinator/Ward Admin Authentication */}
+              {/* Coordinator/Ward Incharge Authentication */}
               {(formData.role === 'coordinator' || formData.role === 'wardAdmin') && (
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Authentication Details</h3>

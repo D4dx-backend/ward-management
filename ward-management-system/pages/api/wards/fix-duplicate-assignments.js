@@ -23,12 +23,12 @@ export default async function handler(req, res) {
   await connectToDatabase();
 
   try {
-    // Find all wards with ward admins
+    // Find all wards with Ward Incharges
     const wards = await Ward.find({ wardAdmin: { $ne: null } })
       .populate('wardAdmin', 'name email')
       .sort({ createdAt: 1 }); // Sort by creation date, keep the oldest assignment
 
-    // Group wards by ward admin
+    // Group wards by Ward Incharge
     const wardAdminAssignments = {};
     const duplicateAssignments = [];
     const fixedAssignments = [];
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      message: 'Duplicate ward admin assignments check completed',
+      message: 'Duplicate Ward Incharge assignments check completed',
       duplicatesFound: duplicateAssignments.length,
       duplicateAssignments,
       fixedAssignments,

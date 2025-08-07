@@ -1,7 +1,7 @@
 # SIC Reports Accordion Implementation
 
 ## Overview
-This document outlines the conversion of the SIC Reports page from a tabbed interface to an accordion-style layout, similar to the ward admin interface, with pending reports expanded by default.
+This document outlines the conversion of the SIC Reports page from a tabbed interface to an accordion-style layout, similar to the Ward Incharge interface, with pending reports expanded by default.
 
 ## Changes Made
 

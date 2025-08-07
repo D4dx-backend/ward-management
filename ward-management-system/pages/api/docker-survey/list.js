@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       const wardIds = coordinatorWards.map(ward => ward._id);
       query.ward = { $in: wardIds };
     } else if (session.user.role === 'wardAdmin') {
-      // Get only this ward admin's survey
+      // Get only this Ward Incharge's survey
       const ward = await Ward.findOne({ wardAdmin: session.user.id });
       if (ward) {
         query.ward = ward._id;

@@ -34,7 +34,7 @@ export default async function handler(req, res) {
 
       const userObj = user.toObject();
 
-      // Get ward information for ward admins and coordinators
+      // Get ward information for Ward Incharges and coordinators
       if (user.role === 'coordinator' || user.role === 'wardAdmin') {
         const Ward = require('../../../models/Ward').default;
         const ward = await Ward.findOne({
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       if (mobileNumber !== undefined) {
         user.mobileNumber = mobileNumber || undefined;
 
-        // Check if mobile number is unique for coordinators and ward admins
+        // Check if mobile number is unique for coordinators and Ward Incharges
         if (mobileNumber && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
           const existingUserMobile = await User.findOne({
             _id: { $ne: id },
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
           }
         }
       } else if ((role === 'coordinator' || role === 'wardAdmin') && !user.mobileNumber) {
-        return res.status(400).json({ message: 'Mobile number is required for coordinators and ward admins' });
+        return res.status(400).json({ message: 'Mobile number is required for coordinators and Ward Incharges' });
       }
 
       // Update PIN code if provided

@@ -1,7 +1,7 @@
 # Ward Profile Enhancements Summary
 
 ## Overview
-Enhanced the Ward Profile system to display dynamic questions from state admin created forms (Ward Advanced Data Forms) and added PDF export functionality for coordinators and ward admins.
+Enhanced the Ward Profile system to display dynamic questions from state admin created forms (Ward Advanced Data Forms) and added PDF export functionality for coordinators and Ward Incharges.
 
 ## Key Features Implemented
 
@@ -12,13 +12,13 @@ Enhanced the Ward Profile system to display dynamic questions from state admin c
 - **Visual formatting** with proper styling for different question types (Yes/No, Select, Text, etc.)
 
 ### 2. PDF Export Functionality
-- **Export button** available for both ward admins and coordinators
+- **Export button** available for both Ward Incharges and coordinators
 - **Comprehensive PDF** includes all ward information, statistics, and advanced data
 - **Cluster data** included in exports when applicable
 - **Professional formatting** with proper styling and layout
 
 ### 3. Multi-Role Access
-- **Ward Admin**: Can view and export their own ward profile
+- **Ward Incharge**: Can view and export their own ward profile
 - **Coordinator**: Can view and export profiles of all wards under their supervision
 - **Access control** ensures users can only access authorized ward data
 
@@ -55,7 +55,7 @@ Enhanced the Ward Profile system to display dynamic questions from state admin c
 
 ### Data Structure
 - **Ward Basic Forms**: Dynamic forms created by state admin
-- **Ward Basic Data**: Responses to these forms by ward admins
+- **Ward Basic Data**: Responses to these forms by Ward Incharges
 - **Cluster Support**: Questions can be marked as cluster-applicable
 - **Response Storage**: Both ward-level and cluster-level responses
 
@@ -73,7 +73,7 @@ Enhanced the Ward Profile system to display dynamic questions from state admin c
 
 ## Usage Instructions
 
-### For Ward Admins
+### For Ward Incharges
 1. Navigate to **Ward Profile** from the sidebar
 2. View **Ward Statistics** section for dynamic questions
 3. See both ward-level and cluster-level responses
@@ -123,7 +123,7 @@ Enhanced the Ward Profile system to display dynamic questions from state admin c
 
 ## Testing Checklist
 
-### Ward Admin Testing
+### Ward Incharge Testing
 - [ ] Can access own ward profile
 - [ ] Sees advanced data questions
 - [ ] Can export PDF successfully
