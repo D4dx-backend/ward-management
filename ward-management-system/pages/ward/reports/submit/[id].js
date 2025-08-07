@@ -75,13 +75,16 @@ export default function SubmitSpecificWardReport() {
       const responsesResponse = await axios.get('/api/responses', {
         params: {
           formType: 'wardReport',
-          formTemplateId: formId
+          formTemplate: formId
         }
       });
 
-      // Check if user has already submitted this form
+      // Check if user has already submitted this form (considering week and year)
       const existingResponse = responsesResponse.data.find(response =>
-        response.formTemplate === formId && response.respondent === session.user.id
+        response.formTemplate === formId && 
+        response.respondent === session.user.id &&
+        response.weekNumber === formData.weekNumber &&
+        response.year === formData.year
       );
 
       if (existingResponse) {
@@ -91,23 +94,38 @@ export default function SubmitSpecificWardReport() {
         // Pre-populate form with submitted data
         const submittedData = {};
         if (existingResponse.responses) {
-          formData.fields.forEach((field, fieldIndex) => {
-            const fieldKey = `field_${fieldIndex}`;
-            if (existingResponse.responses[field.label]) {
-              submittedData[fieldKey] = existingResponse.responses[field.label];
-            }
+          // Helper function to populate fields
+          const populateFields = (fields, fieldPrefix = '') => {
+            fields.forEach((field, fieldIndex) => {
+              const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
+              const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
+              
+              if (existingResponse.responses[responseKey]) {
+                submittedData[fieldKey] = existingResponse.responses[responseKey];
+              }
 
-            // Handle sub-questions
-            if (field.subQuestions && field.subQuestions.length > 0) {
-              field.subQuestions.forEach((subQuestion, subIndex) => {
-                const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-                const submittedKey = `${field.label}_${subQuestion.label}`;
-                if (existingResponse.responses[submittedKey]) {
-                  submittedData[subKey] = existingResponse.responses[submittedKey];
-                }
-              });
-            }
-          });
+              // Handle sub-questions
+              if (field.subQuestions && field.subQuestions.length > 0) {
+                field.subQuestions.forEach((subQuestion, subIndex) => {
+                  const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
+                  const submittedKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
+                  if (existingResponse.responses[submittedKey]) {
+                    submittedData[subKey] = existingResponse.responses[submittedKey];
+                  }
+                });
+              }
+            });
+          };
+
+          // Populate regular form fields
+          if (formData.fields && formData.fields.length > 0) {
+            populateFields(formData.fields);
+          }
+
+          // Populate sitting ward fields
+          if (formData.sittingWardFields && formData.sittingWardFields.length > 0) {
+            populateFields(formData.sittingWardFields, 'sitting');
+          }
         }
         setFormData(submittedData);
       }
@@ -143,59 +161,71 @@ export default function SubmitSpecificWardReport() {
       isValid = false;
     }
 
-    // Validate required fields
-    for (let fieldIndex = 0; fieldIndex < form.fields.length; fieldIndex++) {
-      const field = form.fields[fieldIndex];
-      if (field.required) {
-        const fieldKey = `field_${fieldIndex}`;
-        const fieldValue = formData[fieldKey];
+    // Helper function to validate fields
+    const validateFields = (fields, fieldPrefix = '') => {
+      for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
+        const field = fields[fieldIndex];
+        if (field.required) {
+          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
 
-        if (field.type === 'checkbox') {
-          if (fieldValue === undefined || fieldValue === null) {
-            errors[fieldKey] = `${field.label} is required`;
-            isValid = false;
-          }
-        } else {
-          const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
-          if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
-            errors[fieldKey] = `${field.label} is required`;
-            isValid = false;
+          if (field.type === 'checkbox') {
+            if (fieldValue === undefined || fieldValue === null) {
+              errors[fieldKey] = `${field.label} is required`;
+              isValid = false;
+            }
+          } else {
+            const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+            if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+              errors[fieldKey] = `${field.label} is required`;
+              isValid = false;
+            }
           }
         }
-      }
 
-      // Validate required sub-questions
-      if (field.subQuestions && field.subQuestions.length > 0) {
-        const fieldKey = `field_${fieldIndex}`;
-        const fieldValue = formData[fieldKey];
+        // Validate required sub-questions
+        if (field.subQuestions && field.subQuestions.length > 0) {
+          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
 
-        const shouldShowSubQuestions = field.showSubQuestionsWhen ?
-          (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
-          (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+          const shouldShowSubQuestions = field.showSubQuestionsWhen ?
+            (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
+            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
 
-        if (shouldShowSubQuestions) {
-          for (let subIndex = 0; subIndex < field.subQuestions.length; subIndex++) {
-            const subQuestion = field.subQuestions[subIndex];
-            if (subQuestion.required) {
-              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-              const subValue = formData[subKey];
+          if (shouldShowSubQuestions) {
+            for (let subIndex = 0; subIndex < field.subQuestions.length; subIndex++) {
+              const subQuestion = field.subQuestions[subIndex];
+              if (subQuestion.required) {
+                const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
+                const subValue = formData[subKey];
 
-              if (subQuestion.type === 'checkbox') {
-                if (subValue === undefined || subValue === null) {
-                  errors[subKey] = `${subQuestion.label} is required`;
-                  isValid = false;
-                }
-              } else {
-                const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
-                if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
-                  errors[subKey] = `${subQuestion.label} is required`;
-                  isValid = false;
+                if (subQuestion.type === 'checkbox') {
+                  if (subValue === undefined || subValue === null) {
+                    errors[subKey] = `${subQuestion.label} is required`;
+                    isValid = false;
+                  }
+                } else {
+                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                    errors[subKey] = `${subQuestion.label} is required`;
+                    isValid = false;
+                  }
                 }
               }
             }
           }
         }
       }
+    };
+
+    // Validate regular form fields
+    if (form.fields && form.fields.length > 0) {
+      validateFields(form.fields);
+    }
+
+    // Validate sitting ward fields
+    if (form.sittingWardFields && form.sittingWardFields.length > 0) {
+      validateFields(form.sittingWardFields, 'sitting');
     }
 
     setValidationErrors(errors);
@@ -218,26 +248,41 @@ export default function SubmitSpecificWardReport() {
       // Convert form data from field_index format to field.label format for API
       const apiResponses = {};
 
-      form.fields.forEach((field, fieldIndex) => {
-        const fieldKey = `field_${fieldIndex}`;
-        const fieldValue = formData[fieldKey];
+      // Helper function to process fields
+      const processFields = (fields, fieldPrefix = '') => {
+        fields.forEach((field, fieldIndex) => {
+          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
 
-        if (fieldValue !== undefined) {
-          apiResponses[field.label] = fieldValue;
-        }
+          if (fieldValue !== undefined) {
+            const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
+            apiResponses[responseKey] = fieldValue;
+          }
 
-        // Handle sub-questions
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          field.subQuestions.forEach((subQuestion, subIndex) => {
-            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            const subValue = formData[subKey];
+          // Handle sub-questions
+          if (field.subQuestions && field.subQuestions.length > 0) {
+            field.subQuestions.forEach((subQuestion, subIndex) => {
+              const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
+              const subValue = formData[subKey];
 
-            if (subValue !== undefined) {
-              apiResponses[`${field.label}_${subQuestion.label}`] = subValue;
-            }
-          });
-        }
-      });
+              if (subValue !== undefined) {
+                const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
+                apiResponses[responseKey] = subValue;
+              }
+            });
+          }
+        });
+      };
+
+      // Process regular form fields
+      if (form.fields && form.fields.length > 0) {
+        processFields(form.fields);
+      }
+
+      // Process sitting ward fields
+      if (form.sittingWardFields && form.sittingWardFields.length > 0) {
+        processFields(form.sittingWardFields, 'sitting');
+      }
 
       // Submit response
       await axios.post('/api/responses', {
@@ -247,6 +292,12 @@ export default function SubmitSpecificWardReport() {
       });
 
       setSuccess('Ward report submitted successfully');
+      
+      // Clear dashboard cache to ensure updated data is shown immediately
+      const { invalidateCache } = await import('../../../../lib/simpleCache');
+      invalidateCache('dashboard-wardAdmin');
+      invalidateCache('responses');
+      invalidateCache('forms');
       
       // Redirect to dashboard after successful submission
       setTimeout(() => {

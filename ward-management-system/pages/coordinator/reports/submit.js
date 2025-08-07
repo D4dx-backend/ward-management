@@ -62,32 +62,20 @@ export default function SubmitReport() {
         }
       });
       
-      // RESTRICTION: Only allow one form submission per coordinator
-      // Check if coordinator has already submitted any form
-      const hasSubmittedAnyForm = responsesResponse.data.some(response => 
-        response.respondent === session.user.id
-      );
+      // Show all available forms with their submission status
+      const formsWithStatus = formsResponse.data.map(form => {
+        const submittedResponse = responsesResponse.data.find(response => 
+          response.respondent === session.user.id && response.formTemplate === form._id
+        );
+        
+        return {
+          ...form,
+          isSubmitted: !!submittedResponse,
+          submittedResponse: submittedResponse || null
+        };
+      });
       
-      // If coordinator has already submitted a form, show only that form for viewing
-      if (hasSubmittedAnyForm) {
-        const submittedForm = responsesResponse.data.find(response => 
-          response.respondent === session.user.id
-        );
-        
-        const originalForm = formsResponse.data.find(form => 
-          form._id === submittedForm.formTemplate
-        );
-        
-        if (originalForm) {
-          setActiveForms([{ ...originalForm, isSubmitted: true, submittedResponse: submittedForm }]);
-        } else {
-          setActiveForms([]);
-        }
-      } else {
-        // If no form submitted yet, show only the first available form
-        const availableForms = formsResponse.data.slice(0, 1); // Only first form
-        setActiveForms(availableForms.map(form => ({ ...form, isSubmitted: false })));
-      }
+      setActiveForms(formsWithStatus);
       
       setError('');
     } catch (error) {
@@ -237,10 +225,12 @@ export default function SubmitReport() {
       console.log('Submitting response data:', responseData);
 
       // Submit response
-      await axios.post('/api/responses', {
+      const submitResponse = await axios.post('/api/responses', {
         formTemplateId: selectedForm._id,
         responses: responseData,
       });
+      
+      console.log('Submit response:', submitResponse.data);
 
       setSuccess('Report submitted successfully');
       
@@ -325,6 +315,13 @@ export default function SubmitReport() {
               </div>
               <div className="ml-3">
                 <p className="text-sm">{success}</p>
+                <div className="mt-2">
+                  <Link href="/coordinator/reports">
+                    <Button size="sm" variant="outline" className="text-green-600 border-green-300 hover:bg-green-50">
+                      View My Reports
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -599,6 +596,13 @@ export default function SubmitReport() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <p className="mt-2 text-sm text-gray-500">No report forms available</p>
+                <div className="mt-4">
+                  <Link href="/coordinator/reports">
+                    <Button variant="outline" size="sm">
+                      View My Submitted Reports
+                    </Button>
+                  </Link>
+                </div>
               </div>
             )}
           </Card>
@@ -727,6 +731,23 @@ export default function SubmitReport() {
             </div>
           </Card>
         )}
+
+        {/* Information Note */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Note:</strong> After submitting your reports, you can view them in <strong>Reports → My Reports</strong>. 
+                To view ward reports from your district, go to <strong>Reports → Ward Reports</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );

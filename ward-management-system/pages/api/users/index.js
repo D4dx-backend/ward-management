@@ -22,7 +22,15 @@ export default async function handler(req, res) {
   
   if (req.method === 'GET') {
     try {
-      const users = await User.find({}).select('-password -pinCode');
+      const { role } = req.query;
+      
+      // Build query filter
+      let query = {};
+      if (role) {
+        query.role = role;
+      }
+      
+      const users = await User.find(query).select('-password -pinCode');
       
       // Get ward information to populate district data
       const Ward = require('../../../models/Ward').default;

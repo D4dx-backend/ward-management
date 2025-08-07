@@ -41,7 +41,8 @@ export const menuConfig = {
       items: [
         { name: 'Forms', href: '/admin/forms', icon: '📝' },
         { name: 'Surveys', href: '/admin/docker-surveys', icon: '🗂️' },
-        { name: 'Recurring Questions', href: '/admin/recurring-questions', icon: '🔄' }
+        { name: 'Recurring Questions', href: '/admin/recurring-questions', icon: '🔄' },
+        { name: 'Review Recurring Questions', href: '/admin/recurring-questions/review', icon: '📋' }
       ]
     },
     'Reports & Analytics': {
@@ -84,22 +85,17 @@ export const menuConfig = {
         { name: 'Submit Reports', href: '/coordinator/reports/submit', icon: '📝' },
         { name: 'My Reports', href: '/coordinator/reports', icon: '📈' },
         { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
-        { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' }
+        { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' },
+        { name: 'Form Submissions', href: '/coordinator/form-submissions', icon: '📋' }
       ]
     },
-    'User Management': {
-      type: 'category',
-      icon: '👥',
-      items: [
-        { name: 'Ward Admins', href: '/coordinator/users', icon: '👤' }
-      ]
-    },
+
     'Ward Management': {
       type: 'category',
       icon: '🏘️',
       items: [
         { name: 'Ward Status', href: '/coordinator/ward-status', icon: '🔍' },
-        { name: 'Ward Profile', href: '/coordinator/wards', icon: '🏘️' },
+        { name: 'Manage Wards', href: '/coordinator/wards', icon: '🏘️' },
         { name: 'Ward Visits', href: '/coordinator/ward-visits', icon: '🚶' }
       ]
     },
@@ -115,7 +111,9 @@ export const menuConfig = {
       type: 'category',
       icon: '📝',
       items: [
-        { name: 'Surveys', href: '/coordinator/docker-surveys', icon: '🗂️' }
+        { name: 'Docker Survey', href: '/coordinator/docker-surveys', icon: '🗂️' },
+        { name: 'Basic Survey', href: '/coordinator/basic-survey', icon: '📋' },
+        { name: 'Review Recurring Questions', href: '/coordinator/recurring-questions/review', icon: '📋' }
       ]
     },
     'Documentation': {

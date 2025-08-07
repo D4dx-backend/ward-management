@@ -97,8 +97,8 @@ export default function WardVisits() {
       
       // Fetch visits and wards
       const [visitsResponse, wardsResponse] = await Promise.all([
-        axios.get('/api/ward-visits'),
-        axios.get('/api/wards/coordinator')
+        axios.get('/api/ward-visits/'),
+        axios.get('/api/wards/')
       ]);
       
       setVisits(visitsResponse.data || []);
@@ -196,14 +196,14 @@ export default function WardVisits() {
 
       if (editingVisit) {
         // Update existing visit
-        const response = await axios.put(`/api/ward-visits?visitId=${editingVisit._id}`, formData);
+        const response = await axios.put(`/api/ward-visits/?visitId=${editingVisit._id}`, formData);
         // Update the visit in the list
         setVisits(visits.map(v => v._id === editingVisit._id ? response.data : v));
         setError('');
         setSuccess('Visit updated successfully!');
       } else {
         // Create new visit
-        const response = await axios.post('/api/ward-visits', formData);
+        const response = await axios.post('/api/ward-visits/', formData);
         // Add new visit to the list
         setVisits([response.data, ...visits]);
         setSuccess('Visit recorded successfully!');
@@ -262,7 +262,7 @@ export default function WardVisits() {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`/api/ward-visits?visitId=${visitToDelete._id}`);
+      await axios.delete(`/api/ward-visits/?visitId=${visitToDelete._id}`);
       setVisits(visits.filter(v => v._id !== visitToDelete._id));
       setSuccess('Visit deleted successfully!');
       setShowDeleteModal(false);
@@ -417,7 +417,7 @@ export default function WardVisits() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Select Ward</option>
-                      {wards.map((ward) => (
+                      {Array.isArray(wards) && wards.map((ward) => (
                         <option key={ward._id} value={ward._id}>
                           {ward.name} (Ward #{ward.wardNumber})
                         </option>
@@ -588,7 +588,7 @@ export default function WardVisits() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Wards</option>
-                  {wards.map((ward) => (
+                  {Array.isArray(wards) && wards.map((ward) => (
                     <option key={ward._id} value={ward._id}>{ward.name}</option>
                   ))}
                 </select>

@@ -186,6 +186,24 @@ export default async function handler(req, res) {
         coordinator: session.user.id 
       }).populate('wardAdmin', 'name mobileNumber');
 
+      // Get cluster counts for each ward
+      const Cluster = require('../../../models/Cluster').default;
+      const wardClusterCounts = await Promise.all(
+        coordinatorWards.map(async (ward) => {
+          const clusterCount = await Cluster.countDocuments({
+            ward: ward._id,
+            isActive: true
+          });
+          return { wardId: ward._id, clusterCount };
+        })
+      );
+
+      // Create a map for quick lookup
+      const clusterCountMap = new Map();
+      wardClusterCounts.forEach(({ wardId, clusterCount }) => {
+        clusterCountMap.set(wardId.toString(), clusterCount);
+      });
+
       // Get recent activity logs from coordinator's district (last 10)
       const logs = await ActivityLog.find({ district: session.user.district })
         .populate('user', 'name role')
@@ -258,7 +276,8 @@ export default async function handler(req, res) {
         adminMobile: ward.wardAdmin?.mobileNumber || null,
         population: ward.population,
         area: ward.area,
-        isActive: ward.isActive
+        isActive: ward.isActive,
+        clusterCount: clusterCountMap.get(ward._id.toString()) || 0
       }));
 
       // Add pending reports list to stats
@@ -320,16 +339,27 @@ export default async function handler(req, res) {
         isPublished: true,
         enableDateTime: { $lte: new Date() },
         closeDateTime: { $gte: new Date() }
-      });
+      }).sort({ createdAt: -1 }); // Sort by creation date, newest first
 
-      // Check which forms have been submitted by this user
-      const submittedFormIds = await Response.distinct('formTemplate', {
+      // Get all responses by this user with form template details
+      const userResponses = await Response.find({
         respondent: session.user.id
+      }).populate('formTemplate', '_id title weekNumber year');
+
+      // Create a map of submitted forms for efficient lookup
+      const submittedFormsMap = new Map();
+      userResponses.forEach(response => {
+        if (response.formTemplate) {
+          const key = `${response.formTemplate._id}_${response.weekNumber}_${response.year}`;
+          submittedFormsMap.set(key, true);
+        }
       });
 
-      const pendingFormsList = activeForms.filter(form =>
-        !submittedFormIds.some(id => id.toString() === form._id.toString())
-      );
+      // Filter out forms that have been submitted
+      const pendingFormsList = activeForms.filter(form => {
+        const key = `${form._id}_${form.weekNumber}_${form.year}`;
+        return !submittedFormsMap.has(key);
+      });
 
       stats.pendingReports = pendingFormsList.length;
       stats.pendingFormsList = pendingFormsList.map(form => ({
@@ -361,16 +391,16 @@ export default async function handler(req, res) {
 
       recentLogs.push(...logs);
 
-      // Get recent reports by ward admin (last 10)
+      // Get recent reports by ward admin (last 10) - sorted by submission date, newest first
       const reports = await Response.find({ respondent: session.user.id })
-        .populate('formTemplate', 'title formType')
+        .populate('formTemplate', 'title formType weekNumber year')
         .populate('respondent', 'name role')
         .populate({
           path: 'ward',
           select: 'name district',
           strictPopulate: false
         })
-        .sort({ submittedAt: -1 })
+        .sort({ submittedAt: -1 }) // Newest submissions first
         .limit(10);
 
       // Transform the reports to match the expected format

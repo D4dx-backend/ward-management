@@ -22,6 +22,8 @@ export default function AdminWardVisits() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState(null);
   const [filter, setFilter] = useState({
     coordinator: '',
     ward: '',
@@ -103,8 +105,8 @@ export default function AdminWardVisits() {
       // Fetch all data
       const [visitsResponse, coordinatorsResponse, wardsResponse, statsResponse] = await Promise.all([
         axios.get('/api/admin/ward-visits'),
-        axios.get('/api/users?role=coordinator'),
-        axios.get('/api/wards'),
+        axios.get('/api/users/?role=coordinator'),
+        axios.get('/api/wards/'),
         axios.get('/api/admin/ward-visits/statistics')
       ]);
       
@@ -210,6 +212,11 @@ export default function AdminWardVisits() {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter({ ...filter, [name]: value });
+  };
+
+  const handleViewDetails = (visit) => {
+    setSelectedVisit(visit);
+    setShowViewModal(true);
   };
 
   const formatDate = (dateString) => {
@@ -458,9 +465,10 @@ export default function AdminWardVisits() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
                       <div className="flex items-center space-x-2">
                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span>Coordinator</span>
+                        <span>District</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
@@ -469,6 +477,14 @@ export default function AdminWardVisits() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <span>Ward</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Visit By</span>
                       </div>
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
@@ -519,22 +535,21 @@ export default function AdminWardVisits() {
                         </div>
                       </td>
 
-                      {/* Coordinator */}
+                      {/* District */}
                       <td className="px-6 py-4 border-r border-gray-200">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                              <span className="text-white font-semibold text-sm">
-                                {visit.coordinator?.name?.charAt(0) || 'C'}
-                              </span>
-                            </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
+                            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-semibold text-gray-900 truncate">
-                              {visit.coordinator?.name || 'Unknown'}
+                          <div>
+                            <div className="text-sm font-semibold text-gray-900">
+                              {visit.ward?.district || 'Unknown District'}
                             </div>
-                            <div className="text-xs text-gray-500 truncate">
-                              {visit.coordinator?.email}
+                            <div className="text-xs text-gray-500">
+                              {visit.ward?.panchayath || 'Panchayath'}
                             </div>
                           </div>
                         </div>
@@ -550,6 +565,27 @@ export default function AdminWardVisits() {
                             <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
                               Ward #{visit.ward?.wardNumber}
                             </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Visit By (Coordinator) */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-semibold text-sm">
+                                {visit.coordinator?.name?.charAt(0) || 'C'}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-semibold text-gray-900 truncate">
+                              {visit.coordinator?.name || 'Unknown'}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Coordinator
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -594,7 +630,12 @@ export default function AdminWardVisits() {
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end space-x-2">
-                          <Button variant="outline" size="sm" className="text-xs">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs"
+                            onClick={() => handleViewDetails(visit)}
+                          >
                             <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -609,7 +650,7 @@ export default function AdminWardVisits() {
                   {/* Empty State */}
                   {filteredVisits.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="px-6 py-12 text-center">
+                      <td colSpan="7" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-500">
                           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -658,6 +699,162 @@ export default function AdminWardVisits() {
             </div>
           </div>
         </Card>
+
+        {/* View Details Modal */}
+        {showViewModal && selectedVisit && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Ward Visit Details</h3>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Visit Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Visit Date & Time</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {formatDateTime(selectedVisit.visitDate, selectedVisit.visitTime)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Attendees</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedVisit.attendees || 'Not specified'}</p>
+                  </div>
+                </div>
+
+                {/* Coordinator and Ward Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Coordinator</label>
+                    <div className="mt-1 flex items-center space-x-3">
+                      <div className="flex-shrink-0">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold text-xs">
+                            {selectedVisit.coordinator?.name?.charAt(0) || 'C'}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{selectedVisit.coordinator?.name || 'Unknown'}</p>
+                        <p className="text-xs text-gray-500">{selectedVisit.coordinator?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Ward</label>
+                    <div className="mt-1">
+                      <p className="text-sm font-medium text-gray-900">{selectedVisit.ward?.name}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                          Ward #{selectedVisit.ward?.wardNumber}
+                        </span>
+                        {selectedVisit.ward?.district && (
+                          <span className="text-xs text-gray-500">{selectedVisit.ward.district}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Purpose */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Purpose of Visit</label>
+                  <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedVisit.purpose}</p>
+                </div>
+
+                {/* Findings */}
+                {selectedVisit.findings && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Key Findings</label>
+                    <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedVisit.findings}</p>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {selectedVisit.recommendations && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Recommendations</label>
+                    <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedVisit.recommendations}</p>
+                  </div>
+                )}
+
+                {/* Follow-up Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Follow-up Required</label>
+                    <div className="mt-1">
+                      {selectedVisit.followUpRequired ? (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                          No
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {selectedVisit.followUpRequired && selectedVisit.followUpDate && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Follow-up Date</label>
+                      <p className="mt-1 text-sm text-gray-900">{formatDate(selectedVisit.followUpDate)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Follow-up Status */}
+                {selectedVisit.followUpRequired && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Follow-up Status</label>
+                    <div className="mt-1">
+                      {getFollowUpStatusBadge(selectedVisit)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Remarks */}
+                {selectedVisit.remarks && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Additional Remarks</label>
+                    <p className="mt-1 text-sm text-gray-900 bg-gray-50 p-3 rounded-lg">{selectedVisit.remarks}</p>
+                  </div>
+                )}
+
+                {/* Metadata */}
+                <div className="border-t pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                    <div>
+                      <span className="font-medium">Recorded on:</span> {new Date(selectedVisit.createdAt).toLocaleString()}
+                    </div>
+                    {selectedVisit.updatedAt && selectedVisit.updatedAt !== selectedVisit.createdAt && (
+                      <div>
+                        <span className="font-medium">Last updated:</span> {new Date(selectedVisit.updatedAt).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowViewModal(false)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

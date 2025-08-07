@@ -55,6 +55,10 @@ const FieldSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  section: {
+    type: String,
+    default: '',
+  },
 });
 
 const FormTemplateSchema = new mongoose.Schema({

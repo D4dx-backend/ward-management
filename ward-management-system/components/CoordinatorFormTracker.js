@@ -26,28 +26,7 @@ export default function CoordinatorFormTracker({ compact = false }) {
     } catch (error) {
       console.error('Error fetching form stats:', error);
       console.error('Error details:', error.response?.data || error.message);
-      setError('Failed to load form statistics');
-      
-      // Mock data for development
-      setFormStats({
-        overview: {
-          totalWards: 12,
-          totalForms: 8,
-          totalSubmissions: 156,
-          pendingSubmissions: 24,
-          completionRate: 86.7
-        },
-        wardWiseStats: [
-          { wardName: 'Ward 1', completionRate: 95, pendingForms: 1 },
-          { wardName: 'Ward 2', completionRate: 75, pendingForms: 3 },
-          { wardName: 'Ward 3', completionRate: 60, pendingForms: 4 }
-        ],
-        formWiseStats: [
-          { formTitle: 'Weekly Report', completionRate: 90, pendingCount: 2 },
-          { formTitle: 'Infrastructure Survey', completionRate: 75, pendingCount: 4 },
-          { formTitle: 'Health Survey', completionRate: 65, pendingCount: 6 }
-        ]
-      });
+      setError('Failed to load form statistics. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }

@@ -223,8 +223,8 @@ export const useDashboardData = (userRole) => {
         };
       }
 
-      // Cache the result
-      setCache(cacheKey, dashboardData, 2 * 60 * 1000); // 2 minutes cache
+      // Cache the result for a shorter time to ensure fresh data
+      setCache(cacheKey, dashboardData, 30 * 1000); // 30 seconds cache for dashboard data
 
       setStats(dashboardData.stats);
       setRecentReports(dashboardData.recentReports);

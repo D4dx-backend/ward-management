@@ -5,6 +5,7 @@ import FormTemplate from '../../../models/FormTemplate';
 import WardBasicForm from '../../../models/WardBasicForm';
 import Response from '../../../models/Response';
 import WardBasicData from '../../../models/WardBasicData';
+import User from '../../../models/User';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -60,8 +61,11 @@ export default async function handler(req, res) {
 
     // Get all active form templates and ward basic forms
     const [formTemplates, wardBasicForms] = await Promise.all([
-      FormTemplate.find({ isActive: true }),
-      WardBasicForm.find({ isActive: true })
+      FormTemplate.find({ 
+        isActive: true,
+        isPublished: true 
+      }).populate('createdBy', 'name'),
+      WardBasicForm.find({ isActive: true }).populate('createdBy', 'name')
     ]);
     
     // Combine all forms for total count
@@ -73,40 +77,51 @@ export default async function handler(req, res) {
       dateFilter.submittedAt = { $gte: startDate, $lte: now };
     }
 
-    // Get all responses for coordinator's wards
+    // Get all responses for coordinator's wards with detailed population
     const responses = await Response.find({
       ward: { $in: wardIds },
       ...dateFilter
     })
-    .populate('formTemplate', 'title type')
+    .populate('formTemplate', 'title formType weekNumber year enableDateTime closeDateTime')
     .populate('ward', 'name wardNumber')
+    .populate('respondent', 'name email')
     .sort({ submittedAt: -1 });
 
-    // Get ward basic data submissions
+    // Get ward basic data submissions with detailed population
     const wardBasicDataSubmissions = await WardBasicData.find({
       ward: { $in: wardIds },
       ...(startDate ? { submittedAt: { $gte: startDate, $lte: now } } : {})
     })
-    .populate('form', 'title type')
-    .populate('ward', 'name wardNumber');
+    .populate('form', 'title description')
+    .populate('ward', 'name wardNumber')
+    .populate('submittedBy', 'name email');
 
-    // Combine all submissions
+    // Combine all submissions with enhanced data
     const allSubmissions = [
       ...responses.map(r => ({
         _id: r._id,
         ward: r.ward,
         form: r.formTemplate,
         submittedAt: r.submittedAt,
+        submittedBy: r.respondent,
         status: 'submitted',
-        type: 'response'
+        type: 'response',
+        formType: r.formTemplate?.formType || 'wardReport',
+        weekNumber: r.weekNumber,
+        year: r.year,
+        responses: r.responses
       })),
       ...wardBasicDataSubmissions.map(w => ({
         _id: w._id,
         ward: w.ward,
         form: w.form,
         submittedAt: w.submittedAt,
-        status: 'submitted',
-        type: 'ward-basic-data'
+        submittedBy: w.submittedBy,
+        status: w.status,
+        type: 'ward-basic-data',
+        formType: 'wardBasic',
+        data: w.data,
+        clusterData: w.clusterData
       }))
     ];
 
@@ -139,17 +154,22 @@ export default async function handler(req, res) {
               return {
                 formId: form._id,
                 formTitle: form.title,
-                status: 'submitted',
-                submittedAt: submission.submittedAt
+                formType: submission.formType,
+                status: submission.status,
+                submittedAt: submission.submittedAt,
+                submittedBy: submission.submittedBy,
+                submissionId: submission._id,
+                type: submission.type
               };
             } else {
-              // Check if it's overdue (this would need more complex logic based on form due dates)
-              const isOverdue = false; // Simplified for now
+              // Check if it's overdue based on form close date
+              const isOverdue = form.closeDateTime && new Date() > new Date(form.closeDateTime);
               return {
                 formId: form._id,
                 formTitle: form.title,
+                formType: form.formType || 'wardBasic',
                 status: isOverdue ? 'overdue' : 'pending',
-                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Mock due date
+                dueDate: form.closeDateTime || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               };
             }
           })
@@ -194,17 +214,22 @@ export default async function handler(req, res) {
               return {
                 wardId: ward._id,
                 wardName: ward.name,
-                status: 'submitted',
-                submittedAt: submission.submittedAt
+                wardNumber: ward.wardNumber,
+                status: submission.status,
+                submittedAt: submission.submittedAt,
+                submittedBy: submission.submittedBy,
+                submissionId: submission._id,
+                type: submission.type
               };
             } else {
-              // Check if it's overdue (simplified)
-              const isOverdue = false;
+              // Check if it's overdue based on form close date
+              const isOverdue = form.closeDateTime && new Date() > new Date(form.closeDateTime);
               return {
                 wardId: ward._id,
                 wardName: ward.name,
+                wardNumber: ward.wardNumber,
                 status: isOverdue ? 'overdue' : 'pending',
-                dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // Mock due date
+                dueDate: form.closeDateTime || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
               };
             }
           })
