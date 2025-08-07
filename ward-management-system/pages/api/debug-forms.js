@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       })),
       summary: {
         totalForms: forms.length,
-        activeForms: forms.filter(f => f.isActive).length,
+        publishedForms: forms.filter(f => f.isPublished).length,
         totalResponses: responses.length,
         formsWithResponses: [...new Set(responses.map(r => r.formTemplate?._id?.toString()))].length
       }

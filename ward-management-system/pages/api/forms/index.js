@@ -26,14 +26,13 @@ export default async function handler(req, res) {
       if (formType) query.formType = formType;
       if (weekNumber) query.weekNumber = parseInt(weekNumber);
       if (year) query.year = parseInt(year);
-      if (isActive !== undefined) query.isActive = isActive === 'true';
       
       // For form submission pages, only show forms that are currently available
       if (req.query.availableOnly === 'true') {
         const now = new Date();
         query.enableDateTime = { $lte: now };
         query.closeDateTime = { $gte: now };
-        query.isActive = true;
+        query.isPublished = true; // Only show published forms to users
       }
       
       // Get forms
@@ -169,7 +168,7 @@ export default async function handler(req, res) {
         sittingWardFields: orderedSittingWardFields,
         weekNumber: calculatedWeekNumber,
         year: calculatedYear,
-        isActive: isActive !== undefined ? isActive : true,
+
         isPublished: isPublished !== undefined ? isPublished : false,
         isSittingWardForm: isSittingWardForm !== undefined ? isSittingWardForm : false,
         allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true,

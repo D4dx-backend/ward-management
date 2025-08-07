@@ -53,11 +53,10 @@ export default function SubmitWardReport() {
     try {
       setIsLoading(true);
 
-      // Get active ward report forms
+      // Get published ward report forms
       const formsResponse = await axios.get('/api/forms', {
         params: {
           formType: 'wardReport',
-          isActive: true,
           availableOnly: true,
         }
       });

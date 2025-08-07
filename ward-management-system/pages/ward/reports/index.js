@@ -43,7 +43,7 @@ export default function WardReports() {
       // Fetch both reports and available forms
       const [reportsResponse, formsResponse] = await Promise.all([
         axios.get(`/api/responses?formType=wardReport${filter.weekNumber ? `&weekNumber=${filter.weekNumber}` : ''}${filter.year ? `&year=${filter.year}` : ''}`),
-        axios.get('/api/forms?formType=wardReport&isActive=true')
+        axios.get('/api/forms?formType=wardReport')
       ]);
       
       // Process reports data

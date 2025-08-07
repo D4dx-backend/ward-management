@@ -47,11 +47,10 @@ export default function SubmitReport() {
     try {
       setIsLoading(true);
       
-      // Get active coordinator report forms that are currently available
+      // Get published coordinator report forms that are currently available
       const formsResponse = await axios.get('/api/forms', {
         params: {
           formType: 'coordinatorReport',
-          isActive: true,
           availableOnly: true,
         }
       });

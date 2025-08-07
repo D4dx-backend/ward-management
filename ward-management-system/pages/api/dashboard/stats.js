@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       const [users, wards, forms, responses] = await Promise.all([
         User.countDocuments(),
         Ward.countDocuments(),
-        FormTemplate.countDocuments({ isActive: true }),
+        FormTemplate.countDocuments({ isPublished: true }),
         Response.countDocuments()
       ]);
 
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
         Ward.countDocuments({ coordinator: session.user.id }),
         Ward.countDocuments({ coordinator: session.user.id, wardAdmin: { $ne: null } }),
         Response.countDocuments({ district: session.user.district }),
-        FormTemplate.countDocuments({ isActive: true })
+        FormTemplate.countDocuments({ isPublished: true })
       ]);
 
       // Calculate pending reports for current week
@@ -114,8 +114,8 @@ export default async function handler(req, res) {
       
       const wardAdminIds = wardAdmins.map(admin => admin._id);
       
-      // Get all active forms
-      const activeFormsList = await FormTemplate.find({ isActive: true });
+      // Get all published forms
+      const activeFormsList = await FormTemplate.find({ isPublished: true });
       
       let pendingReports = 0;
       const pendingReportsList = [];
@@ -317,7 +317,7 @@ export default async function handler(req, res) {
       // Count pending reports (active forms that haven't been submitted)
       const activeForms = await FormTemplate.find({
         formType: 'wardReport',
-        isActive: true,
+        isPublished: true,
         enableDateTime: { $lte: new Date() },
         closeDateTime: { $gte: new Date() }
       });
