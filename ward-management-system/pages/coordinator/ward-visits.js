@@ -733,12 +733,12 @@ export default function WardVisits() {
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              visit.recordedByRole === 'coordinator'
+                              visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                                 ? 'bg-blue-100' 
                                 : 'bg-green-100'
                             }`}>
                               <svg className={`w-4 h-4 ${
-                                visit.recordedByRole === 'coordinator'
+                                visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                                   ? 'text-blue-600' 
                                   : 'text-green-600'
                               }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -747,23 +747,23 @@ export default function WardVisits() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {visit.recordedByRole === 'coordinator'
+                                {visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                                   ? 'Coordinator' 
                                   : 'Ward Admin'}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {visit.recordedByRole === 'coordinator' 
+                                {visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                                   ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
                                   : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')}
                               </div>
                             </div>
                           </div>
                           <div className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            visit.recordedByRole === 'coordinator'
+                            visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                               ? 'bg-blue-100 text-blue-800' 
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {visit.recordedByRole === 'coordinator'
+                            {visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                               ? 'Coordinator Visit' 
                               : 'Ward Admin Visit'}
                           </div>
@@ -790,7 +790,7 @@ export default function WardVisits() {
                             </div>
                           )}
                           <div className="text-xs text-gray-500">
-                            by {visit.recordedByRole === 'coordinator' 
+                            by {visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                               ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
                               : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')}
                           </div>

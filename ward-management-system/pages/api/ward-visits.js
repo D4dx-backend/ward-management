@@ -1,10 +1,11 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from './auth/[...nextauth]';
 import dbConnect from '../../lib/mongodb';
 import Ward from '../../models/Ward';
 import WardVisit from '../../models/WardVisit';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  const session = await getServerSession(req, res, authOptions);
 
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
