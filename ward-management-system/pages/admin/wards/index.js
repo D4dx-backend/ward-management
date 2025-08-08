@@ -188,8 +188,12 @@ export default function AdminWards() {
         throw new Error('Ward name, number, panchayath, district, and coordinator are required');
       }
 
+      console.log('Creating ward with data:', formData);
+
       // Create ward
       const response = await axios.post('/api/wards', formData);
+
+      console.log('Ward created successfully:', response.data);
 
       // Update wards list
       const newWards = [...wards, response.data];
@@ -200,7 +204,24 @@ export default function AdminWards() {
       resetForm();
       setShowCreateModal(false);
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      console.error('Ward creation error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = error.response?.data?.message || error.message;
+      
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        const conflictingWard = error.response.data.conflictingWard;
+        if (conflictingWard) {
+          errorMessage += `\n\nConflicting ward details:\n- Name: ${conflictingWard.name}\n- Number: ${conflictingWard.wardNumber}\n- Panchayath: ${conflictingWard.panchayath}\n- District: ${conflictingWard.district}`;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please refresh the page and try again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to create wards.';
+      }
+      
+      setError(errorMessage);
     }
   };
 
@@ -214,8 +235,12 @@ export default function AdminWards() {
         throw new Error('Ward name, number, panchayath, district, and coordinator are required');
       }
 
+      console.log('Updating ward:', editingWard._id, 'with data:', formData);
+
       // Update ward
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
+
+      console.log('Ward updated successfully:', response.data);
 
       // Update wards list
       const updatedWards = wards.map(ward =>
@@ -232,8 +257,24 @@ export default function AdminWards() {
       // Clear any existing errors
       setError('');
     } catch (error) {
-      console.error('Error updating ward:', error);
-      setError(error.response?.data?.message || error.message);
+      console.error('Ward update error:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = error.response?.data?.message || error.message;
+      
+      // Handle specific error cases
+      if (error.response?.status === 409) {
+        const conflictingWard = error.response.data.conflictingWard;
+        if (conflictingWard) {
+          errorMessage += `\n\nConflicting ward details:\n- Name: ${conflictingWard.name}\n- Number: ${conflictingWard.wardNumber}\n- Panchayath: ${conflictingWard.panchayath}\n- District: ${conflictingWard.district}`;
+        }
+      } else if (error.response?.status === 401) {
+        errorMessage = 'Session expired. Please refresh the page and try again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to update wards.';
+      }
+      
+      setError(errorMessage);
     }
   };
 

@@ -20,8 +20,23 @@ export default async function handler(req, res) {
   try {
     session = await getServerSession(req, res, authOptions);
     
+    console.log('Ward [id] API - Session debug:', {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      userEmail: session?.user?.email,
+      method: req.method,
+      wardId: req.query.id
+    });
+    
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      console.error('No session found in ward [id] API');
+      return res.status(401).json({ message: 'Unauthorized - No session' });
+    }
+
+    if (!session.user || !session.user.id) {
+      console.error('Invalid session data in ward [id] API');
+      return res.status(401).json({ message: 'Unauthorized - Invalid session data' });
     }
     
     await dbConnect();
@@ -127,32 +142,62 @@ async function handleUpdateWard(req, res, session) {
       return res.status(404).json({ message: 'Ward not found' });
     }
 
-    // Check if another ward with same name and district already exists (excluding current ward)
+    // Normalize input data for consistent comparison
+    const normalizedName = name.trim().toLowerCase();
+    const normalizedWardNumber = wardNumber.trim();
+    const normalizedPanchayath = panchayath.trim().toLowerCase();
+    const normalizedDistrict = district.trim().toLowerCase();
+
+    console.log('Update - Normalized input:', { 
+      normalizedName, 
+      normalizedWardNumber, 
+      normalizedPanchayath, 
+      normalizedDistrict 
+    });
+
+    // Check if another ward with same name and district already exists (excluding current ward, case-insensitive)
     const duplicateWard = await Ward.findOne({ 
       _id: { $ne: id },
-      name: name.trim(), 
-      district: district.trim(),
+      name: { $regex: new RegExp(`^${normalizedName}$`, 'i') },
+      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
       isActive: { $ne: false }
     });
 
     if (duplicateWard) {
+      console.log('Found duplicate ward with same name:', duplicateWard);
       return res.status(409).json({ 
-        message: `Another ward "${name}" already exists in ${district} district` 
+        message: `Another ward "${name}" already exists in ${district} district`,
+        conflictingWard: {
+          id: duplicateWard._id,
+          name: duplicateWard.name,
+          wardNumber: duplicateWard.wardNumber,
+          panchayath: duplicateWard.panchayath,
+          district: duplicateWard.district
+        }
       });
     }
 
-    // Check if another ward with same number exists in the same panchayath (excluding current ward)
+    // Check if another ward with same number exists in the same panchayath (excluding current ward, case-insensitive)
     const duplicateWardNumber = await Ward.findOne({ 
       _id: { $ne: id },
-      wardNumber: wardNumber.trim(), 
-      panchayath: panchayath.trim(),
-      district: district.trim(),
+      wardNumber: normalizedWardNumber,
+      panchayath: { $regex: new RegExp(`^${normalizedPanchayath}$`, 'i') },
+      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
       isActive: { $ne: false }
     });
 
     if (duplicateWardNumber) {
+      console.log('Found duplicate ward with same number:', duplicateWardNumber);
       return res.status(409).json({ 
-        message: `Another ward with number "${wardNumber}" already exists in ${panchayath}, ${district}` 
+        message: `Ward with this number already exists in this panchayath and district`,
+        details: `Another ward with number "${wardNumber}" already exists in ${panchayath}, ${district}`,
+        conflictingWard: {
+          id: duplicateWardNumber._id,
+          name: duplicateWardNumber.name,
+          wardNumber: duplicateWardNumber.wardNumber,
+          panchayath: duplicateWardNumber.panchayath,
+          district: duplicateWardNumber.district
+        }
       });
     }
 
