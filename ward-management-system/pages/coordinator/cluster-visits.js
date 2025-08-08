@@ -16,12 +16,14 @@ export default function CoordinatorClusterVisits() {
   const [clusterDetails, setClusterDetails] = useState([]);
   const [clusterWeeklyDetails, setClusterWeeklyDetails] = useState([]);
   const [formWeeks, setFormWeeks] = useState([]);
+  const [wardWeeklySummary, setWardWeeklySummary] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingClusters, setIsLoadingClusters] = useState(false);
   const [error, setError] = useState('');
   const [showClusterModal, setShowClusterModal] = useState(false);
   const [selectedCluster, setSelectedCluster] = useState(null);
   const [visitHistory, setVisitHistory] = useState([]);
+  const [clusterWeeklySeries, setClusterWeeklySeries] = useState([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -62,6 +64,40 @@ export default function CoordinatorClusterVisits() {
       setFormWeeks(response.data.formWeeks || []);
       setClusterWeeklyDetails(response.data.clusterVisits || []);
       setClusterDetails(response.data.clusters || []);
+
+      // Build ward-level week-by-week summary with cumulative totals
+      const weeksChrono = (response.data.formWeeks || []).slice().sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return a.weekNumber - b.weekNumber;
+      });
+      const clusterVisits = response.data.clusterVisits || [];
+      let cumulativeHouses = 0;
+      let cumulativeDays = 0;
+      const summary = weeksChrono.map((w) => {
+        const key = `${w.year}-${w.weekNumber}`;
+        let weekHouses = 0;
+        let weekDays = 0;
+        clusterVisits.forEach((cv) => {
+          const data = cv.weeklyData ? cv.weeklyData[key] : null;
+          if (data) {
+            weekHouses += Number(data.houses || 0);
+            weekDays += Number(data.days || 0);
+          }
+        });
+        cumulativeHouses += weekHouses;
+        cumulativeDays += weekDays;
+        return {
+          weekNumber: w.weekNumber,
+          year: w.year,
+          weekKey: key,
+          houses: weekHouses,
+          days: weekDays,
+          cumulativeHouses,
+          cumulativeDays,
+        };
+      });
+      setWardWeeklySummary(summary);
+
     } catch (error) {
       console.error('Error fetching cluster details:', error);
       console.error('Error details:', error.response?.data || error.message);
@@ -78,25 +114,46 @@ export default function CoordinatorClusterVisits() {
       // Build visit history from weekly data (from ward admin entries)
       const full = clusterWeeklyDetails.find(c => c.clusterId === cluster._id || c.clusterId === cluster.id);
       const history = [];
+      const series = [];
       if (full && full.weeklyData && formWeeks && formWeeks.length > 0) {
-        formWeeks.forEach(week => {
+        const weeksChrono = formWeeks.slice().sort((a, b) => {
+          if (a.year !== b.year) return a.year - b.year;
+          return a.weekNumber - b.weekNumber;
+        });
+        let cumHouses = 0;
+        let cumDays = 0;
+        weeksChrono.forEach((week) => {
           const key = `${week.year}-${week.weekNumber}`;
-          const data = full.weeklyData[key];
-          if (data && ((data.houses ?? 0) > 0 || (data.days ?? 0) > 0)) {
+          const data = full.weeklyData[key] || { houses: 0, days: 0 };
+          const housesVisited = Number(data.houses || 0);
+          const daysVisited = Number(data.days || 0);
+          if (housesVisited > 0 || daysVisited > 0) {
             history.push({
               id: `${full.clusterId}-${key}`,
               visitDate: new Date().toISOString(),
               visitedBy: 'Ward Incharge',
               purpose: `Weekly house visit (Week ${week.weekNumber}, ${week.year})`,
-              findings: `Visited ${data.houses || 0} houses over ${data.days || 0} days`,
-              housesVisited: data.houses || 0,
-              duration: `${data.days || 0} day(s)`
+              findings: `Visited ${housesVisited} houses over ${daysVisited} days`,
+              housesVisited,
+              duration: `${daysVisited} day(s)`
             });
           }
+          cumHouses += housesVisited;
+          cumDays += daysVisited;
+          series.push({
+            weekNumber: week.weekNumber,
+            year: week.year,
+            weekKey: key,
+            houses: housesVisited,
+            days: daysVisited,
+            cumulativeHouses: cumHouses,
+            cumulativeDays: cumDays,
+          });
         });
       }
 
       setVisitHistory(history);
+      setClusterWeeklySeries(series);
       setShowClusterModal(true);
     } catch (error) {
       console.error('Error fetching House Visit history:', error);
@@ -263,15 +320,43 @@ export default function CoordinatorClusterVisits() {
           <div className="lg:col-span-2">
             <Card>
               <div className="p-6">
+              {/* Ward Week-by-Week Summary */}
+              {selectedWard && wardWeeklySummary && wardWeeklySummary.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-md font-semibold text-gray-900 mb-2">Week-wise Summary (Ward)</h3>
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Houses (Week)</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days (Week)</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cumulative Houses</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cumulative Days</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {wardWeeklySummary.map((w) => (
+                          <tr key={w.weekKey}>
+                            <td className="px-4 py-2 text-sm text-gray-900">W{w.weekNumber}, {w.year}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.houses}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.days}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.cumulativeHouses}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.cumulativeDays}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium text-gray-900">
                     {selectedWard ? `${selectedWard.name} - Cluster Details` : 'Cluster Details'}
                   </h3>
-                  {selectedWard && (
-                    <div className="text-sm text-gray-600">
-                      {clusterDetails.length} clusters
-                    </div>
-                  )}
+                {selectedWard && (
+                  <div className="text-sm text-gray-600 whitespace-nowrap">{clusterDetails.length} clusters</div>
+                )}
                 </div>
 
                 {isLoadingClusters ? (
@@ -299,25 +384,20 @@ export default function CoordinatorClusterVisits() {
                         <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cluster</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Houses (Week)</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days (Week)</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Houses</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          {(formWeeks || [])
+                            .slice()
+                            .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.weekNumber - a.weekNumber))
+                            .map((w) => (
+                              <th key={`col-${w.year}-${w.weekNumber}`} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                W{w.weekNumber}, {w.year}
+                              </th>
+                            ))}
+                          
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {clusterDetails.map((cluster) => {
                           const full = clusterWeeklyDetails.find(c => c.clusterId === cluster._id || c.clusterId === cluster.id);
-                          const latest = formWeeks?.[0];
-                          const weekKey = latest ? `${latest.year}-${latest.weekNumber}` : null;
-                          const weeklyData = full && full.weeklyData && weekKey ? (full.weeklyData[weekKey] || {}) : {};
-                          const weekHouses = weeklyData.houses || 0;
-                          const weekDays = weeklyData.days || 0;
-                          const totalHouses = full?.totalHouses || 0;
-                          const totalDays = full?.totalDays || 0;
                           return (
                             <tr key={cluster._id} className="hover:bg-gray-50">
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cluster.name}</td>
@@ -326,22 +406,22 @@ export default function CoordinatorClusterVisits() {
                                   {cluster.status}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                {latest ? `W${latest.weekNumber}, ${latest.year}` : 'N/A'}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{weekHouses}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{weekDays}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{totalHouses}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{totalDays}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(cluster.lastVisited)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                <button
-                                  onClick={() => handleClusterClick(cluster)}
-                                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-900 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
-                                >
-                                  View History
-                                </button>
-                              </td>
+                              {(formWeeks || [])
+                                .slice()
+                                .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.weekNumber - a.weekNumber))
+                                .map((w) => {
+                                  const wk = `${w.year}-${w.weekNumber}`;
+                                  const data = full && full.weeklyData ? (full.weeklyData[wk] || {}) : {};
+                                  const houses = Number(data.houses || 0);
+                                  const days = Number(data.days || 0);
+                                  return (
+                                    <td key={`${cluster._id}-${wk}`} className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                      {houses}{days > 0 ? <span className="text-gray-500">h</span> : ''}
+                                      {days > 0 ? <span className="ml-1 text-gray-700">/ {days}<span className="text-gray-500">d</span></span> : ''}
+                                    </td>
+                                  );
+                                })}
+                              
                             </tr>
                           );
                         })}
@@ -361,6 +441,7 @@ export default function CoordinatorClusterVisits() {
             setShowClusterModal(false);
             setSelectedCluster(null);
             setVisitHistory([]);
+            setClusterWeeklySeries([]);
           }}
           title={selectedCluster ? `${selectedCluster.name} - Visit History` : 'House Visit History'}
           size="lg"
@@ -391,45 +472,39 @@ export default function CoordinatorClusterVisits() {
               </div>
 
               <div className="space-y-3">
-                <h4 className="font-medium text-gray-900">Visit History</h4>
-                {visitHistory.length === 0 ? (
+                <h4 className="font-medium text-gray-900">Week-by-Week Breakdown</h4>
+                {clusterWeeklySeries.length === 0 ? (
                   <div className="text-center py-8">
                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p className="mt-2 text-sm text-gray-500">No visit history available</p>
+                    <p className="mt-2 text-sm text-gray-500">No weekly data available</p>
                   </div>
                 ) : (
-                  visitHistory.map((visit) => (
-                    <div key={visit.id} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h5 className="text-sm font-medium text-gray-900">
-                            Visit on {formatDateTime(visit.visitDate)}
-                          </h5>
-                          <p className="text-xs text-gray-600">by {visit.visitedBy}</p>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Duration: {visit.duration}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-700">Purpose:</span>
-                          <span className="ml-2 text-gray-900">{visit.purpose}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">Houses Visited:</span>
-                          <span className="ml-2 text-gray-900">{visit.housesVisited}</span>
-                        </div>
-                        <div>
-                          <span className="font-medium text-gray-700">Findings:</span>
-                          <p className="mt-1 text-gray-900">{visit.findings}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Houses (Week)</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days (Week)</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cumulative Houses</th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cumulative Days</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clusterWeeklySeries.map((w) => (
+                          <tr key={w.weekKey}>
+                            <td className="px-4 py-2 text-sm text-gray-900">W{w.weekNumber}, {w.year}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.houses}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.days}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.cumulativeHouses}</td>
+                            <td className="px-4 py-2 text-sm text-gray-900">{w.cumulativeDays}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
 

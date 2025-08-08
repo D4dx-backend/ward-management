@@ -3,6 +3,8 @@ import { authOptions } from './auth/[...nextauth]';
 import dbConnect from '../../lib/mongodb';
 import User from '../../models/User';
 import Ward from '../../models/Ward';
+import bcrypt from 'bcryptjs';
+import { logActivity, ACTIONS } from '../../lib/logger';
 
 export default async function handler(req, res) {
   let session;
@@ -27,78 +29,165 @@ export default async function handler(req, res) {
 
   await dbConnect();
 
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
+  // Handle GET: list users (with minimal assigned wards info)
+  if (req.method === 'GET') {
+    try {
+      const { role, page = 1, limit = 50 } = req.query;
 
-  try {
-    const { role, page = 1, limit = 50 } = req.query;
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Users API called with:', { role, page, limit, userRole: session.user.role });
-    }
-
-    // Build query
-    let query = {};
-    if (role) {
-      query.role = role;
-    }
-
-    if (process.env.NODE_ENV === 'development') {
-      console.log('User query:', query);
-    }
-
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-
-    // Fetch users
-    const users = await User.find(query)
-      .select('name email role district mobileNumber createdAt')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit));
-
-
-
-    // Add assigned wards for each user based on their role
-    const usersWithWards = await Promise.all(users.map(async (user) => {
-      const userObj = user.toObject();
-      
-      if (user.role === 'coordinator') {
-        // Find wards where this user is the coordinator
-        const assignedWards = await Ward.find({ coordinator: user._id })
-          .select('name district')
-          .lean();
-        userObj.assignedWards = assignedWards;
-      } else if (user.role === 'wardAdmin') {
-        // Find ward where this user is the wardAdmin
-        const assignedWard = await Ward.findOne({ wardAdmin: user._id })
-          .select('name district')
-          .lean();
-        userObj.assignedWards = assignedWard ? [assignedWard] : [];
-      } else {
-        userObj.assignedWards = [];
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Users API called with:', { role, page, limit, userRole: session.user.role });
       }
-      
-      return userObj;
-    }));
 
-    // Get total count
-    const totalCount = await User.countDocuments(query);
+      // Build query
+      let query = {};
+      if (role) {
+        query.role = role;
+      }
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Users found:', usersWithWards.length, 'Total count:', totalCount);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('User query:', query);
+      }
+
+      // Calculate pagination
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      // Fetch users
+      const users = await User.find(query)
+        .select('name email role district mobileNumber createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      // Add assigned wards for each user based on their role
+      const usersWithWards = await Promise.all(users.map(async (user) => {
+        const userObj = user.toObject();
+        if (user.role === 'coordinator') {
+          const assignedWards = await Ward.find({ coordinator: user._id })
+            .select('name district')
+            .lean();
+          userObj.assignedWards = assignedWards;
+        } else if (user.role === 'wardAdmin') {
+          const assignedWard = await Ward.findOne({ wardAdmin: user._id })
+            .select('name district')
+            .lean();
+          userObj.assignedWards = assignedWard ? [assignedWard] : [];
+        } else {
+          userObj.assignedWards = [];
+        }
+        return userObj;
+      }));
+
+      // For backward compatibility, return users directly
+      return res.status(200).json(usersWithWards);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return res.status(500).json({ 
+        message: 'Failed to fetch users',
+        error: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
-
-    // For backward compatibility, return users directly
-    res.status(200).json(usersWithWards);
-  } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ 
-      message: 'Failed to fetch users',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
   }
+
+  // Handle POST: create user
+  if (req.method === 'POST') {
+    try {
+      const { name, email, password, mobileNumber, pinCode, role, district, sendWhatsApp } = req.body || {};
+
+      // Basic validations
+      if (!name || !role) {
+        return res.status(400).json({ message: 'Name and role are required' });
+      }
+
+      // Role-specific validations
+      if (role === 'stateAdmin') {
+        if (!email || !password) {
+          return res.status(400).json({ message: 'Email and password are required for state admin' });
+        }
+
+        // Ensure email not already in use (sparse unique, but we validate gracefully)
+        const existingByEmail = await User.findOne({ email });
+        if (existingByEmail) {
+          return res.status(400).json({ message: 'User with this email already exists' });
+        }
+      } else if (role === 'coordinator' || role === 'wardAdmin') {
+        if (!mobileNumber || !pinCode) {
+          return res.status(400).json({ message: 'Mobile number and PIN code are required for coordinators and Ward Incharges' });
+        }
+        if (String(pinCode).length !== 4 || !/^\d{4}$/.test(String(pinCode))) {
+          return res.status(400).json({ message: 'PIN code must be exactly 4 digits' });
+        }
+        // Ensure mobile number uniqueness among these roles
+        const existingByMobile = await User.findOne({
+          mobileNumber,
+          role: { $in: ['coordinator', 'wardAdmin'] }
+        });
+        if (existingByMobile) {
+          return res.status(400).json({ message: 'User with this mobile number already exists' });
+        }
+      } else {
+        return res.status(400).json({ message: 'Invalid role' });
+      }
+
+      // Build user payload
+      const newUser = new User({
+        name,
+        role,
+        district: district || undefined,
+        createdBy: session.user.id,
+      });
+
+      if (role === 'stateAdmin') {
+        newUser.email = email;
+        newUser.password = await bcrypt.hash(password, 10);
+        newUser.mobileNumber = undefined;
+        newUser.pinCode = undefined;
+      } else {
+        newUser.mobileNumber = String(mobileNumber);
+        newUser.pinCode = String(pinCode);
+        // Email/password are optional/unused for these roles
+        if (email) newUser.email = email;
+      }
+
+      await newUser.save();
+
+      // Log activity (best-effort)
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.USER_CREATE,
+          description: `Created user: ${newUser.name} (${newUser.role})`,
+          entityType: 'User',
+          entityId: newUser._id,
+          metadata: {
+            userRole: newUser.role,
+            district: newUser.district || null,
+            sendWhatsApp: Boolean(sendWhatsApp)
+          },
+          district: session.user.district,
+          ward: session.user.ward,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection?.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+      } catch (logErr) {
+        // Do not block request on logging failure
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('User creation logged with warning:', logErr?.message);
+        }
+      }
+
+      const created = newUser.toObject();
+      delete created.password;
+      delete created.pinCode;
+
+      return res.status(201).json(created);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return res.status(500).json({ message: 'Failed to create user', error: error.message });
+    }
+  }
+
+  // Fallback
+  res.setHeader('Allow', ['GET', 'POST']);
+  return res.status(405).end(`Method ${req.method} Not Allowed`);
 }

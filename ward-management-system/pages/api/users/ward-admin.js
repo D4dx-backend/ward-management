@@ -81,10 +81,10 @@ export default async function handler(req, res) {
         try {
           // Import WhatsApp service
           const { sendWhatsAppMessage } = require('../../../lib/whatsapp');
-          
+
           const message = `Welcome to Ward Management System!\n\nYour login credentials:\nMobile: ${mobileNumber}\nPIN: ${pinCode}\n\nLogin at: ${process.env.NEXTAUTH_URL}/auth/signin`;
-          
-          await sendWhatsAppMessage(mobileNumber, message);
+
+          await sendWhatsAppMessage({ recipient: mobileNumber, message });
         } catch (whatsappError) {
           console.error('WhatsApp notification failed:', whatsappError);
           // Don't fail the user creation if WhatsApp fails
