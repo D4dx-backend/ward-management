@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
 import Cluster from '../../../models/Cluster';
@@ -8,26 +9,97 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
+  // Set CORS headers for production
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
-    const session = await getSession({ req });
+    console.log('=== WARD CLUSTER VISITS API ===');
+    console.log('Environment:', process.env.NODE_ENV);
+
+    let session;
+    try {
+      session = await getServerSession(req, res, authOptions);
+    } catch (sessionError) {
+      console.error('Session error:', sessionError);
+      return res.status(401).json({ 
+        message: 'Session authentication failed',
+        error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+      });
+    }
     
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      console.log('No session found');
+      return res.status(401).json({ message: 'Unauthorized - No session' });
     }
 
+    if (!session.user) {
+      console.log('No user in session');
+      return res.status(401).json({ message: 'Unauthorized - No user in session' });
+    }
+
+    console.log('User role:', session.user.role);
+    console.log('User ID:', session.user.id);
+
     if (session.user.role !== 'coordinator') {
+      console.log('Access denied - not coordinator role');
       return res.status(403).json({ message: 'Access denied. Coordinator role required.' });
     }
 
-    await dbConnect();
+    // Connect to database with error handling
+    try {
+      await dbConnect();
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return res.status(503).json({ 
+        message: 'Database connection failed',
+        error: process.env.NODE_ENV === 'development' ? dbError.message : 'Service unavailable'
+      });
+    }
 
     const coordinatorId = session.user.id;
 
-    // Get coordinator's wards
-    const wards = await Ward.find({
-      coordinator: coordinatorId,
-      isActive: true
-    }).sort({ name: 1 });
+    // Validate coordinator ID
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(coordinatorId)) {
+      console.error('Invalid coordinator ID format:', coordinatorId);
+      return res.status(400).json({ message: 'Invalid coordinator ID format' });
+    }
+
+    console.log('Coordinator ID:', coordinatorId);
+
+    // Get coordinator's wards with timeout handling
+    let wards;
+    try {
+      console.log('Fetching coordinator wards...');
+      
+      const wardsQuery = Ward.find({
+        coordinator: new mongoose.Types.ObjectId(coordinatorId),
+        isActive: { $ne: false }
+      }).sort({ name: 1 }).lean();
+
+      const wardsPromise = wardsQuery.exec();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Wards query timeout')), 10000)
+      );
+
+      wards = await Promise.race([wardsPromise, timeoutPromise]);
+      console.log(`Found ${wards.length} wards for coordinator`);
+      
+    } catch (wardsError) {
+      console.error('Error fetching coordinator wards:', wardsError);
+      return res.status(500).json({ 
+        message: 'Failed to fetch coordinator wards',
+        error: process.env.NODE_ENV === 'development' ? wardsError.message : 'Query error'
+      });
+    }
 
     // Get House Visit data for each ward
     const wardVisitData = await Promise.all(

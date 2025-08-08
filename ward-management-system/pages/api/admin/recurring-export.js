@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
 import User from '../../../models/User';
@@ -11,7 +12,16 @@ export default async function handler(req, res) {
   try {
     // For recurring exports, we might want to use API key authentication
     // For now, we'll use session authentication
-    const session = await getSession({ req });
+    let session;
+    try {
+      session = await getServerSession(req, res, authOptions);
+    } catch (sessionError) {
+      console.error('Session error:', sessionError);
+      return res.status(401).json({ 
+        message: 'Session authentication failed',
+        error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+      });
+    }
     
     if (!session) {
       return res.status(401).json({ message: 'Unauthorized' });
