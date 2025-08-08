@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import DockerSurvey from '../../../models/DockerSurvey';
 import Ward from '../../../models/Ward';
@@ -6,11 +7,34 @@ import Ward from '../../../models/Ward';
 export default async function handler(req, res) {
   const { method } = req;
 
-  await dbConnect();
+  // Connect to database with error handling
+  try {
+    await dbConnect();
+  } catch (dbError) {
+    console.error('Database connection error:', dbError);
+    return res.status(503).json({ 
+      message: 'Database connection failed',
+      error: process.env.NODE_ENV === 'development' ? dbError.message : 'Service unavailable'
+    });
+  }
 
-  const session = await getSession({ req });
+  let session;
+  try {
+    session = await getServerSession(req, res, authOptions);
+  } catch (sessionError) {
+    console.error('Session error:', sessionError);
+    return res.status(401).json({ 
+      message: 'Session authentication failed',
+      error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+    });
+  }
+
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  if (!session.user) {
+    return res.status(401).json({ message: 'Unauthorized - No user in session' });
   }
 
   if (method !== 'GET') {

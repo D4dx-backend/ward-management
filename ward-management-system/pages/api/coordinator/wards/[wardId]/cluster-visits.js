@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../../../auth/[...nextauth]';
 import dbConnect from '../../../../../lib/mongodb';
 import Ward from '../../../../../models/Ward';
 import Cluster from '../../../../../models/Cluster';
@@ -9,13 +10,35 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await getSession({ req });
+    console.log('=== WARD CLUSTER VISITS DETAILS API ===');
+    console.log('Environment:', process.env.NODE_ENV);
+
+    let session;
+    try {
+      session = await getServerSession(req, res, authOptions);
+    } catch (sessionError) {
+      console.error('Session error:', sessionError);
+      return res.status(401).json({ 
+        message: 'Session authentication failed',
+        error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+      });
+    }
     
     if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      console.log('No session found');
+      return res.status(401).json({ message: 'Unauthorized - No session' });
     }
 
+    if (!session.user) {
+      console.log('No user in session');
+      return res.status(401).json({ message: 'Unauthorized - No user in session' });
+    }
+
+    console.log('User role:', session.user.role);
+    console.log('User ID:', session.user.id);
+
     if (session.user.role !== 'coordinator') {
+      console.log('Access denied - not coordinator role');
       return res.status(403).json({ message: 'Access denied. Coordinator role required.' });
     }
 
