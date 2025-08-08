@@ -104,7 +104,7 @@ async function fixDockerSurveyStructure() {
           sortedFormWeeks.map(w => `Week ${w.weekNumber}, ${w.year}`).join(', ')
         );
 
-        // Create new cluster visits structure
+        // Create new House Visits structure
         const newClusterVisits = clusters.map(cluster => {
           const visitData = {
             clusterId: cluster._id,

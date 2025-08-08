@@ -77,7 +77,7 @@ async function initializeDockerSurveys() {
         sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
       }
 
-      // Create dynamic cluster visits structure
+      // Create dynamic House Visits structure
       const clusterVisits = clusters.map(cluster => {
         const visitData = {
           clusterId: cluster._id,

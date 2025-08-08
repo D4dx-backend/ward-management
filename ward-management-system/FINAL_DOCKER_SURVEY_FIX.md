@@ -47,7 +47,7 @@ clusterVisits: [
 1. **Visit**: `http://localhost:3000/debug/fix-docker-survey`
 2. **Click**: "Fix Docker Survey" button
 3. **Wait**: For the process to complete
-4. **Test**: Go to Docker Survey → Cluster Visits tab
+4. **Test**: Go to Docker Survey → House Visits tab
 
 ### Option 2: Manual Steps
 1. **Clear old data**: Visit `/api/debug/clear-docker-surveys` (POST request)

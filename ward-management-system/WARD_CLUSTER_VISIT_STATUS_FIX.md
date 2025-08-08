@@ -13,15 +13,15 @@ The WardClusterVisitStatus component was showing mock data instead of calling th
 ```javascript
 // Before: Fell back to mock data
 catch (error) {
-  console.error('Error fetching ward cluster visit data:', error);
-  setError('Failed to load ward cluster visit data');
+  console.error('Error fetching ward House Visit data:', error);
+  setError('Failed to load ward House Visit data');
   setVisitData(mockData); // This was removed
 }
 
 // After: Proper error handling
 catch (error) {
-  console.error('Error fetching ward cluster visit data:', error);
-  setError(`Failed to load ward cluster visit data: ${error.response?.data?.message || error.message}`);
+  console.error('Error fetching ward House Visit data:', error);
+  setError(`Failed to load ward House Visit data: ${error.response?.data?.message || error.message}`);
   setVisitData([]); // Set empty array instead of mock data
 }
 ```
@@ -48,7 +48,7 @@ catch (error) {
 
 ## API Endpoints Verified
 
-### ✅ Main Ward Cluster Visits API
+### ✅ Main Ward House Visits API
 - **Endpoint**: `/api/coordinator/ward-cluster-visits`
 - **Status**: Working properly
 - **Returns**: Array of wards with visit statistics

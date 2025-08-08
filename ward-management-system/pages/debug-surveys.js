@@ -52,8 +52,7 @@ export default function DebugSurveys() {
 
       // Test question update
       addLog('2. Testing question update...', 'info');
-      const wardId = getResponse.data.ward._id;
-      const updateResponse = await axios.put(`/api/docker-survey/${wardId}`, {
+      const updateResponse = await axios.put('/api/docker-survey/my-ward', {
         questionKey: 'populationCensus',
         status: 'ongoing'
       });
@@ -61,7 +60,7 @@ export default function DebugSurveys() {
 
       // Test basic survey update
       addLog('3. Testing basic survey update...', 'info');
-      const basicResponse = await axios.put(`/api/docker-survey/${wardId}`, {
+      const basicResponse = await axios.put('/api/docker-survey/my-ward', {
         basicSurveyStatus: 'completed'
       });
       addLog('✓ Basic survey update successful', 'success');

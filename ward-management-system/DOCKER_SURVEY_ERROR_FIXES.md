@@ -93,7 +93,7 @@ The Docker Survey should now work properly with:
 1. **Ward Incharge Access**: Verify Ward Incharges can access their survey
 2. **Status Updates**: Test changing question statuses
 3. **Basic Survey**: Test basic survey status changes
-4. **Cluster Visits**: Test cluster visit data updates
+4. **House Visits**: Test House Visit data updates
 5. **Error Scenarios**: Test with invalid data or network issues
 
 ## Key Features Working
@@ -103,7 +103,7 @@ The Docker Survey should now work properly with:
 - View all 14 Malayalam questions with current status
 - Update any question status at any time
 - Track progress with visual indicators
-- Manage cluster visit data
+- Manage House Visit data
 
 ### For Coordinators & Admins
 - Monitor all ward surveys

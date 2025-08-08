@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     const Cluster = require('../../../models/Cluster').default;
     const wardClusters = await Cluster.find({ ward: ward._id, isActive: { $ne: false } }).sort({ clusterNumber: 1 });
     
-    // Analyze the survey cluster visits
+    // Analyze the survey House Visits
     const surveyClusterDetails = [];
     
     for (const clusterVisit of survey.clusterVisits) {

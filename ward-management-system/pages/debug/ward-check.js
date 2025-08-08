@@ -107,7 +107,7 @@ export default function WardCheck() {
                     </Button>
                     <Button 
                       variant="outline"
-                      onClick={() => window.location.href = `/api/docker-survey/${userInfo.ward._id}`}
+                      onClick={() => window.location.href = `/api/docker-survey/my-ward`}
                     >
                       Test Survey API
                     </Button>

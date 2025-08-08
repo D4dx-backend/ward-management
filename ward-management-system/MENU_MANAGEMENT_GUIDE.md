@@ -28,7 +28,7 @@ The menu management system allows you to organize navigation menus into categori
 1. **Dashboard** (single item)
 2. **User Management** - Users, Reset Password
 3. **Ward Management** - Wards, Ward Status, Ward Visits, Ward Advance Data
-4. **Cluster Management** - Clusters, Cluster Visits
+4. **Cluster Management** - Clusters, House Visits
 5. **Forms & Surveys** - Forms, Surveys, Recurring Questions
 6. **Reports & Analytics** - Reports, Recurring Exports, Activity Logs
 7. **System & Documentation** - Instructions, Documents, System Status, Menu Admin
@@ -37,7 +37,7 @@ The menu management system allows you to organize navigation menus into categori
 1. **Dashboard** (single item)
 2. **Reports** - Submit Reports, My Reports, Ward Reports
 3. **Ward Management** - Ward Status, Ward Profile, Ward Visits
-4. **Cluster Management** - Clusters, Cluster Visits
+4. **Cluster Management** - Clusters, House Visits
 5. **Forms & Surveys** - Surveys
 6. **Resources** - Instructions, Documents, Reset PIN
 
@@ -45,7 +45,7 @@ The menu management system allows you to organize navigation menus into categori
 1. **Dashboard** (single item)
 2. **Reports** - Submit Reports, My Reports
 3. **Ward Management** - Ward Visits Record, Ward Profile
-4. **Cluster Management** - Manage Clusters, Cluster Visits
+4. **Cluster Management** - Manage Clusters, House Visits
 5. **Forms & Surveys** - Survey
 6. **Resources** - Instructions, Documents, Reset PIN
 

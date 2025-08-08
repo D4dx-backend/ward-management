@@ -65,40 +65,17 @@ export default function DockerSurvey() {
         userName: session?.user?.name
       });
       
-      // Try the my-ward endpoint first (simpler and more direct)
+      // Use the my-ward endpoint (reliable and specific for ward admins)
       console.log('Fetching survey from my-ward endpoint...');
       const response = await axios.get(`/api/docker-survey/my-ward?t=${Date.now()}`);
       console.log('Survey response:', response.data);
-      console.log('Cluster visits count:', response.data?.clusterVisits?.length);
-      console.log('First cluster visit data:', response.data?.clusterVisits?.[0]);
+      console.log('House Visits count:', response.data?.clusterVisits?.length);
+      console.log('First House Visit data:', response.data?.clusterVisits?.[0]);
       setSurvey(response.data);
     } catch (error) {
       console.error('Error fetching survey:', error);
       console.error('Error details:', error.response?.data);
-      
-      // If my-ward fails, try the fallback method
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log('Direct endpoint failed, trying fallback method...');
-        try {
-          // Get user's ward information
-          const userResponse = await axios.get(`/api/users/${session.user.id}`);
-          const userWard = userResponse.data.ward;
-          
-          if (!userWard) {
-            setError('No ward assigned to your account. Please contact your administrator.');
-            return;
-          }
-          
-          // Then get the survey for that ward
-          const surveyResponse = await axios.get(`/api/docker-survey/${userWard._id}`);
-          setSurvey(surveyResponse.data);
-        } catch (fallbackError) {
-          console.error('Fallback method also failed:', fallbackError);
-          setError(fallbackError.response?.data?.message || 'Failed to load survey data');
-        }
-      } else {
-        setError(error.response?.data?.message || 'Failed to load survey data');
-      }
+      setError(error.response?.data?.message || 'Failed to load survey data');
     } finally {
       setLoading(false);
     }
@@ -212,14 +189,14 @@ export default function DockerSurvey() {
       setSaving(true);
       setError(null);
       
-      console.log('Updating cluster visits:', { clusterVisitsLength: clusterVisits?.length, wardId: survey.ward._id });
+      console.log('Updating House Visits:', { clusterVisitsLength: clusterVisits?.length, wardId: survey.ward._id });
       
       // Use the my-ward endpoint for better reliability
       const response = await axios.put(`/api/docker-survey/my-ward`, {
         clusterVisits
       });
       
-      console.log('Cluster visits update response:', response.data);
+      console.log('House Visits update response:', response.data);
       console.log('Update log:', response.data.updateLog);
       
       // Update the survey state
@@ -228,16 +205,16 @@ export default function DockerSurvey() {
       // Show success feedback if there were actual changes
       if (response.data.updateLog && response.data.updateLog.length > 0 && 
           !response.data.updateLog.includes('No changes made')) {
-        console.log('✅ Cluster visits updated successfully:', response.data.updateLog);
+        console.log('✅ House Visits updated successfully:', response.data.updateLog);
       }
       
     } catch (error) {
-      console.error('Error updating cluster visits:', error);
+      console.error('Error updating House Visits:', error);
       console.error('Error response:', error.response?.data);
       
       const errorMessage = error.response?.data?.message || 
                           error.response?.data?.error || 
-                          'Failed to update cluster visits';
+                          'Failed to update House Visits';
       setError(errorMessage);
       
       // If it's an authentication error, suggest refresh
@@ -381,7 +358,7 @@ export default function DockerSurvey() {
               onClick={() => window.location.href = '/ward/cluster-visits'}
               className="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-blue-600 hover:text-blue-800 hover:border-blue-300"
             >
-              Cluster Visits →
+              House Visits →
             </button>
           </nav>
         </div>
@@ -503,12 +480,12 @@ export default function DockerSurvey() {
           </Card>
         )}
 
-        {/* Cluster Visits Tab */}
+        {/* House Visits Tab */}
         {activeTab === 'cluster' && (
           <Card>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                Cluster Visit Status (Form Periods)
+                House Visit Status (Form Periods)
               </h2>
               <div className="flex space-x-2">
                 <Button
@@ -679,9 +656,9 @@ export default function DockerSurvey() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">No cluster visit data available</p>
+                <p className="text-gray-500">No House Visit data available</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Create clusters in your ward to enable cluster visit tracking
+                  Create clusters in your ward to enable House Visit tracking
                 </p>
                 <Button
                   onClick={() => window.location.href = '/ward/clusters'}

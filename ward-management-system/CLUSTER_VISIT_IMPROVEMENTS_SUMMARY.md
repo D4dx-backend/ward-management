@@ -1,4 +1,4 @@
-# Cluster Visit System Improvements Summary
+# House Visit System Improvements Summary
 
 ## Issues Addressed
 
@@ -16,8 +16,8 @@
 - Better status indicators (Submitted/Pending)
 - Cleaner action buttons (Submit Report/View Details)
 
-### 2. ✅ **Dynamic Cluster Loading in Admin Cluster Visits**
-**Issue**: Cluster visit page was calculating percentages based on wards instead of actual clusters
+### 2. ✅ **Dynamic Cluster Loading in Admin House Visits**
+**Issue**: House Visit page was calculating percentages based on wards instead of actual clusters
 **Solution**: Updated the API to count actual clusters instead of wards
 
 **Files Modified**:
@@ -27,10 +27,10 @@
 - Changed from counting wards to counting actual clusters
 - Added proper Cluster model import and query
 - Fixed visit percentage calculations to be based on real cluster data
-- Improved accuracy of cluster visit statistics
+- Improved accuracy of House Visit statistics
 
 ### 3. ✅ **Form-Based Week Display in Survey Page**
-**Issue**: Cluster visit survey page was showing calendar weeks instead of weeks when forms were actually created
+**Issue**: House Visit survey page was showing calendar weeks instead of weeks when forms were actually created
 **Solution**: Updated both docker survey APIs to only show weeks when state admin forms were created
 
 **Files Modified**:
@@ -113,7 +113,7 @@ const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClus
   - Clearer status indicators
   - Easier to scan and compare forms
 
-### 2. **Cluster Visit Statistics**
+### 2. **House Visit Statistics**
 - **Before**: Inaccurate percentages based on ward count
 - **After**: Accurate percentages based on actual cluster count
 - **Benefits**:
@@ -121,7 +121,7 @@ const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClus
   - Better tracking of actual cluster coverage
   - Improved decision-making data
 
-### 3. **Week-Based Cluster Visits**
+### 3. **Week-Based House Visits**
 - **Before**: Calendar weeks regardless of form creation
 - **After**: Only weeks when forms were actually created
 - **Benefits**:
@@ -134,13 +134,13 @@ const visitPercentage = totalClusters > 0 ? Math.round((visitedCount / totalClus
 
 ### Before
 ```
-Calendar Weeks → Cluster Visits → Display
+Calendar Weeks → House Visits → Display
 (Static, may not align with actual reporting)
 ```
 
 ### After
 ```
-Form Creation → Week Numbers → Cluster Visits → Display
+Form Creation → Week Numbers → House Visits → Display
 (Dynamic, aligned with actual reporting cycles)
 ```
 
@@ -153,29 +153,29 @@ Form Creation → Week Numbers → Cluster Visits → Display
 - [ ] Check status indicators (Submitted/Pending)
 - [ ] Verify action buttons work correctly
 
-### ✅ **Admin Cluster Visits**
+### ✅ **Admin House Visits**
 - [ ] Navigate to `/admin/cluster-visits`
 - [ ] Verify cluster counts are accurate (not ward counts)
 - [ ] Check visit percentages reflect actual cluster data
 - [ ] Test week navigation and details
 
-### ✅ **Survey Cluster Visits**
+### ✅ **Survey House Visits**
 - [ ] Navigate to `/ward/docker-survey`
-- [ ] Go to Cluster Visits tab
+- [ ] Go to House Visits tab
 - [ ] Verify week headers show actual form week numbers
 - [ ] Check that only weeks with forms are displayed
 - [ ] Verify "No Form" appears for weeks without forms
 - [ ] Test data entry and saving functionality
 
 ### ✅ **Ward Dashboard**
-- [ ] Check ward dashboard cluster visit component
+- [ ] Check ward dashboard House Visit component
 - [ ] Verify it shows form-based weeks
 - [ ] Test "View Details" button navigation
 
 ## Benefits Achieved
 
 1. **Consistency**: Submit report page now matches the design pattern used throughout the application
-2. **Accuracy**: Cluster visit statistics now reflect actual cluster data instead of ward data
+2. **Accuracy**: House Visit statistics now reflect actual cluster data instead of ward data
 3. **Relevance**: Only weeks with actual forms are displayed, reducing confusion
 4. **Clarity**: Week numbers and years are clearly displayed with proper fallbacks
 5. **Efficiency**: Users can focus on relevant reporting periods only
@@ -183,8 +183,8 @@ Form Creation → Week Numbers → Cluster Visits → Display
 ## Future Enhancements
 
 1. **Form Week Indicators**: Could add visual indicators showing which weeks have active forms
-2. **Cluster Visit Trends**: Could add trend analysis based on form-aligned weeks
+2. **House Visit Trends**: Could add trend analysis based on form-aligned weeks
 3. **Automated Week Updates**: Could automatically refresh week displays when new forms are created
-4. **Export Functionality**: Could add export features for cluster visit data by form weeks
+4. **Export Functionality**: Could add export features for House Visit data by form weeks
 
-The cluster visit system now provides a more accurate, relevant, and user-friendly experience that aligns with the actual form creation and reporting cycles.
+The House Visit system now provides a more accurate, relevant, and user-friendly experience that aligns with the actual form creation and reporting cycles.

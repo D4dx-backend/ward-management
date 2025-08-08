@@ -32,13 +32,13 @@ Updated the cluster management system to provide full cluster management privile
 
 ### 4. Docker Survey Integration
 **File**: `pages/api/docker-survey/[wardId].js`
-- Auto-populates cluster visits with ward's active clusters
-- Creates cluster visit tracking structure automatically
+- Auto-populates House Visits with ward's active clusters
+- Creates House Visit tracking structure automatically
 
 **File**: `pages/ward/docker-survey.js`
-- Made cluster visits section editable
+- Made House Visits section editable
 - Added input fields for houses and days per week
-- Save functionality for cluster visit data
+- Save functionality for House Visit data
 - Link to cluster management if no clusters exist
 
 ### 5. Bug Fixes
@@ -52,7 +52,7 @@ Updated the cluster management system to provide full cluster management privile
 - **Dedicated Interface**: Clean, focused cluster management page
 - **Full Control**: Can create, edit, and delete clusters in their ward
 - **Integrated Workflow**: Direct link from Docker Survey to cluster management
-- **Auto-populated Data**: Cluster visits automatically include all ward clusters
+- **Auto-populated Data**: House Visits automatically include all ward clusters
 
 ### For Coordinators & State Admins
 - **Unchanged Access**: Still have full access to all clusters via `/admin/clusters`

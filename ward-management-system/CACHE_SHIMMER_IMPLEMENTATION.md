@@ -42,7 +42,7 @@ The following pages have been updated with cache and shimmer loading:
 - Dashboard (`coordinator/index.js`) ✅
 - Ward reports (`coordinator/ward-reports.js`) ✅
 - Ward visits (`coordinator/ward-visits.js`) ✅
-- Cluster visits (`coordinator/cluster-visits.js`) ✅
+- House Visits (`coordinator/cluster-visits.js`) ✅
 - Instructions (`coordinator/instructions.js`) ✅
 - Activity logs (`coordinator/activity.js`) ✅
 
@@ -51,7 +51,7 @@ The following pages have been updated with cache and shimmer loading:
 - Report submission (`ward/reports/submit.js`) ✅
 - Ward profile (`ward/profile.js`) ✅
 - Basic data management (`ward/basic-data.js`) ✅
-- Cluster visits (`ward/cluster-visits.js`) ✅
+- House Visits (`ward/cluster-visits.js`) ✅
 - Instructions (`ward/instructions.js`) ✅
 
 #### Other Pages (15 pages updated)

@@ -165,7 +165,7 @@ node debug-docker-survey-save.js
 
 1. Test with actual ward admin accounts
 2. Monitor server logs for any remaining issues
-3. Verify cluster visits functionality
+3. Verify House Visits functionality
 4. Check completion rate calculations
 5. Test with multiple concurrent users
 

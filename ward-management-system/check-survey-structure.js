@@ -19,7 +19,7 @@ async function checkSurveyStructure() {
     }
     
     console.log(`✅ Found survey: ${survey._id}`);
-    console.log(`Cluster visits count: ${survey.clusterVisits?.length || 0}`);
+    console.log(`House Visits count: ${survey.clusterVisits?.length || 0}`);
     
     if (survey.clusterVisits && survey.clusterVisits.length > 0) {
       const firstCluster = survey.clusterVisits[0];

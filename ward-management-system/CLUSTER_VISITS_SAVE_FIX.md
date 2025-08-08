@@ -1,4 +1,4 @@
-# Cluster Visits Save Loading Fix
+# House Visits Save Loading Fix
 
 ## Issue Identified
 When ward admins save house visit status by cluster, the page was not loading completely after save, showing incomplete data or not refreshing properly.

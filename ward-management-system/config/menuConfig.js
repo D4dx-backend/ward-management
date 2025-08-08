@@ -32,7 +32,7 @@ export const menuConfig = {
       icon: '🏢',
       items: [
         { name: 'Clusters', href: '/admin/clusters', icon: '🏢' },
-        { name: 'Cluster Visits', href: '/admin/cluster-visits', icon: '📍' }
+        { name: 'House Visits', href: '/admin/cluster-visits', icon: '📍' }
       ]
     },
     'Forms & Surveys': {
@@ -96,7 +96,7 @@ export const menuConfig = {
       items: [
         { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
         { name: 'Wards', href: '/coordinator/wards', icon: '🏘️' },
-        { name: 'Cluster Visits', href: '/coordinator/cluster-visits', icon: '📍' }
+        { name: 'House Visits', href: '/coordinator/cluster-visits', icon: '📍' }
       ]
     },
     'Reports & Analytics': {

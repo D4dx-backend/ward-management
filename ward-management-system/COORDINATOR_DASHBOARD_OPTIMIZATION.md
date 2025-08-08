@@ -131,7 +131,7 @@ if (!ward) {
 
 ## Future Enhancements
 
-1. **Cluster Visit Tracking**: Add visit status to cluster cards
+1. **House Visit Tracking**: Add visit status to cluster cards
 2. **Bulk Operations**: Select multiple clusters for batch operations
 3. **Search & Filter**: Add search functionality to cluster modal
 4. **Real-time Updates**: WebSocket updates for cluster status changes

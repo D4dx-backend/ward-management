@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error fetching ward cluster visits:', error);
+    console.error('Error fetching ward House Visits:', error);
     res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

@@ -126,7 +126,7 @@ export default function FixDockerSurvey() {
               <h3 className="font-medium text-green-800 mb-2">After running the fix:</h3>
               <ol className="text-sm text-green-700 space-y-1 list-decimal list-inside">
                 <li>Go to your Docker Survey page: <code>/ward/docker-survey</code></li>
-                <li>Click on the "Cluster Visits" tab</li>
+                <li>Click on the "House Visits" tab</li>
                 <li>You should see "Week 31, 2025", "Week 30, 2025", "Week 29, 2025" instead of "Old Structure"</li>
                 <li>All 6 clusters should be visible with input fields for Houses and Days</li>
               </ol>

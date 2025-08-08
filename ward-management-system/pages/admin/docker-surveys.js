@@ -445,10 +445,10 @@ export default function AdminDockerSurveys() {
                   </div>
                 </div>
 
-                {/* Cluster Visits Summary */}
+                {/* House Visits Summary */}
                 {selectedWard.clusterVisits && selectedWard.clusterVisits.length > 0 && (
                   <div className="bg-purple-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Cluster Visits Summary</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">House Visits Summary</h4>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-gray-600">Total Clusters</div>
@@ -469,7 +469,7 @@ export default function AdminDockerSurveys() {
                   </div>
                 )}
 
-                {/* Basic Survey & Cluster Visits */}
+                {/* Basic Survey & House Visits */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-yellow-50 p-4 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Basic Survey</h4>
@@ -485,7 +485,7 @@ export default function AdminDockerSurveys() {
                   </div>
 
                   <div className="bg-green-50 p-4 rounded-lg">
-                    <h4 className="font-medium text-gray-900 mb-3">Cluster Visits</h4>
+                    <h4 className="font-medium text-gray-900 mb-3">House Visits</h4>
                     <div className="text-sm text-gray-600">
                       {selectedWard.clusterVisits?.length || 0} clusters tracked
                     </div>

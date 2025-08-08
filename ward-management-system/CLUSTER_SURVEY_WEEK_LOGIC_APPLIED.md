@@ -77,7 +77,7 @@ stateAdminForms.forEach(form => {
 
 ### 3. Dynamic Structure Creation
 ```javascript
-// Creates dynamic cluster visits for ALL form weeks
+// Creates dynamic House Visits for ALL form weeks
 const clusterVisits = clusters.map(cluster => ({
   clusterId: cluster._id,
   clusterName: cluster.name,
@@ -115,21 +115,21 @@ Visit: `http://localhost:3000/debug/test-cluster-survey`
 - Should show all 6 clusters
 
 ### 2. Check Cluster Survey Page
-Visit: `http://localhost:3000/ward/docker-survey` → Cluster Visits tab
+Visit: `http://localhost:3000/ward/docker-survey` → House Visits tab
 - Should show actual week headers instead of "Old Structure"
 - Should display 3 columns for your form weeks
 - Should show all 6 clusters with input fields
 
 ### 3. Verify Dashboard
 Check your ward dashboard
-- Should show cluster visit summary with dynamic weeks
+- Should show House Visit summary with dynamic weeks
 - Should calculate totals based on actual form periods
 
 ## Benefits Achieved
 
 1. **Real Form Periods**: Shows actual weeks from your FormTemplate data
 2. **Dynamic Scaling**: Supports any number of form weeks automatically
-3. **Accurate Tracking**: Cluster visits now align with actual reporting periods
+3. **Accurate Tracking**: House Visits now align with actual reporting periods
 4. **Consistent Format**: Week display matches form creation format
 5. **Future-Proof**: Automatically picks up new form periods
 

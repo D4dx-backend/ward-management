@@ -83,7 +83,7 @@ async function getFormWeeks() {
   }
 }
 
-// Helper function to create cluster visits structure
+// Helper function to create House Visits structure
 async function createClusterVisitsStructure(wardId, formWeeks) {
   try {
     const clusters = await Cluster.find({ ward: wardId, isActive: { $ne: false } }).sort({ clusterNumber: 1 });
@@ -110,7 +110,7 @@ async function createClusterVisitsStructure(wardId, formWeeks) {
       return visitData;
     });
   } catch (error) {
-    console.error('Error creating cluster visits structure:', error);
+    console.error('Error creating House Visits structure:', error);
     return [];
   }
 }
@@ -300,12 +300,12 @@ export default async function handler(req, res) {
             }
           }
 
-          // Update cluster visits
+          // Update House Visits
           if (clusterVisits && Array.isArray(clusterVisits)) {
-            console.log(`🔄 Updating cluster visits (${clusterVisits.length} clusters)`);
+            console.log(`🔄 Updating House Visits (${clusterVisits.length} clusters)`);
             survey.clusterVisits = clusterVisits;
             hasChanges = true;
-            updateLog.push(`Cluster visits updated (${clusterVisits.length} clusters)`);
+            updateLog.push(`House Visits updated (${clusterVisits.length} clusters)`);
           }
 
           // Save changes if any were made

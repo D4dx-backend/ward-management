@@ -40,7 +40,7 @@ The menu system has been restructured with better organization, clearer naming, 
    └── Ward Advance Data
 🏢 Cluster Management
    └── Clusters
-   └── Cluster Visits
+   └── House Visits
 📝 Forms & Surveys
    └── Forms
    └── Surveys
@@ -70,7 +70,7 @@ The menu system has been restructured with better organization, clearer naming, 
    └── Ward Visits
 🏢 Cluster Management
    └── Clusters
-   └── Cluster Visits
+   └── House Visits
 📝 Forms & Surveys
    └── Surveys
 📚 Documentation
@@ -91,7 +91,7 @@ The menu system has been restructured with better organization, clearer naming, 
    └── Ward Profile
 🏢 Cluster Management
    └── Manage Clusters
-   └── Cluster Visits
+   └── House Visits
 📝 Forms & Surveys
    └── Survey
 📚 Documentation

@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
     }
 
-    // STEP 5: Create dynamic cluster visits structure
+    // STEP 5: Create dynamic House Visits structure
     const clusterVisits = clusters.map(cluster => {
       const visitData = {
         clusterId: cluster._id,

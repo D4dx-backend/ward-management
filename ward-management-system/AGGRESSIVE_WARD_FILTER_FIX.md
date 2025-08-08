@@ -1,12 +1,12 @@
 # Aggressive Ward Filter Fix
 
 ## Problem
-The previous filtering logic was too gentle - it only added new clusters but didn't completely rebuild the cluster visits to remove wrong ward clusters. The survey document still contained clusters from other wards.
+The previous filtering logic was too gentle - it only added new clusters but didn't completely rebuild the House Visits to remove wrong ward clusters. The survey document still contained clusters from other wards.
 
 ## Solution: Force Rebuild Approach
 
 ### 1. **Aggressive Cluster Rebuild**
-Instead of trying to merge/update existing cluster visits, the system now **completely rebuilds** the cluster visits every time the survey is accessed.
+Instead of trying to merge/update existing House Visits, the system now **completely rebuilds** the House Visits every time the survey is accessed.
 
 **Files Modified:**
 - `pages/api/docker-survey/my-ward.js`
@@ -14,12 +14,12 @@ Instead of trying to merge/update existing cluster visits, the system now **comp
 
 **New Logic:**
 ```javascript
-// COMPLETELY REBUILD cluster visits with only current ward clusters
+// COMPLETELY REBUILD House Visits with only current ward clusters
 const newClusterVisits = clusters.map(cluster => {
-  // Create fresh cluster visit data for each ward cluster
+  // Create fresh House Visit data for each ward cluster
 });
 
-// Replace ALL cluster visits with new ones
+// Replace ALL House Visits with new ones
 survey.clusterVisits = newClusterVisits;
 survey.markModified('clusterVisits');
 await survey.save();
@@ -45,8 +45,8 @@ await survey.save();
 
 ### Every API Call (Automatic)
 1. **Get ward clusters** - Query only clusters belonging to this ward
-2. **Rebuild cluster visits** - Create fresh cluster visit data for each ward cluster
-3. **Replace all data** - Completely replace existing cluster visits
+2. **Rebuild House Visits** - Create fresh House Visit data for each ward cluster
+3. **Replace all data** - Completely replace existing House Visits
 4. **Save survey** - Update the database with clean data
 
 ### Manual Reset (Emergency)
@@ -70,7 +70,7 @@ await survey.save();
 ## Testing Steps
 
 ### 1. Test Default Load
-1. Visit `/ward/docker-survey` → Cluster Visits tab
+1. Visit `/ward/docker-survey` → House Visits tab
 2. Should show only your 6 ward clusters immediately
 3. Check console logs for rebuild messages
 
@@ -89,8 +89,8 @@ await survey.save();
 ### Successful Rebuild
 ```
 Found 6 clusters for ward 68846eed430c7b20683e76d1
-Survey exists with 12 cluster visits
-Rebuilding cluster visits: 12 -> 6
+Survey exists with 12 House Visits
+Rebuilding House Visits: 12 -> 6
 Survey updated with 6 ward-specific clusters
 ```
 
@@ -107,7 +107,7 @@ Force reset: Deleted survey for ward 68846eed430c7b20683e76d1
 - Left corrupted data in place
 
 ### New Approach (Aggressive)
-- Completely rebuilds cluster visits every time
+- Completely rebuilds House Visits every time
 - Ensures only ward clusters are included
 - Fixes corrupted data automatically
 - No mercy for wrong data

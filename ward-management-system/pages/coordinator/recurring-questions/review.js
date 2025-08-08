@@ -20,6 +20,7 @@ export default function CoordinatorReviewRecurringQuestions() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(''); // Added missing success state
   
   // Search filters (combined question + filters)
   const [searchFilters, setSearchFilters] = useState({
@@ -73,6 +74,7 @@ export default function CoordinatorReviewRecurringQuestions() {
     try {
       setIsSearching(true);
       setError('');
+      setSuccess('');
       
       const params = new URLSearchParams({
         ...Object.fromEntries(
@@ -84,6 +86,14 @@ export default function CoordinatorReviewRecurringQuestions() {
       
       setWeeklyData(response.data.weeklyData || []);
       setSelectedQuestion(questions.find(q => q._id === searchFilters.questionId));
+      
+      // Set success message
+      const totalResponses = response.data.totalResponses || 0;
+      const totalWeeks = response.data.totalWeeks || 0;
+      setSuccess(`Found ${totalResponses} responses across ${totalWeeks} weeks for the selected question.`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(''), 5000);
       
     } catch (error) {
       setError(`Failed to fetch weekly data: ${error.response?.data?.message || error.message}`);
@@ -113,6 +123,8 @@ export default function CoordinatorReviewRecurringQuestions() {
     });
     setWeeklyData([]);
     setSelectedQuestion(null);
+    setError('');
+    setSuccess('');
   };
 
   const formatAnswer = (answer) => {
@@ -188,6 +200,21 @@ export default function CoordinatorReviewRecurringQuestions() {
             )}
           </div>
         </div>
+
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">{success}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">

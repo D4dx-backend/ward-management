@@ -1,37 +1,50 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
-import connectToDatabase from '../../lib/mongodb';
+import dbConnect from '../../lib/mongodb';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    res.setHeader('Allow', ['GET']);
+    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+
+  const session = await getServerSession(req, res, authOptions);
+  
+  if (!session) {
+    return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
-    const session = await getServerSession(req, res, authOptions);
+    await dbConnect();
     
-    if (!session) {
-      return res.status(401).json({ message: 'Unauthorized' });
+    // Test database connection
+    const mongoose = require('mongoose');
+    const connectionState = mongoose.connection.readyState;
+    
+    const states = {
+      0: 'disconnected',
+      1: 'connected',
+      2: 'connecting',
+      3: 'disconnecting'
+    };
+    
+    if (connectionState === 1) {
+      res.status(200).json({ 
+        message: 'Database connection successful',
+        state: states[connectionState],
+        user: session.user.email
+      });
+    } else {
+      res.status(503).json({ 
+        message: 'Database connection failed',
+        state: states[connectionState]
+      });
     }
-
-    await connectToDatabase();
-
-    return res.status(200).json({
-      message: 'Connection successful',
-      user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        role: session.user.role
-      },
-      timestamp: new Date().toISOString()
-    });
-
   } catch (error) {
-    console.error('Test connection error:', error);
-    return res.status(500).json({ 
-      message: 'Connection failed', 
-      error: error.message 
+    console.error('Database connection test error:', error);
+    res.status(500).json({ 
+      message: 'Database connection error',
+      error: error.message
     });
   }
 }

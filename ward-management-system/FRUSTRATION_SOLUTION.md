@@ -10,7 +10,7 @@
 - This will show if the API has the new structure or old structure
 
 ### 2. Force Refresh Button
-**Location**: Docker Survey → Cluster Visits tab
+**Location**: Docker Survey → House Visits tab
 - Changed "Reset Structure" to "Force Refresh" (blue button)
 - This will show you exactly what structure is being returned
 
@@ -26,7 +26,7 @@
 
 ### Step 2: If API Shows Correct Structure
 If the API test shows the correct structure but the UI still shows "Old Structure":
-1. Go to Docker Survey → Cluster Visits tab
+1. Go to Docker Survey → House Visits tab
 2. Click the blue "Force Refresh" button
 3. It should show an alert with your actual weeks
 

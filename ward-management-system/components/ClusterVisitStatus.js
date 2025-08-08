@@ -20,7 +20,7 @@ export default function ClusterVisitStatus() {
     try {
       setIsLoading(true);
       
-      // Try admin cluster visits API first, then fall back to coordinator API
+      // Try admin House Visits API first, then fall back to coordinator API
       let response;
       try {
         response = await axios.get('/api/admin/cluster-visits');
@@ -43,8 +43,8 @@ export default function ClusterVisitStatus() {
       
       setError('');
     } catch (error) {
-      console.error('Error fetching cluster visit data:', error);
-      setError('Failed to load cluster visit data');
+      console.error('Error fetching House Visit data:', error);
+      setError('Failed to load House Visit data');
       
       // Fallback to mock data if both APIs fail
       console.log('Both APIs failed, generating mock data');
@@ -63,7 +63,7 @@ export default function ClusterVisitStatus() {
         const year = weekStart.getFullYear();
         const isCurrentWeek = i === 0;
         
-        // Mock cluster visit data with proper names and assignments
+        // Mock House Visit data with proper names and assignments
         const clusterNames = ['Anganwadi Center A', 'Health Sub-Center B', 'Community Hall C', 'School Cluster D', 'Panchayat Office E', 'Market Area F'];
         const coordinatorNames = ['Priya Nair', 'Rajesh Kumar', 'Sunita Devi', 'Anil Sharma', 'Meera Pillai', 'Suresh Babu'];
         const wardNames = ['Thiruvananthapuram Central', 'Pettah', 'Fort', 'Palayam', 'Statue', 'East Fort'];
@@ -183,8 +183,8 @@ export default function ClusterVisitStatus() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-medium text-gray-900">Cluster Visit Status</h2>
-              <p className="text-sm text-gray-600">Cluster visit tracking based on form creation weeks</p>
+              <h2 className="text-lg font-medium text-gray-900">House Visit Status</h2>
+              <p className="text-sm text-gray-600">House Visit tracking based on form creation weeks</p>
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-1 text-xs text-gray-500">
@@ -275,7 +275,7 @@ export default function ClusterVisitStatus() {
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p className="mt-2 text-sm text-gray-500">No cluster visit data available</p>
+              <p className="mt-2 text-sm text-gray-500">No House Visit data available</p>
             </div>
           )}
         </div>
@@ -285,7 +285,7 @@ export default function ClusterVisitStatus() {
       <Modal
         isOpen={showWeekModal}
         onClose={() => setShowWeekModal(false)}
-        title={selectedWeek ? `Week ${selectedWeek.weekNumber || 'N/A'} - Cluster Visit Details` : 'Cluster Visit Details'}
+        title={selectedWeek ? `Week ${selectedWeek.weekNumber || 'N/A'} - House Visit Details` : 'House Visit Details'}
         size="lg"
       >
         {selectedWeek && (

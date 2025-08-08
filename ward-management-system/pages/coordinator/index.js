@@ -143,7 +143,7 @@ export default function CoordinatorDashboard() {
         {/* Ward Report Status Table */}
         <WardReportStatus />
 
-        {/* Ward Cluster Visit Status */}
+        {/* Ward House Visit Status */}
         <WardClusterVisitStatus />
 
         {/* Coordinator Reports Section */}
@@ -197,7 +197,7 @@ export default function CoordinatorDashboard() {
                     </svg>
                   </div>
                   <div className="ml-2">
-                    <h3 className="text-sm font-medium text-gray-900">Cluster Visit Status</h3>
+                    <h3 className="text-sm font-medium text-gray-900">House Visit Status</h3>
                     <p className="text-xs text-gray-500">Track visits</p>
                   </div>
                 </div>
@@ -215,7 +215,7 @@ export default function CoordinatorDashboard() {
                     </svg>
                   </div>
                   <div className="ml-2">
-                    <h3 className="text-sm font-medium text-gray-900">Cluster Visit Details</h3>
+                    <h3 className="text-sm font-medium text-gray-900">House Visit Details</h3>
                     <p className="text-xs text-gray-500">Detailed view</p>
                   </div>
                 </div>

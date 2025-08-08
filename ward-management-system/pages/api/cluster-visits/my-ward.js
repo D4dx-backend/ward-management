@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   switch (method) {
     case 'GET':
       try {
-        console.log(`=== GETTING CLUSTER VISITS FOR WARD ${ward._id} ===`);
+        console.log(`=== GETTING House VisitS FOR WARD ${ward._id} ===`);
         
         // Get form weeks from FormTemplate
         const FormTemplate = require('../../../models/FormTemplate').default;
@@ -86,14 +86,14 @@ export default async function handler(req, res) {
           sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
         }
 
-        // Initialize or get cluster visits for this ward
+        // Initialize or get House Visits for this ward
         const clusterVisits = await ClusterVisit.initializeForWard(
           ward._id, 
           sortedFormWeeks, 
           session.user.id
         );
 
-        console.log(`✅ Retrieved ${clusterVisits.length} cluster visits`);
+        console.log(`✅ Retrieved ${clusterVisits.length} House Visits`);
 
         // Convert to frontend-friendly format
         const responseData = clusterVisits.map(cv => ({
@@ -107,7 +107,7 @@ export default async function handler(req, res) {
           updatedAt: cv.updatedAt
         }));
 
-        console.log(`✅ SUCCESS: Returning ${responseData.length} cluster visits with ${sortedFormWeeks.length} weeks each`);
+        console.log(`✅ SUCCESS: Returning ${responseData.length} House Visits with ${sortedFormWeeks.length} weeks each`);
 
         return res.status(200).json({
           ward: {
@@ -122,9 +122,9 @@ export default async function handler(req, res) {
         });
 
       } catch (error) {
-        console.error('❌ Error getting cluster visits:', error);
+        console.error('❌ Error getting House Visits:', error);
         return res.status(500).json({ 
-          message: 'Error getting cluster visits', 
+          message: 'Error getting House Visits', 
           error: error.message 
         });
       }
@@ -134,10 +134,10 @@ export default async function handler(req, res) {
         const { clusterVisits } = req.body;
         
         if (!clusterVisits || !Array.isArray(clusterVisits)) {
-          return res.status(400).json({ message: 'Invalid cluster visits data' });
+          return res.status(400).json({ message: 'Invalid House Visits data' });
         }
 
-        console.log(`=== UPDATING ${clusterVisits.length} CLUSTER VISITS ===`);
+        console.log(`=== UPDATING ${clusterVisits.length} House VisitS ===`);
 
         const updatedVisits = [];
 
@@ -159,11 +159,11 @@ export default async function handler(req, res) {
             await clusterVisit.save();
             updatedVisits.push(clusterVisit);
             
-            console.log(`✅ Updated cluster visit for ${clusterVisit.clusterName}`);
+            console.log(`✅ Updated House Visit for ${clusterVisit.clusterName}`);
           }
         }
 
-        console.log(`✅ Successfully updated ${updatedVisits.length} cluster visits`);
+        console.log(`✅ Successfully updated ${updatedVisits.length} House Visits`);
 
         // Get fresh data after update to ensure consistency
         const freshClusterVisits = await ClusterVisit.find({ ward: ward._id })
@@ -219,13 +219,13 @@ export default async function handler(req, res) {
           clusterVisits: responseData,
           totalClusters: responseData.length,
           totalWeeks: sortedFormWeeks.length,
-          message: `Updated ${updatedVisits.length} cluster visits successfully`
+          message: `Updated ${updatedVisits.length} House Visits successfully`
         });
 
       } catch (error) {
-        console.error('❌ Error updating cluster visits:', error);
+        console.error('❌ Error updating House Visits:', error);
         return res.status(500).json({ 
-          message: 'Error updating cluster visits', 
+          message: 'Error updating House Visits', 
           error: error.message 
         });
       }
