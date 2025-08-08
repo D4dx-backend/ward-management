@@ -1,10 +1,20 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import User from '../../../models/User';
 import Ward from '../../../models/Ward';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  let session;
+  try {
+    session = await getServerSession(req, res, authOptions);
+  } catch (sessionError) {
+    console.error('Session error:', sessionError);
+    return res.status(401).json({ 
+      message: 'Session authentication failed',
+      error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+    });
+  }
 
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
