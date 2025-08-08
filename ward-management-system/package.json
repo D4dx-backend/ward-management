@@ -10,7 +10,10 @@
     "create-admin": "node scripts/create-admin.js",
     "init-docker-surveys": "node scripts/initialize-docker-surveys.js",
     "analyze": "cross-env ANALYZE=true next build",
-    "cache:clear": "node scripts/clear-cache.js"
+    "cache:clear": "node scripts/clear-cache.js",
+    "db:clear": "node clear-database.js",
+    "db:clear-specific": "node clear-specific-data.js",
+    "db:verify": "node verify-database.js"
   },
   "dependencies": {
     "axios": "^1.5.0",
