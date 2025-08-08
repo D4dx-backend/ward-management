@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import Card from './Card';
@@ -7,6 +8,7 @@ import Modal from './Modal';
 
 export default function CoordinatorReportsList({ type = 'submitted', title = 'Reports' }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -151,7 +153,7 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
 
           <div className="flex justify-center pt-4">
             <Button
-              onClick={() => window.open(`/coordinator/reports/submit?formId=${selectedReport._id}`, '_blank')}
+              onClick={() => router.push(`/coordinator/reports/submit?formId=${selectedReport._id}`)}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Submit Report
@@ -253,7 +255,7 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open('/coordinator/reports', '_blank')}
+                onClick={() => router.push('/coordinator/reports')}
               >
                 View All Reports
               </Button>

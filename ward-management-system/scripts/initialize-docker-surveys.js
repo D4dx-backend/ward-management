@@ -137,7 +137,7 @@ async function initializeDockerSurveys() {
     console.log(`- Total: ${created + existing} surveys`);
 
   } catch (error) {
-    console.error('Error initializing Docker Surveys:', error);
+    console.error('Error initializing Docket Surveys:', error);
   }
 }
 

@@ -68,7 +68,7 @@ async function debugDockerSurveySave() {
     }
 
     // Check for orphaned surveys
-    console.log('\n=== Orphaned Docker Surveys ===');
+    console.log('\n=== Orphaned Docket Surveys ===');
     const allSurveys = await DockerSurvey.find({})
       .populate('ward', 'name wardNumber')
       .populate('wardAdmin', 'name');

@@ -60,9 +60,9 @@ let totalCount = Object.keys(questions).length; // Only count docket survey ques
 **Status: FIXED**
 
 **Changes Applied:**
-- ✅ Navigation menu: "Docker Surveys" → "Surveys" (Admin & Coordinator)
+- ✅ Navigation menu: "Docket Surveys" → "Surveys" (Admin & Coordinator)
 - ✅ Navigation menu: "Docker Survey" → "Survey" (Ward)
-- ✅ Page title: "Docker Surveys" → "Surveys"
+- ✅ Page title: "Docket Surveys" → "Surveys"
 - ✅ Section title: "Docket Survey Questions" → "Survey Questions"
 
 ### 6. ✅ **Draft Functionality and Status Management**
@@ -98,7 +98,7 @@ let totalCount = Object.keys(questions).length; // Only count docket survey ques
    - Updated comments to clarify docket-only progress
 
 4. **ward-management/ward-management-system/components/Layout.js**
-   - Updated navigation labels from "Docker Surveys" to "Surveys"
+   - Updated navigation labels from "Docket Surveys" to "Surveys"
 
 5. **ward-management/ward-management-system/pages/admin/docker-surveys.js**
    - Updated page title and section headers

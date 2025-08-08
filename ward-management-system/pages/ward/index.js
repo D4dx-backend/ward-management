@@ -16,6 +16,7 @@ import PendingFormModal from '../../components/PendingFormModal';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
 import { useDashboardRefresh } from '../../hooks/useDashboardRefresh';
+import { getCurrentWeek, formatWeekPeriod } from '../../lib/weekUtils';
 
 export default function WardAdminDashboard() {
   const { data: session, status } = useSession();
@@ -163,6 +164,10 @@ export default function WardAdminDashboard() {
     );
   }
 
+  const currentWeekNumber = getCurrentWeek();
+  const currentYear = new Date().getFullYear();
+  const currentWeekPeriod = formatWeekPeriod(currentWeekNumber, currentYear);
+
   const quickActions = [
     {
       title: 'Submit Report',
@@ -283,6 +288,18 @@ export default function WardAdminDashboard() {
                 <div>
                   <span className="text-gray-600">Coordinator:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.coordinator?.name || 'Not assigned'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Current Week:</span>
+                  <p className="font-medium text-gray-900">Week {currentWeekNumber}, {currentYear}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Period:</span>
+                  <p className="font-medium text-gray-900">{currentWeekPeriod}</p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Sitting Ward:</span>
+                  <p className="font-medium text-gray-900">{userInfo?.ward?.isSittingWard ? 'Yes' : 'No'}</p>
                 </div>
               </div>
             </div>

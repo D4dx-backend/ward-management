@@ -33,7 +33,10 @@ export default function Clusters() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [selectedCoordinator, setSelectedCoordinator] = useState('');
   const [filteredWards, setFilteredWards] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState({ type: '', message: '' });
   const [showFilters, setShowFilters] = useState(false);
+  // Bulk modal specific filters
+  const [bulkFilters, setBulkFilters] = useState({ district: '', panchayath: '', wardId: '' });
   const [formData, setFormData] = useState({
     name: '',
     clusterNumber: '',
@@ -136,6 +139,18 @@ export default function Clusters() {
     setFilteredWards(filtered);
   }, [wards, selectedDistrict, selectedPanchayath]);
 
+  // Bulk modal: wards filtered by bulk district/panchayath
+  const bulkFilteredWards = (() => {
+    let result = wards;
+    if (bulkFilters.district) {
+      result = result.filter(ward => ward.district === bulkFilters.district);
+    }
+    if (bulkFilters.panchayath) {
+      result = result.filter(ward => ward.panchayath === bulkFilters.panchayath);
+    }
+    return result;
+  })();
+
   // Pagination logic
   const totalPages = Math.ceil(filteredClusters.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -146,20 +161,27 @@ export default function Clusters() {
     setCurrentPage(page);
   };
 
-  // Get unique districts from clusters
+  // Get unique districts from wards (not clusters) so all wards are discoverable
   const getUniqueDistricts = () => {
-    const districts = [...new Set(clusters.map(cluster => cluster.ward.district))];
+    const districts = [...new Set(wards.map(ward => ward.district))];
     return districts.sort();
   };
 
-  // Get unique panchayaths from clusters
+  // Get unique panchayaths from wards filtered by selected district
   const getUniquePanchayaths = () => {
-    let filteredClusters = clusters;
-    if (selectedDistrict) {
-      filteredClusters = clusters.filter(cluster => cluster.ward.district === selectedDistrict);
-    }
-    const panchayaths = [...new Set(filteredClusters.map(cluster => cluster.ward.panchayath))];
+    const source = selectedDistrict
+      ? wards.filter(ward => ward.district === selectedDistrict)
+      : wards;
+    const panchayaths = [...new Set(source.map(ward => ward.panchayath))];
     return panchayaths.sort();
+  };
+
+  // Bulk modal: panchayaths based on bulk district
+  const getBulkPanchayaths = () => {
+    const source = bulkFilters.district
+      ? wards.filter(ward => ward.district === bulkFilters.district)
+      : wards;
+    return [...new Set(source.map(ward => ward.panchayath))].sort();
   };
 
   // Get unique wards for filters
@@ -369,11 +391,12 @@ export default function Clusters() {
   const handleBulkSave = async (clustersData) => {
     try {
       setError('');
+      setBulkStatus({ type: '', message: '' });
       
       // Add wardId to each cluster
       const clustersWithWard = clustersData.map(cluster => ({
         ...cluster,
-        wardId: selectedWard || formData.wardId
+        wardId: bulkFilters.wardId || selectedWard || formData.wardId
       }));
 
       // Create all clusters
@@ -386,12 +409,11 @@ export default function Clusters() {
       
       // Update the clusters list
       setClusters([...clusters, ...newClusters]);
-      setShowBulkCreateModal(false);
-      
-      // Show success message
-      setError('');
+      // Keep modal open and show success message inside the modal
+      setBulkStatus({ type: 'success', message: `${newClusters.length} clusters created successfully.` });
+      // Reset table/form state ward selection remains
     } catch (error) {
-      setError(error.response?.data?.message || 'Failed to create clusters');
+      setBulkStatus({ type: 'error', message: error.response?.data?.message || 'Failed to create clusters' });
     }
   };
 
@@ -1200,6 +1222,24 @@ export default function Clusters() {
           size="full"
         >
           <div className="space-y-4">
+            {bulkStatus.message && (
+              <div className={`${bulkStatus.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-700'} border px-4 py-3 rounded-lg`}>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      {bulkStatus.type === 'success' ? (
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      ) : (
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      )}
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm">{bulkStatus.message}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
@@ -1215,31 +1255,58 @@ export default function Clusters() {
               </div>
             </div>
 
-            {/* Ward Selection for Bulk Create */}
+            {/* Bulk filters: District, Panchayath, Ward */}
             {!selectedWard && (
-              <div>
-                <label htmlFor="bulkWardSelect" className="block text-sm font-medium text-gray-700 mb-1">
-                  Select Ward *
-                </label>
-                <select
-                  id="bulkWardSelect"
-                  value={formData.wardId}
-                  onChange={(e) => setFormData({ ...formData, wardId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required
-                >
-                  <option value="">Select a ward</option>
-                  {wards.map((ward) => (
-                    <option key={ward._id} value={ward._id}>
-                      {ward.name} - {ward.panchayath}, {ward.district}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                  <select
+                    value={bulkFilters.district}
+                    onChange={(e) => setBulkFilters({ district: e.target.value, panchayath: '', wardId: '' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">All Districts</option>
+                    {[...new Set(wards.map(w => w.district))].sort().map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Panchayath</label>
+                  <select
+                    value={bulkFilters.panchayath}
+                    onChange={(e) => setBulkFilters(prev => ({ ...prev, panchayath: e.target.value, wardId: '' }))}
+                    disabled={!bulkFilters.district}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">All Panchayaths</option>
+                    {getBulkPanchayaths().map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Ward *</label>
+                  <select
+                    value={bulkFilters.wardId || formData.wardId}
+                    onChange={(e) => {
+                      setBulkFilters(prev => ({ ...prev, wardId: e.target.value }));
+                      setFormData({ ...formData, wardId: e.target.value });
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    required
+                  >
+                    <option value="">Select Ward</option>
+                    {bulkFilteredWards.map(ward => (
+                      <option key={ward._id} value={ward._id}>{ward.name} - {ward.panchayath}, {ward.district}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             )}
 
             <ClusterTableManager
-              wardId={selectedWard || formData.wardId}
+              wardId={selectedWard || bulkFilters.wardId || formData.wardId}
               onSave={handleBulkSave}
               initialClusters={[]}
             />

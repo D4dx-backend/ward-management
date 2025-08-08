@@ -96,18 +96,6 @@ export default function Forms() {
 
 
 
-  const togglePublishStatus = async (formId, isPublished) => {
-    try {
-      await axios.put(`/api/forms/${formId}`, { isPublished: !isPublished });
-      setForms(forms.map(form => 
-        form._id === formId ? { ...form, isPublished: !isPublished } : form
-      ));
-    } catch (error) {
-      setError('Failed to update form publish status');
-      console.error(error);
-    }
-  };
-
   const openDeleteModal = (form) => {
     setDeleteModal({
       isOpen: true,
@@ -356,16 +344,15 @@ export default function Forms() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col space-y-1">
-                        <button
-                          onClick={() => togglePublishStatus(form._id, form.isPublished)}
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-colors ${
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                             form.isPublished
-                              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
                           }`}
                         >
                           {form.isPublished ? 'Published' : 'Draft'}
-                        </button>
+                        </span>
                         {form.isPublished && (
                           <span className="text-xs text-gray-500">
                             {form.publishedAt ? new Date(form.publishedAt).toLocaleDateString() : 'Published'}

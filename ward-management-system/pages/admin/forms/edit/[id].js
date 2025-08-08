@@ -28,7 +28,6 @@ export default function EditForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    isActive: true,
     isPublished: false,
     isSittingWardForm: false,
     allowMultipleSubmissions: true,
@@ -69,7 +68,6 @@ export default function EditForm() {
       setFormData({
         title: formData.title,
         description: formData.description || '',
-        isActive: formData.isActive,
         isPublished: formData.isPublished || false,
         isSittingWardForm: formData.isSittingWardForm || false,
         allowMultipleSubmissions: formData.allowMultipleSubmissions !== undefined ? formData.allowMultipleSubmissions : true,
@@ -488,7 +486,6 @@ export default function EditForm() {
         title: formData.title.trim(),
         description: formData.description.trim(),
         formType: form.formType,
-        isActive: formData.isActive,
         isPublished: formData.isPublished,
         isSittingWardForm: formData.isSittingWardForm,
         allowMultipleSubmissions: formData.allowMultipleSubmissions,
@@ -727,17 +724,6 @@ export default function EditForm() {
               </div>
 
               <div className="space-y-3">
-                <label className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="ml-2 text-sm font-medium text-gray-700">Active Form</span>
-                </label>
-                
                 <label className="flex items-center">
                   <input
                     type="checkbox"

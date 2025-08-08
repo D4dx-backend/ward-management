@@ -340,6 +340,35 @@ export default function AdminClusterVisits() {
     window.URL.revokeObjectURL(url);
   };
 
+  const exportAllServer = async () => {
+    try {
+      const params = new URLSearchParams();
+      // Ask server for full range (max 20 weeks)
+      params.set('all', 'true');
+      if (filters.district && filters.district !== 'all') params.set('district', filters.district);
+      if (filters.coordinator && filters.coordinator !== 'all') params.set('coordinator', filters.coordinator);
+      if (filters.ward && filters.ward !== 'all') params.set('ward', filters.ward);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      if (filters.dateRange && filters.dateRange !== 'all') params.set('dateRange', filters.dateRange);
+      if (filters.visitStatus && filters.visitStatus !== 'all') params.set('visitStatus', filters.visitStatus);
+
+      const response = await axios.get(`/api/admin/cluster-visits/export?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cluster-visits-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export cluster visits.');
+    }
+  };
+
   const toggleWeekExpansion = (weekKey) => {
     setExpandedWeeks(prev => {
       const newSet = new Set(prev);
@@ -402,6 +431,12 @@ export default function AdminClusterVisits() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Export Report
+            </Button>
+            <Button onClick={exportAllServer} variant="primary">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export All (CSV)
             </Button>
             <Button onClick={clearFilters} variant="outline">
               Clear Filters

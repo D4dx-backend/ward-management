@@ -35,14 +35,13 @@ export const menuConfig = {
         { name: 'House Visits', href: '/admin/cluster-visits', icon: '📍' }
       ]
     },
-    'Forms & Surveys': {
+    'Forms & Recurring': {
       type: 'category',
       icon: '📝',
       items: [
-        { name: 'Forms', href: '/admin/forms', icon: '📝' },
-        { name: 'Surveys', href: '/admin/docker-surveys', icon: '🗂️' },
         { name: 'Recurring Questions', href: '/admin/recurring-questions', icon: '🔄' },
-        { name: 'Review Recurring Questions', href: '/admin/recurring-questions/review', icon: '📋' }
+        { name: 'Recurring Responses (Weekly)', href: '/admin/recurring-questions/review', icon: '📋' },
+        { name: 'Forms', href: '/admin/forms', icon: '📝' }
       ]
     },
     'Reports & Analytics': {
@@ -113,12 +112,7 @@ export const menuConfig = {
         { name: 'Review Recurring Questions', href: '/coordinator/recurring-questions/review', icon: '📋' }
       ]
     },
-    'Survey Status': {
-      type: 'single',
-      items: [
-        { name: 'Survey Status', href: '/coordinator/docker-surveys', icon: '🗂️' }
-      ]
-    },
+    // Removed Survey Status (Docker Survey) from coordinator menu per request
     'Documentation': {
       type: 'category',
       icon: '📚',

@@ -94,7 +94,7 @@ export default async function handler(req, res) {
     
     res.status(200).send(csvContent);
   } catch (error) {
-    console.error('Error exporting docker surveys:', error);
-    res.status(500).json({ message: 'Error exporting docker surveys' });
+    console.error('Error exporting Docket Surveys:', error);
+    res.status(500).json({ message: 'Error exporting Docket Surveys' });
   }
 }

@@ -15,6 +15,7 @@ export default function ClusterVisits() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [editingWeeks, setEditingWeeks] = useState(new Set());
 
   useEffect(() => {
     if (session?.user?.role === 'wardAdmin') {
@@ -91,6 +92,18 @@ export default function ClusterVisits() {
     cluster.weeklyData[weekKey][field] = parseInt(value) || 0;
     
     setClusterData(newClusterData);
+  };
+
+  const toggleWeekEditing = (weekKey) => {
+    setEditingWeeks((previousEditingWeeks) => {
+      const updatedEditingWeeks = new Set(previousEditingWeeks);
+      if (updatedEditingWeeks.has(weekKey)) {
+        updatedEditingWeeks.delete(weekKey);
+      } else {
+        updatedEditingWeeks.add(weekKey);
+      }
+      return updatedEditingWeeks;
+    });
   };
 
   if (loading) {
@@ -198,6 +211,37 @@ export default function ClusterVisits() {
           </p>
         </div>
 
+        {/* Summary Stats - moved above table as requested */}
+        {clusterData?.clusterVisits && clusterData.clusterVisits.length > 0 && (
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary Statistics</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-4 bg-blue-50 rounded">
+                  <div className="text-2xl font-bold text-blue-600">{clusterData.totalClusters}</div>
+                  <div className="text-sm text-blue-700">Total Clusters</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded">
+                  <div className="text-2xl font-bold text-green-600">{clusterData.totalWeeks}</div>
+                  <div className="text-sm text-green-700">Form Weeks</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {clusterData.clusterVisits.reduce((total, cluster) => total + (cluster.totalHouses || 0), 0)}
+                  </div>
+                  <div className="text-sm text-purple-700">Total Houses</div>
+                </div>
+                <div className="text-center p-4 bg-orange-50 rounded">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {clusterData.clusterVisits.reduce((total, cluster) => total + (cluster.totalDays || 0), 0)}
+                  </div>
+                  <div className="text-sm text-orange-700">Total Days</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* House Visits Table */}
         <Card>
           <div className="p-6">
@@ -244,11 +288,24 @@ export default function ClusterVisits() {
                       Cluster
                     </th>
                     {/* Dynamic week headers based on actual form periods */}
-                    {clusterData.formWeeks?.map((week, index) => (
-                      <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Week {week.weekNumber}, {week.year}
-                      </th>
-                    ))}
+                    {clusterData.formWeeks?.map((week, index) => {
+                      const weekKey = `${week.year}-${week.weekNumber}`;
+                      const isEditing = editingWeeks.has(weekKey);
+                      return (
+                        <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center space-x-2">
+                            <span>Week {week.weekNumber}, {week.year}</span>
+                            <Button
+                              size="sm"
+                              variant={isEditing ? 'success' : 'outline'}
+                              onClick={() => toggleWeekEditing(weekKey)}
+                            >
+                              {isEditing ? 'Done' : 'Edit'}
+                            </Button>
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -261,6 +318,7 @@ export default function ClusterVisits() {
                       {clusterData.formWeeks?.map((week, weekIndex) => {
                         const weekKey = `${week.year}-${week.weekNumber}`;
                         const weekData = cluster.weeklyData?.[weekKey] || { houses: 0, days: 0 };
+                        const isEditing = editingWeeks.has(weekKey);
                         
                         return (
                           <td key={weekIndex} className="px-6 py-4 whitespace-nowrap">
@@ -272,7 +330,8 @@ export default function ClusterVisits() {
                                   min="0"
                                   value={weekData.houses || 0}
                                   onChange={(e) => updateClusterWeekData(clusterIndex, weekKey, 'houses', e.target.value)}
-                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  disabled={!isEditing || saving}
+                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-50 disabled:text-gray-400"
                                 />
                               </div>
                               <div className="flex items-center space-x-2">
@@ -283,7 +342,8 @@ export default function ClusterVisits() {
                                   max="7"
                                   value={weekData.days || 0}
                                   onChange={(e) => updateClusterWeekData(clusterIndex, weekKey, 'days', e.target.value)}
-                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  disabled={!isEditing || saving}
+                                  className="w-16 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 disabled:bg-gray-50 disabled:text-gray-400"
                                 />
                               </div>
                             </div>
@@ -312,37 +372,6 @@ export default function ClusterVisits() {
           )}
           </div>
         </Card>
-
-        {/* Summary Stats */}
-        {clusterData?.clusterVisits && clusterData.clusterVisits.length > 0 && (
-          <Card>
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Summary Statistics</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded">
-                  <div className="text-2xl font-bold text-blue-600">{clusterData.totalClusters}</div>
-                  <div className="text-sm text-blue-700">Total Clusters</div>
-                </div>
-                <div className="text-center p-4 bg-green-50 rounded">
-                  <div className="text-2xl font-bold text-green-600">{clusterData.totalWeeks}</div>
-                  <div className="text-sm text-green-700">Form Weeks</div>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {clusterData.clusterVisits.reduce((total, cluster) => total + (cluster.totalHouses || 0), 0)}
-                  </div>
-                  <div className="text-sm text-purple-700">Total Houses</div>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded">
-                  <div className="text-2xl font-bold text-orange-600">
-                    {clusterData.clusterVisits.reduce((total, cluster) => total + (cluster.totalDays || 0), 0)}
-                  </div>
-                  <div className="text-sm text-orange-700">Total Days</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
       </div>
     </Layout>
   );

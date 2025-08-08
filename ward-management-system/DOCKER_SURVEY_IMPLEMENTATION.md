@@ -64,7 +64,7 @@ The Docker Survey feature is a comprehensive survey system that allows Ward Inch
 
 ### 4. Navigation Integration
 - Added "Docker Survey" link to Ward Incharge navigation
-- Added "Docker Surveys" link to coordinator and admin navigation
+- Added "Docket Surveys" link to coordinator and admin navigation
 - Consistent iconography and placement in sidebar
 
 ## Technical Implementation Details
@@ -142,13 +142,13 @@ The system includes 14 predefined questions in Malayalam (exactly as specified i
 4. Monitor overall completion percentage in the header
 
 ### For Coordinators
-1. Navigate to "Docker Surveys" in the sidebar
+1. Navigate to "Docket Surveys" in the sidebar
 2. View overview statistics and ward progress
 3. Click "View Details" on any ward to see complete survey status
 4. Monitor completion rates across assigned wards
 
 ### For State Admins
-1. Navigate to "Docker Surveys" in the sidebar
+1. Navigate to "Docket Surveys" in the sidebar
 2. Use filters to find specific wards or status types
 3. Export data using the "Export Data" button
 4. View detailed analytics for system-wide progress

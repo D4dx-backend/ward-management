@@ -136,7 +136,7 @@ export default function AdminDockerSurveys() {
   return (
     <Layout>
       <Head>
-        <title>Docker Surveys - Admin Dashboard</title>
+        <title>Docket Surveys - Admin Dashboard</title>
       </Head>
 
       <div className="space-y-6">
@@ -339,7 +339,7 @@ export default function AdminDockerSurveys() {
               <p className="text-gray-500 mt-2">
                 {searchTerm || filterStatus !== 'all' 
                   ? 'No surveys match your filters'
-                  : 'No docker surveys found'
+                  : 'No Docket Surveys found'
                 }
               </p>
             </div>

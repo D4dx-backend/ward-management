@@ -59,7 +59,7 @@ const AVAILABLE_MODELS = {
   'responses': { model: Response, name: 'Responses' },
   'recurring-questions': { model: RecurringQuestion, name: 'Recurring Questions' },
   'recurring-responses': { model: RecurringQuestionResponse, name: 'Recurring Question Responses' },
-  'docker-surveys': { model: DockerSurvey, name: 'Docker Surveys' },
+  'docker-surveys': { model: DockerSurvey, name: 'Docket Surveys' },
   'documents': { model: Document, name: 'Documents' },
   'instructions': { model: Instruction, name: 'Instructions' },
   'activity-logs': { model: ActivityLog, name: 'Activity Logs' },

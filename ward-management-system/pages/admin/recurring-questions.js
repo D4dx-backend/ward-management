@@ -75,9 +75,13 @@ export default function RecurringQuestions() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
-      router.push('/');
-    } else if (status === 'authenticated') {
+      return;
+    }
+    if (status === 'authenticated' && session?.user?.role !== 'stateAdmin') {
+      router.replace('/');
+      return;
+    }
+    if (status === 'authenticated') {
       fetchQuestions();
     }
   }, [status, session, router]);
@@ -85,11 +89,23 @@ export default function RecurringQuestions() {
   const fetchQuestions = async () => {
     try {
       setIsLoading(true);
-      const response = await axios.get('/api/recurring-questions');
+      const response = await axios.get('/api/recurring-questions', {
+        withCredentials: true,
+        headers: {
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache'
+        },
+        params: { _: Date.now() }
+      });
       setQuestions(response.data);
       setError('');
     } catch (error) {
-      setError('Failed to fetch recurring questions');
+      if (error?.response?.status === 401) {
+        setError('Session expired. Redirecting to sign in...');
+        router.push('/auth/signin');
+      } else {
+        setError('Failed to fetch recurring questions');
+      }
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -249,7 +265,7 @@ export default function RecurringQuestions() {
     setDeleteModal({
       isOpen: true,
       questionId: question._id,
-      questionTitle: question.title,
+      questionTitle: question.question,
       isDeleting: false
     });
   };
@@ -638,6 +654,7 @@ export default function RecurringQuestions() {
                 </p>
               </div>
             )}
+
 
             {/* Sub-questions Section */}
             <div className="border-t border-gray-200 pt-6">
