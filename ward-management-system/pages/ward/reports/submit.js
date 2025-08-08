@@ -83,45 +83,93 @@ export default function SubmitWardReport() {
         throw new Error(`Failed to fetch forms: ${formsError.response?.data?.message || formsError.message}`);
       }
 
-      // Get user's wards - with enhanced error handling and fallback
-      try {
-        console.log('Fetching wards...');
-        wardsResponse = await axios.get('/api/wards', {
-          timeout: 10000, // 10 second timeout
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+      // Get user's wards - with production-ready error handling and retry logic
+      let wardsRetryCount = 0;
+      const maxRetries = 3;
+      
+      while (wardsRetryCount < maxRetries) {
+        try {
+          console.log(`Fetching wards... (attempt ${wardsRetryCount + 1}/${maxRetries})`);
+          
+          wardsResponse = await axios.get('/api/wards', {
+            timeout: 15000, // 15 second timeout for production
+            headers: {
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            validateStatus: function (status) {
+              return status < 500; // Don't throw for 4xx errors, handle them explicitly
+            }
+          });
+          
+          console.log('Wards response status:', wardsResponse.status);
+          console.log('Wards response data:', wardsResponse.data);
+          
+          // Handle different response statuses
+          if (wardsResponse.status === 401) {
+            throw new Error('Authentication failed. Please log out and log in again.');
+          } else if (wardsResponse.status === 403) {
+            throw new Error('Access denied. You may not have permission to access ward data.');
+          } else if (wardsResponse.status === 404) {
+            throw new Error('Wards API endpoint not found. Please contact support.');
+          } else if (wardsResponse.status >= 400) {
+            throw new Error(`Server error (${wardsResponse.status}): ${wardsResponse.data?.message || 'Unknown error'}`);
           }
-        });
-        console.log('Wards response:', wardsResponse.data);
-        
-        // Validate wards response
-        if (!Array.isArray(wardsResponse.data)) {
-          console.error('Invalid wards response format:', wardsResponse.data);
-          throw new Error('Invalid wards data format received');
-        }
-        
-        if (wardsResponse.data.length === 0) {
-          console.warn('No wards found for ward admin user');
-          // This is not necessarily an error - ward admin might not have assigned wards
-        }
-        
-      } catch (wardsError) {
-        console.error('Wards API error:', wardsError.response?.data || wardsError.message);
-        console.error('Wards error status:', wardsError.response?.status);
-        console.error('Wards error config:', wardsError.config);
-        
-        // Provide more specific error handling
-        if (wardsError.code === 'ECONNABORTED') {
-          throw new Error('Request timeout while fetching wards. Please try again.');
-        } else if (wardsError.response?.status === 401) {
-          throw new Error('Authentication failed. Please log out and log in again.');
-        } else if (wardsError.response?.status === 403) {
-          throw new Error('Access denied. You may not have permission to access ward data.');
-        } else if (wardsError.response?.status === 500) {
-          throw new Error('Server error while fetching wards. Please contact support if this persists.');
-        } else {
-          throw new Error(`Failed to fetch wards: ${wardsError.response?.data?.message || wardsError.message}`);
+          
+          // Validate wards response
+          if (!wardsResponse.data) {
+            throw new Error('No data received from wards API');
+          }
+          
+          if (!Array.isArray(wardsResponse.data)) {
+            console.error('Invalid wards response format:', wardsResponse.data);
+            throw new Error('Invalid wards data format received');
+          }
+          
+          if (wardsResponse.data.length === 0) {
+            console.warn('No wards found for ward admin user');
+            // This is not necessarily an error - ward admin might not have assigned wards
+          }
+          
+          // Success - break out of retry loop
+          break;
+          
+        } catch (wardsError) {
+          wardsRetryCount++;
+          console.error(`Wards API error (attempt ${wardsRetryCount}):`, wardsError.message);
+          console.error('Error details:', {
+            status: wardsError.response?.status,
+            data: wardsError.response?.data,
+            code: wardsError.code,
+            timeout: wardsError.code === 'ECONNABORTED'
+          });
+          
+          // If this was the last retry, throw the error
+          if (wardsRetryCount >= maxRetries) {
+            // Provide more specific error handling
+            if (wardsError.code === 'ECONNABORTED') {
+              throw new Error('Request timeout while fetching wards. The server may be overloaded. Please try again later.');
+            } else if (wardsError.code === 'ECONNREFUSED') {
+              throw new Error('Cannot connect to server. Please check your internet connection.');
+            } else if (wardsError.code === 'ENOTFOUND') {
+              throw new Error('Server not found. Please check your internet connection.');
+            } else if (wardsError.response?.status === 401) {
+              throw new Error('Authentication failed. Please log out and log in again.');
+            } else if (wardsError.response?.status === 403) {
+              throw new Error('Access denied. You may not have permission to access ward data.');
+            } else if (wardsError.response?.status >= 500) {
+              throw new Error('Server error while fetching wards. Please contact support if this persists.');
+            } else {
+              throw new Error(`Failed to fetch wards after ${maxRetries} attempts: ${wardsError.response?.data?.message || wardsError.message}`);
+            }
+          }
+          
+          // Wait before retrying (exponential backoff)
+          const waitTime = Math.pow(2, wardsRetryCount) * 1000; // 1s, 2s, 4s
+          console.log(`Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
 
