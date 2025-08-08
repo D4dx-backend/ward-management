@@ -10,7 +10,14 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
 
   useEffect(() => {
     if (isOpen && user) {
-      fetchUserWards();
+      // Use assignedWards data if available, otherwise fetch from API
+      if (user.assignedWards) {
+        setWards(user.assignedWards);
+        setIsLoading(false);
+        setError('');
+      } else {
+        fetchUserWards();
+      }
     }
   }, [isOpen, user]);
 
@@ -31,8 +38,10 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
     }
   };
 
-  const coordinatorWards = wards.filter(ward => ward.coordinator?._id === user?._id);
-  const wardAdminWards = wards.filter(ward => ward.wardAdmin?._id === user?._id);
+  // For the simplified approach, use assignedWards directly
+  const assignedWards = user?.assignedWards || wards || [];
+  const coordinatorWards = user?.role === 'coordinator' ? assignedWards : [];
+  const wardAdminWards = user?.role === 'wardAdmin' ? assignedWards : [];
 
   return (
     <Modal
@@ -182,7 +191,7 @@ export default function UserWardsModal({ isOpen, onClose, user }) {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-gray-500">Total Wards:</span>
-                  <span className="ml-2 font-medium">{wards.length}</span>
+                  <span className="ml-2 font-medium">{assignedWards.length}</span>
                 </div>
                 <div>
                   <span className="text-gray-500">Role:</span>

@@ -32,52 +32,47 @@ export default async function handler(req, res) {
     });
 
     if (!ward) {
-      return res.status(404).json({ message: 'Ward not found or access denied' });
+      return res.status(403).json({ message: 'Access denied to this ward' });
     }
 
-    // Get all clusters for this ward with visit details
+    // Get all clusters for this ward
     const clusters = await Cluster.find({
       ward: wardId,
       isActive: true
     }).sort({ name: 1 });
 
-    // Calculate visit status for each cluster
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const clusterDetails = clusters.map(cluster => {
-      const isVisited = cluster.lastVisited && cluster.lastVisited >= thirtyDaysAgo;
+    // Process clusters to add visit status
+    const processedClusters = clusters.map(cluster => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      // Calculate visit count (simplified - in real implementation, you might have a separate visits collection)
-      const visitCount = cluster.lastVisited ? Math.floor(Math.random() * 5) + 1 : 0;
+      let status = 'pending';
+      if (cluster.lastVisited) {
+        if (cluster.lastVisited >= thirtyDaysAgo) {
+          status = 'visited';
+        } else {
+          const sixtyDaysAgo = new Date();
+          sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+          status = cluster.lastVisited < sixtyDaysAgo ? 'overdue' : 'pending';
+        }
+      }
 
       return {
-        _id: cluster._id,
-        name: cluster.name,
-        clusterNumber: cluster.clusterNumber,
-        status: isVisited ? 'visited' : 'pending',
-        lastVisited: cluster.lastVisited,
-        visitCount,
-        householdCount: cluster.householdCount || 0,
-        population: cluster.population || 0,
-        description: cluster.description
+        ...cluster.toObject(),
+        status,
+        visitCount: cluster.visitCount || 0
       };
     });
 
-    // Sort by status (visited first) and then by name
-    clusterDetails.sort((a, b) => {
-      if (a.status !== b.status) {
-        return a.status === 'visited' ? -1 : 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-
     // Calculate summary statistics
-    const visitedCount = clusterDetails.filter(c => c.status === 'visited').length;
-    const pendingCount = clusterDetails.filter(c => c.status === 'pending').length;
-    const visitPercentage = clusterDetails.length > 0 
-      ? Math.round((visitedCount / clusterDetails.length) * 100) 
-      : 0;
+    const summary = {
+      totalClusters: clusters.length,
+      visitedClusters: processedClusters.filter(c => c.status === 'visited').length,
+      pendingClusters: processedClusters.filter(c => c.status === 'pending').length,
+      overdueClusters: processedClusters.filter(c => c.status === 'overdue').length,
+      totalHouseholds: processedClusters.reduce((sum, c) => sum + (c.householdCount || 0), 0),
+      totalPopulation: processedClusters.reduce((sum, c) => sum + (c.population || 0), 0)
+    };
 
     res.status(200).json({
       ward: {
@@ -85,19 +80,12 @@ export default async function handler(req, res) {
         name: ward.name,
         wardNumber: ward.wardNumber
       },
-      clusters: clusterDetails,
-      summary: {
-        totalClusters: clusterDetails.length,
-        visitedClusters: visitedCount,
-        pendingClusters: pendingCount,
-        visitPercentage,
-        totalHouseholds: clusterDetails.reduce((sum, c) => sum + (c.householdCount || 0), 0),
-        totalPopulation: clusterDetails.reduce((sum, c) => sum + (c.population || 0), 0)
-      }
+      clusters: processedClusters,
+      summary
     });
 
   } catch (error) {
-    console.error('Error fetching ward cluster visit details:', error);
+    console.error('Error fetching ward cluster visits:', error);
     res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

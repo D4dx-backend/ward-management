@@ -364,8 +364,8 @@ export default function WardVisits() {
             </div>
             <div className="ml-3">
               <p className="text-sm">
-                <strong>Coordinator Ward Visits:</strong> Record and track your visits to wards under your coordination. 
-                You can view visits recorded by both yourself and Ward Inchargeistrators.
+                <strong>Ward Visits:</strong> Record and track visits to wards under your coordination. 
+                Visits are clearly marked to show whether they were conducted by you (Coordinator) or the Ward Administrator.
               </p>
             </div>
           </div>
@@ -664,6 +664,14 @@ export default function WardVisits() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
                       <div className="flex items-center space-x-2">
                         <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span>Conducted By</span>
+                      </div>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span>Visit Details</span>
@@ -717,18 +725,50 @@ export default function WardVisits() {
                               </div>
                             </div>
                           </div>
+                        </div>
+                      </td>
+
+                      {/* Conducted By */}
+                      <td className="px-6 py-4 border-r border-gray-200">
+                        <div className="space-y-2">
                           <div className="flex items-center space-x-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                               visit.recordedByRole === 'coordinator' || 
                               (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-green-100 text-green-800'
+                                ? 'bg-blue-100' 
+                                : 'bg-green-100'
                             }`}>
-                              {visit.recordedByRole === 'coordinator' || 
-                               (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
-                                ? 'Coordinator Visit' 
-                                : 'Ward Admin Record'}
-                            </span>
+                              <svg className={`w-4 h-4 ${
+                                visit.recordedByRole === 'coordinator' || 
+                                (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                                  ? 'text-blue-600' 
+                                  : 'text-green-600'
+                              }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {visit.recordedByRole === 'coordinator' || 
+                                 (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                                  ? 'Coordinator' 
+                                  : 'Ward Admin'}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {visit.coordinator?.name || 'Unknown'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            visit.recordedByRole === 'coordinator' || 
+                            (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {visit.recordedByRole === 'coordinator' || 
+                             (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                              ? 'Coordinator Visit' 
+                              : 'Ward Admin Record'}
                           </div>
                         </div>
                       </td>

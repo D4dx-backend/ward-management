@@ -94,10 +94,9 @@ export const menuConfig = {
       type: 'category',
       icon: '🏘️',
       items: [
-        { name: 'Ward Status', href: '/coordinator/ward-status', icon: '🔍' },
         { name: 'Ward Reports', href: '/coordinator/ward-reports', icon: '📋' },
-        { name: 'Ward Profile', href: '/coordinator/wards', icon: '🏘️' },
-        { name: 'Cluster Visit Details', href: '/coordinator/cluster-visit-details', icon: '📍' }
+        { name: 'Wards', href: '/coordinator/wards', icon: '🏘️' },
+        { name: 'Cluster Visits', href: '/coordinator/cluster-visits', icon: '📍' }
       ]
     },
     'Reports & Analytics': {
@@ -167,13 +166,6 @@ export const menuConfig = {
       items: [
         { name: 'Guidelines & Instructions', href: '/instructions', icon: '📋' },
         { name: 'Document Library', href: '/documents', icon: '📄' }
-      ]
-    },
-    'Account Management': {
-      type: 'category',
-      icon: '👤',
-      items: [
-        { name: 'Reset PIN', href: '/reset-password', icon: '🔐' }
       ]
     }
   }

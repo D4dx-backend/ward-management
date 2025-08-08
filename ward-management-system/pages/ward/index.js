@@ -237,26 +237,26 @@ export default function WardAdminDashboard() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                 <div>
                   <span className="text-gray-600">Ward:</span>
-                  <p className="font-medium text-gray-900">{userInfo?.ward?.name || 'Purakkad'}</p>
+                  <p className="font-medium text-gray-900">{userInfo?.ward?.name || 'Not assigned'}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Panchayath:</span>
-                  <p className="font-medium text-gray-900">{userInfo?.ward?.panchayath || 'Ambalappuzha South'}</p>
+                  <p className="font-medium text-gray-900">{userInfo?.ward?.panchayath || 'Not specified'}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">District:</span>
-                  <p className="font-medium text-gray-900">{userInfo?.ward?.district || 'Alappuzha'}</p>
+                  <p className="font-medium text-gray-900">{userInfo?.ward?.district || 'Not specified'}</p>
                 </div>
                 <div>
                   <span className="text-gray-600">Coordinator:</span>
-                  <p className="font-medium text-gray-900">{userInfo?.ward?.coordinator?.name || 'Faiz testing'}</p>
+                  <p className="font-medium text-gray-900">{userInfo?.ward?.coordinator?.name || 'Not assigned'}</p>
                 </div>
               </div>
             </div>
             <div className="text-right text-sm text-gray-600">
               <p>Last login:</p>
-              <p className="font-medium">01/08/2025</p>
-              <p className="text-xs">12:39:23</p>
+              <p className="font-medium">{session?.user?.lastLogin ? new Date(session.user.lastLogin).toLocaleDateString() : 'N/A'}</p>
+              <p className="text-xs">{session?.user?.lastLogin ? new Date(session.user.lastLogin).toLocaleTimeString() : 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -316,7 +316,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Total Clusters</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{userInfo?.ward?.clusters?.length || stats?.totalClusters || 4}</p>
+                <p className="text-2xl font-bold text-gray-900">{userInfo?.ward?.clusters?.length || stats?.totalClusters || 0}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -336,7 +336,7 @@ export default function WardAdminDashboard() {
                     <p className="text-sm text-gray-600">Instructions</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{recentInstructions?.length || stats?.instructions || 7}</p>
+                <p className="text-2xl font-bold text-gray-900">{recentInstructions?.length || stats?.instructions || 0}</p>
               </div>
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -468,42 +468,17 @@ export default function WardAdminDashboard() {
                   </div>
                 ))
               ) : (
-                // Show sample data if no reports
-                [
-                  { id: 1, title: 'Test Jaseem', date: '01/08/2025', status: 'Submitted' },
-                  { id: 2, title: 'test 005', date: '29/07/2025', status: 'Submitted' },
-                  { id: 3, title: 'test 005', date: '29/07/2025', status: 'Submitted' },
-                  { id: 4, title: 'test 004', date: '28/07/2025', status: 'Submitted' },
-                  { id: 5, title: 'Test Form', date: '27/07/2025', status: 'Submitted' }
-                ].map((report) => (
-                  <div 
-                    key={report.id}
-                    className="bg-green-50 border border-green-200 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors"
-                    onClick={() => handleRecentReportClick(report)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{report.title}</h3>
-                          <p className="text-sm text-gray-600">Submitted: {report.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          {report.status}
-                        </span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
                   </div>
-                ))
+                  <p className="text-gray-500">No reports submitted yet</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Submitted reports will appear here
+                  </p>
+                </div>
               )}
             </div>
           </div>

@@ -117,93 +117,13 @@ export default function AdminWardVisits() {
       setError('');
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError('Failed to fetch ward visits data');
       
-      // Fallback to mock data
-      const mockCoordinators = [
-        { _id: 'coord1', name: 'Coordinator 1', email: 'coord1@example.com' },
-        { _id: 'coord2', name: 'Coordinator 2', email: 'coord2@example.com' }
-      ];
-
-      const mockWards = [
-        { _id: 'ward1', name: 'Panchayath Ward 1', wardNumber: 1, district: 'Thiruvananthapuram' },
-        { _id: 'ward2', name: 'Panchayath Ward 2', wardNumber: 2, district: 'Thiruvananthapuram' },
-        { _id: 'ward3', name: 'Panchayath Ward 3', wardNumber: 3, district: 'Thiruvananthapuram' }
-      ];
-
-      const mockVisits = [
-        {
-          _id: 'visit1',
-          ward: mockWards[0],
-          coordinator: mockCoordinators[0],
-          visitDate: new Date().toISOString(),
-          visitTime: '10:00',
-          purpose: 'Monthly inspection and progress review',
-          findings: 'Infrastructure development is on track. Water supply issues in sector 3.',
-          recommendations: 'Prioritize water supply repairs. Continue infrastructure work.',
-          followUpRequired: true,
-          followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-          followUpCompleted: false,
-          attendees: 'Ward Incharge, Local Representatives',
-          remarks: 'Overall progress is satisfactory',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'visit2',
-          ward: mockWards[1],
-          coordinator: mockCoordinators[1],
-          visitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          visitTime: '14:30',
-          purpose: 'Complaint resolution and community meeting',
-          findings: 'Waste management system needs improvement. Good community participation.',
-          recommendations: 'Implement new waste collection schedule. Increase community awareness.',
-          followUpRequired: false,
-          attendees: 'Ward Incharge, Community Leaders, Residents',
-          remarks: 'Community is cooperative and engaged',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: 'visit3',
-          ward: mockWards[2],
-          coordinator: mockCoordinators[0],
-          visitDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-          visitTime: '11:00',
-          purpose: 'Follow-up on previous recommendations',
-          findings: 'Previous issues have been addressed. New challenges identified.',
-          recommendations: 'Continue monitoring. Address new challenges promptly.',
-          followUpRequired: true,
-          followUpDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          followUpCompleted: false,
-          attendees: 'Ward Incharge, Technical Team',
-          remarks: 'Good progress on previous issues',
-          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-
-      const mockStatistics = {
-        totalVisits: 3,
-        totalCoordinators: 2,
-        averageVisitsPerCoordinator: 1.5,
-        visitsThisMonth: 2,
-        visitsLastMonth: 1,
-        followUpRequired: 2,
-        followUpCompleted: 0,
-        followUpPending: 2,
-        followUpOverdue: 1,
-        visitsByMonth: [
-          { month: 'Jan', visits: 5 },
-          { month: 'Feb', visits: 8 },
-          { month: 'Mar', visits: 6 },
-          { month: 'Apr', visits: 9 },
-          { month: 'May', visits: 7 },
-          { month: 'Jun', visits: 10 }
-        ]
-      };
-      
-      setVisits(mockVisits);
-      setCoordinators(mockCoordinators);
-      setWards(mockWards);
-      setStatistics(mockStatistics);
-      setError('');
+      // Set empty arrays instead of mock data
+      setVisits([]);
+      setCoordinators([]);
+      setWards([]);
+      setStatistics({});
     } finally {
       setIsLoading(false);
     }
