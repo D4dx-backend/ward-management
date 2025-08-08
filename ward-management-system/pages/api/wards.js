@@ -50,15 +50,27 @@ export default async function handler(req, res) {
     });
   }
 
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
+  // Handle different HTTP methods
+  if (req.method === 'GET') {
+    return handleGetWards(req, res, session);
+  } else if (req.method === 'POST') {
+    return handleCreateWard(req, res, session);
+  } else if (req.method === 'PUT') {
+    return handleUpdateWard(req, res, session);
+  } else if (req.method === 'DELETE') {
+    return handleDeleteWard(req, res, session);
+  } else {
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
+}
 
+// Handle GET requests - fetch wards
+async function handleGetWards(req, res, session) {
   try {
     const { district, page = 1, limit = 100 } = req.query;
 
-    console.log('=== WARDS API PRODUCTION DEBUG ===');
+    console.log('=== WARDS API GET DEBUG ===');
     console.log('Environment:', process.env.NODE_ENV);
     console.log('User role:', session.user.role);
     console.log('User ID:', session.user.id);
@@ -217,7 +229,7 @@ export default async function handler(req, res) {
     // For backward compatibility, return just the wards array
     res.status(200).json(wards);
   } catch (error) {
-    console.error('=== WARDS API ERROR ===');
+    console.error('=== WARDS API GET ERROR ===');
     console.error('Error fetching wards:', error);
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
@@ -249,4 +261,139 @@ export default async function handler(req, res) {
       } : undefined
     });
   }
+}
+
+// Handle POST requests - create ward
+async function handleCreateWard(req, res, session) {
+  // Only allow stateAdmin to create wards
+  if (session.user.role !== 'stateAdmin') {
+    return res.status(403).json({ message: 'Access denied - Only state admin can create wards' });
+  }
+
+  try {
+    const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard } = req.body;
+
+    console.log('=== WARDS API CREATE DEBUG ===');
+    console.log('Creating ward:', { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard });
+
+    // Validate required fields
+    if (!name || !wardNumber || !panchayath || !district || !coordinatorId) {
+      return res.status(400).json({ 
+        message: 'Ward name, number, panchayath, district, and coordinator are required' 
+      });
+    }
+
+    const mongoose = require('mongoose');
+
+    // Validate coordinator ID
+    if (!mongoose.Types.ObjectId.isValid(coordinatorId)) {
+      return res.status(400).json({ message: 'Invalid coordinator ID format' });
+    }
+
+    // Validate ward admin ID if provided
+    if (wardAdminId && !mongoose.Types.ObjectId.isValid(wardAdminId)) {
+      return res.status(400).json({ message: 'Invalid ward admin ID format' });
+    }
+
+    // Check if ward with same name and district already exists
+    const existingWard = await Ward.findOne({ 
+      name: name.trim(), 
+      district: district.trim(),
+      isActive: { $ne: false }
+    });
+
+    if (existingWard) {
+      return res.status(409).json({ 
+        message: `Ward "${name}" already exists in ${district} district` 
+      });
+    }
+
+    // Check if ward number already exists in the same panchayath
+    const existingWardNumber = await Ward.findOne({ 
+      wardNumber: wardNumber.trim(), 
+      panchayath: panchayath.trim(),
+      district: district.trim(),
+      isActive: { $ne: false }
+    });
+
+    if (existingWardNumber) {
+      return res.status(409).json({ 
+        message: `Ward number "${wardNumber}" already exists in ${panchayath}, ${district}` 
+      });
+    }
+
+    // Create new ward
+    const wardData = {
+      name: name.trim(),
+      wardNumber: wardNumber.trim(),
+      panchayath: panchayath.trim(),
+      district: district.trim(),
+      coordinator: new mongoose.Types.ObjectId(coordinatorId),
+      isSittingWard: Boolean(isSittingWard),
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Add ward admin if provided
+    if (wardAdminId) {
+      wardData.wardAdmin = new mongoose.Types.ObjectId(wardAdminId);
+    }
+
+    const newWard = new Ward(wardData);
+    await newWard.save();
+
+    // Populate the created ward for response
+    const populatedWard = await Ward.findById(newWard._id)
+      .populate('coordinator', 'name email district')
+      .populate('wardAdmin', 'name email district')
+      .lean();
+
+    console.log('Ward created successfully:', populatedWard._id);
+
+    res.status(201).json(populatedWard);
+  } catch (error) {
+    console.error('=== WARDS API CREATE ERROR ===');
+    console.error('Error creating ward:', error);
+    
+    let errorMessage = 'Failed to create ward';
+    let statusCode = 500;
+    
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Ward validation failed';
+      statusCode = 400;
+    } else if (error.code === 11000) {
+      errorMessage = 'Ward with this name or number already exists';
+      statusCode = 409;
+    }
+    
+    res.status(statusCode).json({ 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Creation failed'
+    });
+  }
+}
+
+// Handle PUT requests - update ward (for bulk operations)
+async function handleUpdateWard(req, res, session) {
+  // Only allow stateAdmin to update wards
+  if (session.user.role !== 'stateAdmin') {
+    return res.status(403).json({ message: 'Access denied - Only state admin can update wards' });
+  }
+
+  return res.status(400).json({ 
+    message: 'Use PUT /api/wards/[id] for updating individual wards' 
+  });
+}
+
+// Handle DELETE requests - delete ward (for bulk operations)
+async function handleDeleteWard(req, res, session) {
+  // Only allow stateAdmin to delete wards
+  if (session.user.role !== 'stateAdmin') {
+    return res.status(403).json({ message: 'Access denied - Only state admin can delete wards' });
+  }
+
+  return res.status(400).json({ 
+    message: 'Use DELETE /api/wards/[id] for deleting individual wards' 
+  });
 }
