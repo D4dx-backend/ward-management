@@ -14,6 +14,8 @@ export default function CoordinatorClusterVisits() {
   const [wards, setWards] = useState([]);
   const [selectedWard, setSelectedWard] = useState(null);
   const [clusterDetails, setClusterDetails] = useState([]);
+  const [clusterWeeklyDetails, setClusterWeeklyDetails] = useState([]);
+  const [formWeeks, setFormWeeks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingClusters, setIsLoadingClusters] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +59,8 @@ export default function CoordinatorClusterVisits() {
       console.log('Fetching cluster details for ward:', ward._id);
       const response = await axios.get(`/api/coordinator/wards/${ward._id}/cluster-visits`);
       console.log('Cluster details response:', response.data);
+      setFormWeeks(response.data.formWeeks || []);
+      setClusterWeeklyDetails(response.data.clusterVisits || []);
       setClusterDetails(response.data.clusters || []);
     } catch (error) {
       console.error('Error fetching cluster details:', error);
@@ -71,29 +75,28 @@ export default function CoordinatorClusterVisits() {
     try {
       setSelectedCluster(cluster);
       
-      // Fetch visit history for this cluster (mock data for now)
-      const mockVisitHistory = [
-        {
-          id: 1,
-          visitDate: new Date().toISOString(),
-          visitedBy: 'Ward Incharge',
-          purpose: 'Routine inspection',
-          findings: 'All households visited, no issues found',
-          housesVisited: cluster.householdCount || 0,
-          duration: '2 hours'
-        },
-        {
-          id: 2,
-          visitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          visitedBy: 'Health Worker',
-          purpose: 'Health survey',
-          findings: 'Vaccination drive completed',
-          housesVisited: Math.floor((cluster.householdCount || 0) * 0.8),
-          duration: '3 hours'
-        }
-      ];
-      
-      setVisitHistory(mockVisitHistory);
+      // Build visit history from weekly data (from ward admin entries)
+      const full = clusterWeeklyDetails.find(c => c.clusterId === cluster._id || c.clusterId === cluster.id);
+      const history = [];
+      if (full && full.weeklyData && formWeeks && formWeeks.length > 0) {
+        formWeeks.forEach(week => {
+          const key = `${week.year}-${week.weekNumber}`;
+          const data = full.weeklyData[key];
+          if (data && ((data.houses ?? 0) > 0 || (data.days ?? 0) > 0)) {
+            history.push({
+              id: `${full.clusterId}-${key}`,
+              visitDate: new Date().toISOString(),
+              visitedBy: 'Ward Incharge',
+              purpose: `Weekly house visit (Week ${week.weekNumber}, ${week.year})`,
+              findings: `Visited ${data.houses || 0} houses over ${data.days || 0} days`,
+              housesVisited: data.houses || 0,
+              duration: `${data.days || 0} day(s)`
+            });
+          }
+        });
+      }
+
+      setVisitHistory(history);
       setShowClusterModal(true);
     } catch (error) {
       console.error('Error fetching House Visit history:', error);
@@ -290,50 +293,60 @@ export default function CoordinatorClusterVisits() {
                     <p className="mt-2 text-sm text-gray-500">No clusters found for this ward</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {clusterDetails.map((cluster) => (
-                      <div
-                        key={cluster._id}
-                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => handleClusterClick(cluster)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClusterStatusColor(cluster.status)}`}>
-                                {cluster.status}
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                              <div>
-                                <span className="font-medium">Households:</span> {cluster.householdCount || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium">Population:</span> {cluster.population || 0}
-                              </div>
-                              <div>
-                                <span className="font-medium">Last Visited:</span> {formatDate(cluster.lastVisited)}
-                              </div>
-                              <div>
-                                <span className="font-medium">Visit Count:</span> {cluster.visitCount || 0}
-                              </div>
-                            </div>
-
-                            {cluster.description && (
-                              <p className="text-xs text-gray-500 mt-2">{cluster.description}</p>
-                            )}
-                          </div>
-                          
-                          <div className="ml-4">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cluster</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Week</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Houses (Week)</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days (Week)</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Houses</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Days</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {clusterDetails.map((cluster) => {
+                          const full = clusterWeeklyDetails.find(c => c.clusterId === cluster._id || c.clusterId === cluster.id);
+                          const latest = formWeeks?.[0];
+                          const weekKey = latest ? `${latest.year}-${latest.weekNumber}` : null;
+                          const weeklyData = full && full.weeklyData && weekKey ? (full.weeklyData[weekKey] || {}) : {};
+                          const weekHouses = weeklyData.houses || 0;
+                          const weekDays = weeklyData.days || 0;
+                          const totalHouses = full?.totalHouses || 0;
+                          const totalDays = full?.totalDays || 0;
+                          return (
+                            <tr key={cluster._id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cluster.name}</td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getClusterStatusColor(cluster.status)}`}>
+                                  {cluster.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {latest ? `W${latest.weekNumber}, ${latest.year}` : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{weekHouses}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{weekDays}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{totalHouses}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{totalDays}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatDate(cluster.lastVisited)}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                <button
+                                  onClick={() => handleClusterClick(cluster)}
+                                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-900 border border-blue-300 rounded hover:bg-blue-50 transition-colors"
+                                >
+                                  View History
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

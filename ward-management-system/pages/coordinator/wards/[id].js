@@ -20,6 +20,7 @@ export default function WardProfile() {
   const [wardReports, setWardReports] = useState([]);
   const [wardVisits, setWardVisits] = useState([]);
   const [clusters, setClusters] = useState([]);
+  const [advancedData, setAdvancedData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,10 +41,8 @@ export default function WardProfile() {
       setError('');
 
       // Fetch all ward data in parallel
-      const [wardResponse, reportsResponse, visitsResponse, clustersResponse] = await Promise.all([
-        axios.get(`/api/coordinator/wards-detailed`).then(res => 
-          res.data.find(w => w._id === id)
-        ),
+      const [profileResponse, reportsResponse, visitsResponse] = await Promise.all([
+        axios.get(`/api/coordinator/ward-profile/${id}`).then(res => res.data),
         axios.get('/api/responses', {
           params: {
             formType: 'wardReport',
@@ -54,19 +53,95 @@ export default function WardProfile() {
         ),
         axios.get('/api/ward-visits', {
           params: { wardId: id }
-        }),
-        axios.get(`/api/coordinator/wards/${id}/cluster-visits`).catch(() => ({ data: { clusters: [] } }))
+        })
       ]);
 
-      setWard(wardResponse);
+      setWard(profileResponse.ward);
       setWardReports(reportsResponse);
       setWardVisits(visitsResponse.data || []);
-      setClusters(clustersResponse.data?.clusters || []);
+      setClusters(profileResponse.clusters || []);
+      setAdvancedData(profileResponse.advancedData || null);
     } catch (error) {
       console.error('Error fetching ward data:', error);
       setError('Failed to load ward data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const formatFieldValue = (field, value) => {
+    if (!value || value === '' || (Array.isArray(value) && value.length === 0)) {
+      return <span className="text-gray-400 italic">Not answered</span>;
+    }
+
+    switch (field.type) {
+      case 'yesno':
+        return (
+          <span className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${value === 'yes'
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+            }`}>
+            {value === 'yes' ? 'Yes' : 'No'}
+          </span>
+        );
+      case 'multiselect':
+        if (Array.isArray(value) && value.length > 0) {
+          return (
+            <div className="flex flex-wrap gap-1">
+              {value.map((item, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          );
+        }
+        return <span className="text-gray-400 italic">No options selected</span>;
+      case 'date':
+        try {
+          const date = new Date(value);
+          return (
+            <span className="text-gray-900">
+              {date.toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </span>
+          );
+        } catch (error) {
+          return <span className="text-red-500">Invalid date</span>;
+        }
+      case 'email':
+        return (
+          <a href={`mailto:${value}`} className="text-blue-600 hover:text-blue-800 underline">{value}</a>
+        );
+      case 'phone':
+        return (
+          <a href={`tel:${value}`} className="text-blue-600 hover:text-blue-800 underline">{value}</a>
+        );
+      case 'url':
+        return (
+          <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">{value}</a>
+        );
+      case 'number':
+        return (
+          <span className="text-gray-900 font-mono">{typeof value === 'number' ? value.toLocaleString() : value}</span>
+        );
+      case 'textarea':
+        return (
+          <div className="text-gray-900 whitespace-pre-wrap bg-gray-50 p-2 rounded border">{value}</div>
+        );
+      case 'select':
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">{value}</span>
+        );
+      case 'text':
+      default:
+        return <span className="text-gray-900">{value}</span>;
     }
   };
 
@@ -359,6 +434,92 @@ export default function WardProfile() {
                   </div>
                 </div>
               </Card>
+
+              {/* Advanced Data (Full Field Forms) */}
+              {advancedData && advancedData.form && (
+                <Card>
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">{advancedData.form.title}</h3>
+                        <p className="text-sm text-gray-600">{advancedData.form.description}</p>
+                      </div>
+                      {advancedData.hasData && (
+                        <div className="text-sm text-gray-500">
+                          Last updated: {new Date(advancedData.submittedAt).toLocaleDateString()}
+                        </div>
+                      )}
+                    </div>
+
+                    {advancedData.hasData ? (
+                      <div className="space-y-6">
+                        {/* Ward-level fields */}
+                        {advancedData.form.fields
+                          .filter(field => !field.applicableToClusters)
+                          .map((field) => (
+                            <div key={field.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-gray-900 mb-1">
+                                    {field.label}
+                                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                                  </h4>
+                                  <div className="text-sm">
+                                    {formatFieldValue(field, advancedData.responses?.[field.id])}
+                                  </div>
+                                  {field.helpText && (
+                                    <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                        {/* Cluster-level fields */}
+                        {advancedData.form.fields.some(field => field.applicableToClusters) && (
+                          <div>
+                            <h4 className="text-md font-medium text-gray-900 mb-4">Cluster-specific Data</h4>
+                            {clusters.map((cluster) => (
+                              <div key={cluster._id} className="mb-6 border border-gray-200 rounded-lg p-4">
+                                <h5 className="text-sm font-medium text-gray-900 mb-3">{cluster.name}</h5>
+                                <div className="space-y-4">
+                                  {advancedData.form.fields
+                                    .filter(field => field.applicableToClusters)
+                                    .map((field) => (
+                                      <div key={field.id} className="border-l-4 border-green-500 pl-4 py-2">
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <h6 className="text-sm font-medium text-gray-900 mb-1">
+                                              {field.label}
+                                              {field.required && <span className="text-red-500 ml-1">*</span>}
+                                            </h6>
+                                            <div className="text-sm">
+                                              {formatFieldValue(field, advancedData.clusterResponses?.[cluster._id]?.[field.id])}
+                                            </div>
+                                            {field.helpText && (
+                                              <p className="text-xs text-gray-500 mt-1">{field.helpText}</p>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p className="mt-2 text-sm text-gray-500">No data has been submitted for this form yet</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
             </div>
           )}
 

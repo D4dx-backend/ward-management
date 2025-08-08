@@ -636,53 +636,50 @@ export default function AdminClusterVisits() {
                           </div>
                         </div>
                         
-                        {/* Cluster Details */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {week.clusters && Array.isArray(week.clusters) ? week.clusters.map((cluster) => (
-                            <div
-                              key={cluster.id}
-                              className={`p-3 rounded-lg border ${
-                                cluster.visited ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                              }`}
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="flex-1">
-                                  <h4 className="text-sm font-medium text-gray-900">{cluster.name}</h4>
-                                  <p className="text-xs text-gray-600">District: {cluster.district}</p>
-                                  <p className="text-xs text-gray-600">Ward: {typeof cluster.ward === 'string' ? cluster.ward : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) ? cluster.ward.name : 'Unknown Ward'}</p>
-                                  <p className="text-xs text-gray-600">Coordinator: {cluster.coordinator}</p>
-                                </div>
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {cluster.visited ? 'Visited' : 'Not Visited'}
-                                </span>
-                              </div>
-                              
-                              {cluster.visited && cluster.visitDetails && (
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs text-gray-700">
-                                    <span className="font-medium">Houses:</span> {cluster.visitDetails.housesVisited}
-                                  </p>
-                                  <p className="text-xs text-gray-700">
-                                    <span className="font-medium">Duration:</span> {cluster.visitDetails.duration}
-                                  </p>
-                                  <p className="text-xs text-gray-700">
-                                    <span className="font-medium">Issues:</span> {cluster.visitDetails.issuesFound}
-                                  </p>
-                                  {cluster.visitDetails.followUpRequired && (
-                                    <p className="text-xs text-orange-600 font-medium">Follow-up required</p>
-                                  )}
-                                </div>
-                              )}
-                              
-                              {cluster.visitDate && (
-                                <p className="text-xs text-gray-500 mt-2">
-                                  Visited: {new Date(cluster.visitDate).toLocaleDateString()}
-                                </p>
-                              )}
-                            </div>
-                          )) : []}
+                        {/* Cluster Details - Table View */}
+                        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cluster</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">District</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ward</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coordinator</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Date</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Houses</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issues</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {week.clusters && Array.isArray(week.clusters) ? week.clusters.map((cluster) => {
+                                const wardName = typeof cluster.ward === 'string' 
+                                  ? cluster.ward 
+                                  : (cluster.ward && typeof cluster.ward === 'object' && cluster.ward.name) 
+                                    ? cluster.ward.name 
+                                    : 'Unknown Ward';
+                                const housesVisited = cluster.visitDetails?.housesVisited ?? 'N/A';
+                                const issuesFound = cluster.visitDetails?.issuesFound ?? 'N/A';
+                                const visitDate = cluster.visitDate ? new Date(cluster.visitDate).toLocaleDateString() : 'N/A';
+                                return (
+                                  <tr key={cluster.id} className={cluster.visited ? 'bg-green-50' : 'bg-red-50'}>
+                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{cluster.name}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{cluster.district}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{wardName}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{cluster.coordinator}</td>
+                                    <td className="px-4 py-3 text-sm">
+                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${cluster.visited ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                        {cluster.visited ? 'Visited' : 'Not Visited'}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{visitDate}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{housesVisited}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-700">{issuesFound}</td>
+                                  </tr>
+                                );
+                              }) : null}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}

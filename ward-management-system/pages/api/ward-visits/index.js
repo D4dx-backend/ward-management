@@ -20,7 +20,8 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       console.log('Fetching ward visits for coordinator:', session.user.id);
-      
+      const { wardId } = req.query;
+
       // Get all wards under this coordinator
       const coordinatorWards = await Ward.find({ 
         coordinator: session.user.id,
@@ -29,14 +30,30 @@ export default async function handler(req, res) {
       
       console.log('Found coordinator wards:', coordinatorWards.length);
       
-      const wardIds = coordinatorWards.map(ward => ward._id);
+      const allowedWardIds = coordinatorWards.map(ward => ward._id.toString());
+
+      // If a specific wardId is requested, validate access and filter accordingly
+      let queryWardIds;
+      if (wardId) {
+        if (!allowedWardIds.includes(wardId)) {
+          return res.status(403).json({ message: 'Access denied for this ward' });
+        }
+        queryWardIds = [wardId];
+      } else {
+        queryWardIds = allowedWardIds;
+      }
 
       // Get all visits for these wards (both coordinator and ward admin recorded)
       const visits = await WardVisit.find({ 
-        ward: { $in: wardIds }
+        ward: { $in: queryWardIds }
       })
-      .populate('ward', 'name wardNumber district')
+      .populate('ward', 'name wardNumber district wardAdmin')
+      .populate({
+        path: 'ward',
+        populate: { path: 'wardAdmin', select: 'name email role' }
+      })
       .populate('coordinator', 'name email role')
+      .populate('recordedBy', 'name email role')
       .sort({ visitDate: -1, createdAt: -1 });
 
       console.log('Found visits:', visits.length);
@@ -46,10 +63,15 @@ export default async function handler(req, res) {
       if (visitsToUpdate.length > 0) {
         console.log('Updating', visitsToUpdate.length, 'visits without recordedByRole');
         for (const visit of visitsToUpdate) {
-          // If the coordinator field matches the session user, it's a coordinator visit
-          // Otherwise, it's likely a ward admin visit
-          visit.recordedByRole = visit.coordinator.toString() === session.user.id ? 'coordinator' : 'wardAdmin';
-          visit.recordedBy = visit.coordinator;
+          const isCoordinatorVisit = visit.coordinator?.toString() === session.user.id;
+          visit.recordedByRole = isCoordinatorVisit ? 'coordinator' : 'wardAdmin';
+          if (isCoordinatorVisit) {
+            visit.recordedBy = visit.coordinator;
+          } else {
+            // Set recordedBy to ward admin if available
+            const wardDoc = await Ward.findById(visit.ward).select('wardAdmin').lean();
+            visit.recordedBy = wardDoc?.wardAdmin || visit.recordedBy || visit.coordinator;
+          }
           await visit.save();
         }
       }
