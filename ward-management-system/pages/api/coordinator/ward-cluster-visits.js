@@ -2,7 +2,8 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
-import Cluster from '../../../models/Cluster';
+import ClusterVisit from '../../../models/ClusterVisit';
+import FormTemplate from '../../../models/FormTemplate';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -79,54 +80,89 @@ export default async function handler(req, res) {
     let wards;
     try {
       console.log('Fetching coordinator wards...');
-      
       const wardsQuery = Ward.find({
         coordinator: new mongoose.Types.ObjectId(coordinatorId),
         isActive: { $ne: false }
       }).sort({ name: 1 }).lean();
 
       const wardsPromise = wardsQuery.exec();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Wards query timeout')), 10000)
       );
 
       wards = await Promise.race([wardsPromise, timeoutPromise]);
       console.log(`Found ${wards.length} wards for coordinator`);
-      
     } catch (wardsError) {
       console.error('Error fetching coordinator wards:', wardsError);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Failed to fetch coordinator wards',
         error: process.env.NODE_ENV === 'development' ? wardsError.message : 'Query error'
       });
     }
 
-    // Get House Visit data for each ward
+    // Determine active form weeks (source of truth for weekly House Visits)
+    let sortedFormWeeks = [];
+    try {
+      const forms = await FormTemplate.find({})
+        .populate('createdBy', 'role')
+        .sort({ createdAt: -1 });
+      const weekSet = new Set();
+      forms.forEach((form) => {
+        if (form.createdBy?.role === 'stateAdmin' && form.weekNumber && form.year) {
+          weekSet.add(`${form.year}-${form.weekNumber}`);
+        }
+      });
+      sortedFormWeeks = Array.from(weekSet)
+        .map((wk) => {
+          const [year, weekNumber] = wk.split('-').map(Number);
+          return { year, weekNumber };
+        })
+        .sort((a, b) => (a.year !== b.year ? b.year - a.year : b.weekNumber - a.weekNumber));
+      // Only need the most recent week for status
+      if (sortedFormWeeks.length === 0) {
+        const now = new Date();
+        const currentWeek = getWeekNumber(now);
+        sortedFormWeeks = [{ year: now.getFullYear(), weekNumber: currentWeek }];
+      }
+    } catch (formErr) {
+      console.error('Failed to load form weeks:', formErr);
+      const fallbackDate = new Date();
+      sortedFormWeeks = [{ year: fallbackDate.getFullYear(), weekNumber: getWeekNumber(fallbackDate) }];
+    }
+
+    const latestWeekKey = `${sortedFormWeeks[0].year}-${sortedFormWeeks[0].weekNumber}`;
+    console.log('Using latest week for status:', latestWeekKey);
+
+    // Get House Visit data for each ward based on ClusterVisit weeklyData
     const wardVisitData = await Promise.all(
       wards.map(async (ward) => {
-        // Get all clusters for this ward
-        const clusters = await Cluster.find({
-          ward: ward._id,
-          isActive: true
-        });
+        // Fetch cluster visit docs for this ward
+        const clusterVisits = await ClusterVisit.find({ ward: ward._id }).lean();
+        const totalClusters = clusterVisits.length;
 
-        const totalClusters = clusters.length;
-        
-        // Calculate visited clusters (clusters with recent lastVisited date)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const visitedClusters = clusters.filter(cluster => 
-          cluster.lastVisited && cluster.lastVisited >= thirtyDaysAgo
-        ).length;
-        
-        const pendingClusters = totalClusters - visitedClusters;
+        // Count visited where latest week has houses > 0 or days > 0
+        const visitedClusters = clusterVisits.reduce((acc, cv) => {
+          const weekly = cv.weeklyData?.get
+            ? cv.weeklyData.get(latestWeekKey)
+            : (cv.weeklyData ? cv.weeklyData[latestWeekKey] : undefined);
+          const isVisited = weekly && ((weekly.houses ?? 0) > 0 || (weekly.days ?? 0) > 0);
+          return acc + (isVisited ? 1 : 0);
+        }, 0);
+
+        const pendingClusters = Math.max(totalClusters - visitedClusters, 0);
         const visitPercentage = totalClusters > 0 ? Math.round((visitedClusters / totalClusters) * 100) : 0;
-        
-        // Get the most recent visit date
-        const lastVisitDate = clusters
-          .filter(cluster => cluster.lastVisited)
-          .sort((a, b) => new Date(b.lastVisited) - new Date(a.lastVisited))[0]?.lastVisited;
+
+        // Approximate lastVisitDate from updatedAt of any clusterVisit with latest week activity
+        let lastVisitDate = null;
+        clusterVisits.forEach((cv) => {
+          const weekly = cv.weeklyData?.get
+            ? cv.weeklyData.get(latestWeekKey)
+            : (cv.weeklyData ? cv.weeklyData[latestWeekKey] : undefined);
+          const isVisited = weekly && ((weekly.houses ?? 0) > 0 || (weekly.days ?? 0) > 0);
+          if (isVisited) {
+            lastVisitDate = lastVisitDate ? new Date(Math.max(new Date(lastVisitDate), new Date(cv.updatedAt))) : cv.updatedAt;
+          }
+        });
 
         // Determine status based on visit percentage
         let status = 'poor';
@@ -143,7 +179,7 @@ export default async function handler(req, res) {
           pendingClusters,
           visitPercentage,
           lastVisitDate,
-          status
+          status,
         };
       })
     );
@@ -171,4 +207,13 @@ export default async function handler(req, res) {
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
+}
+
+// Helper: ISO week number
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
 }

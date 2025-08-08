@@ -28,7 +28,8 @@ export default async function handler(req, res) {
       const visits = await WardVisit.find({ 
         ward: userWard._id 
       })
-      .populate('coordinator', 'name email')
+      .populate('coordinator', 'name email role')
+      .populate('recordedBy', 'name email role')
       .populate('ward', 'name')
       .sort({ visitDate: -1, visitTime: -1 })
       .limit(limitNum)
@@ -56,7 +57,8 @@ export default async function handler(req, res) {
 
       const newVisit = new WardVisit({
         ward: userWard._id,
-        coordinator: session.user.id,
+        // Important: coordinator should be the assigned coordinator of this ward, not the ward admin
+        coordinator: userWard.coordinator,
         visitDate: new Date(visitDate),
         visitTime: visitTime || '10:00',
         purpose,
@@ -73,7 +75,8 @@ export default async function handler(req, res) {
       await newVisit.save();
       
       const populatedVisit = await WardVisit.findById(newVisit._id)
-        .populate('coordinator', 'name email')
+        .populate('coordinator', 'name email role')
+        .populate('recordedBy', 'name email role')
         .populate('ward', 'name')
         .lean();
 

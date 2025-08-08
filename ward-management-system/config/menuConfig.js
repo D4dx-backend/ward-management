@@ -106,6 +106,13 @@ export const menuConfig = {
         { name: 'Form Statistics', href: '/coordinator/form-statistics', icon: '📊' }
       ]
     },
+    'Forms & Surveys': {
+      type: 'category',
+      icon: '📝',
+      items: [
+        { name: 'Review Recurring Questions', href: '/coordinator/recurring-questions/review', icon: '📋' }
+      ]
+    },
     'Survey Status': {
       type: 'single',
       items: [

@@ -170,13 +170,10 @@ export const useDashboardData = (userRole) => {
         return;
       }
 
-      // Fetch dashboard data based on role
+      // Fetch dashboard data based on role (prefer optimized single endpoint)
       const endpoints = {
         stateAdmin: [
-          '/api/wards',
-          '/api/clusters', 
-          '/api/users',
-          '/api/forms'
+          '/api/dashboard/stats'
         ],
         coordinator: [
           '/api/dashboard/stats',
@@ -215,24 +212,13 @@ export const useDashboardData = (userRole) => {
       let dashboardData = {};
       
       if (userRole === 'stateAdmin') {
-        const [wardsRes, clustersRes, usersRes, formsRes] = responses;
-        
-        // Handle different response structures
-        const wardsData = wardsRes.status === 'fulfilled' ? wardsRes.value.data : null;
-        const clustersData = clustersRes.status === 'fulfilled' ? clustersRes.value.data : null;
-        const usersData = usersRes.status === 'fulfilled' ? usersRes.value.data : null;
-        const formsData = formsRes.status === 'fulfilled' ? formsRes.value.data : null;
-        
+        const [statsRes] = responses;
+        const statsData = statsRes.status === 'fulfilled' ? statsRes.value.data : {};
         dashboardData = {
-          stats: {
-            totalWards: Array.isArray(wardsData) ? wardsData.length : (wardsData?.wards ? wardsData.wards.length : 0),
-            totalClusters: Array.isArray(clustersData) ? clustersData.length : 0,
-            totalUsers: Array.isArray(usersData) ? usersData.length : (usersData?.users ? usersData.users.length : 0),
-            totalForms: Array.isArray(formsData) ? formsData.length : 0
-          },
-          recentReports: [],
-          recentActivity: [],
-          recentLogins: []
+          stats: statsData.stats || statsData,
+          recentReports: statsData.recentReports || [],
+          recentActivity: statsData.recentLogs || [],
+          recentLogins: statsData.recentLogins || []
         };
       } else {
         const [statsRes, reportsRes] = responses;
