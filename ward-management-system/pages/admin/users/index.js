@@ -50,6 +50,13 @@ export default function Users() {
   });
   const [showWardsModal, setShowWardsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [resetPasswordModal, setResetPasswordModal] = useState({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    userRole: '',
+    isResetting: false,
+  });
 
 
   // Calculate pagination values
@@ -302,6 +309,60 @@ export default function Users() {
   const handleViewWards = (user) => {
     setSelectedUser(user);
     setShowWardsModal(true);
+  };
+
+  const openResetPasswordModal = (user) => {
+    setResetPasswordModal({
+      isOpen: true,
+      userId: user._id,
+      userName: user.name,
+      userRole: user.role,
+      isResetting: false,
+    });
+  };
+
+  const closeResetPasswordModal = () => {
+    if (!resetPasswordModal.isResetting) {
+      setResetPasswordModal({
+        isOpen: false,
+        userId: null,
+        userName: '',
+        userRole: '',
+        isResetting: false,
+      });
+    }
+  };
+
+  const confirmResetPassword = async () => {
+    setResetPasswordModal(prev => ({ ...prev, isResetting: true }));
+
+    try {
+      const response = await axios.post('/api/users/reset-password', {
+        userId: resetPasswordModal.userId,
+      });
+
+      setError('');
+
+      const credentialLabel = response.data.isPIN ? 'PIN' : 'Password';
+      let message = `${credentialLabel} reset successfully!\n\n`;
+      message += `New ${credentialLabel}: ${response.data.newPassword}\n`;
+      message += `User Mobile: ${response.data.userMobileNumber}\n\n`;
+
+      if (response.data.whatsappSent) {
+        message += '✅ WhatsApp notification sent successfully!';
+      } else {
+        message += '❌ WhatsApp notification failed to send.';
+        if (response.data.whatsappError) {
+          message += `\nError: ${response.data.whatsappError}`;
+        }
+      }
+
+      alert(message);
+      closeResetPasswordModal();
+    } catch (error) {
+      setError('Failed to reset credentials: ' + (error.response?.data?.message || error.message));
+      setResetPasswordModal(prev => ({ ...prev, isResetting: false }));
+    }
   };
 
 
@@ -619,6 +680,14 @@ export default function Users() {
                             Wards
                           </Button>
                         )}
+                        <Button
+                          variant="warning"
+                          size="sm"
+                          onClick={() => openResetPasswordModal(user)}
+                          title={user.role === 'stateAdmin' ? 'Reset password and notify via WhatsApp' : 'Reset PIN and notify via WhatsApp'}
+                        >
+                          {user.role === 'stateAdmin' ? 'Reset Password' : 'Reset PIN'}
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => handleEdit(user)}>
                           Edit
                         </Button>
@@ -700,6 +769,20 @@ export default function Users() {
           itemName={deleteModal.userName}
           confirmText="Delete User"
           isLoading={deleteModal.isDeleting}
+        />
+
+        {/* Reset Credentials Modal */}
+        <DeleteModal
+          isOpen={resetPasswordModal.isOpen}
+          onClose={closeResetPasswordModal}
+          onConfirm={confirmResetPassword}
+          title={resetPasswordModal.userRole === 'stateAdmin' ? 'Reset Password' : 'Reset PIN'}
+          message={resetPasswordModal.userRole === 'stateAdmin'
+            ? 'Are you sure you want to reset the password for this user? A new password will be generated and sent via WhatsApp if available.'
+            : 'Are you sure you want to reset the PIN for this user? A new PIN will be generated and sent via WhatsApp if available.'}
+          itemName={resetPasswordModal.userName}
+          confirmText={resetPasswordModal.userRole === 'stateAdmin' ? 'Reset Password' : 'Reset PIN'}
+          isLoading={resetPasswordModal.isResetting}
         />
 
         {/* User Wards Modal */}
