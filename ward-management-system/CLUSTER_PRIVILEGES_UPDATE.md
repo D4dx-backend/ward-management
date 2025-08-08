@@ -109,7 +109,7 @@ Updated the cluster management system to provide full cluster management privile
 - My Reports
 - Ward Reports
 - Ward Status
-- Docker Surveys
+- Docket Surveys
 - Ward Visits
 - Instructions
 - Documents
@@ -124,7 +124,7 @@ Updated the cluster management system to provide full cluster management privile
 - Users
 - Wards
 - Ward Status
-- Docker Surveys
+- Docket Surveys
 - Clusters ← Existing: Manage all clusters
 - Forms
 - Ward Advance Data

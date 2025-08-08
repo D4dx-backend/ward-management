@@ -45,7 +45,7 @@ The Docker Survey has been implemented as a static form that always shows the cu
 
 ### 6. Initialization Script
 **File**: `scripts/initialize-docker-surveys.js`
-- Creates Docker Surveys for all existing wards
+- Creates Docket Surveys for all existing wards
 - Initializes all questions with default status
 - Populates House Visit data
 - Can be run with: `npm run init-docker-surveys`
@@ -151,13 +151,13 @@ const questionStatusSchema = {
 ## Setup Instructions
 
 ### For New Installations
-1. The system will automatically create Docker Surveys when Ward Incharges first access them
+1. The system will automatically create Docket Surveys when Ward Incharges first access them
 2. All questions will be initialized with "Not Started" status
 3. House Visit data will be populated from existing clusters
 
 ### For Existing Installations
 1. Run the initialization script: `npm run init-docker-surveys`
-2. This will create Docker Surveys for all existing wards
+2. This will create Docket Surveys for all existing wards
 3. All questions will be set to "Not Started" status initially
 
 ## Monitoring and Analytics

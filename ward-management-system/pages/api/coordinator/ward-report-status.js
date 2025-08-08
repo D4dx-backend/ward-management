@@ -36,18 +36,18 @@ export default async function handler(req, res) {
       const pastDaysOfYear = (currentDate - startOfYear) / 86400000;
       const currentWeek = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
       
-      // Get last 4 weeks
+      // Get last 4 weeks with current week first
       const weeks = [];
-      for (let i = 3; i >= 0; i--) {
+      for (let i = 0; i < 4; i++) {
         let weekNum = currentWeek - i;
         let year = currentYear;
-        
+
         // Handle year boundary
         if (weekNum <= 0) {
           year = currentYear - 1;
           weekNum = 52 + weekNum; // Assuming 52 weeks per year
         }
-        
+
         weeks.push({ week: weekNum, year });
       }
       

@@ -90,7 +90,7 @@ export default function SICReports() {
   };
 
   const handleSubmitReport = (reportId) => {
-    window.open(`/coordinator/reports/submit?formId=${reportId}`, '_blank');
+    router.push(`/coordinator/reports/submit?formId=${reportId}`);
   };
 
   const getStatusBadge = (status) => {

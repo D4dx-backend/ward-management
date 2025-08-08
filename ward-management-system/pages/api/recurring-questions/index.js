@@ -1,10 +1,20 @@
 import { getServerSession } from 'next-auth/next';
+import { getSession } from 'next-auth/react';
 import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import RecurringQuestion from '../../../models/RecurringQuestion';
 
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
+  // Prevent caching issues that can persist 401 responses
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  let session = await getServerSession(req, res, authOptions);
+  // Fallback for environments where getServerSession may not resolve cookies as expected
+  if (!session) {
+    session = await getSession({ req });
+  }
 
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -78,6 +88,7 @@ async function handlePost(req, res, session) {
       question,
       fieldType,
       options,
+      subQuestions,
       isRecurring,
       recurringCondition,
       expectedValue,
@@ -108,6 +119,17 @@ async function handlePost(req, res, session) {
       question,
       fieldType,
       options: ['select', 'multiselect'].includes(fieldType) ? options : undefined,
+      // Persist sub-questions (as provided by the admin UI)
+      subQuestions: Array.isArray(subQuestions) ? subQuestions.map((sq) => ({
+        fieldId: sq.fieldId,
+        question: sq.question,
+        fieldType: sq.fieldType,
+        options: ['select', 'multiselect'].includes(sq.fieldType) ? (sq.options || []) : undefined,
+        isRequired: Boolean(sq.isRequired),
+        dependsOn: sq.dependsOn || {},
+        validation: sq.validation || {},
+        priority: Number(sq.priority || 0)
+      })) : [],
       isRecurring: isRecurring || false,
       recurringCondition: isRecurring ? recurringCondition : undefined,
       expectedValue: isRecurring && ['until_specific_value', 'until_minimum_count'].includes(recurringCondition) ? expectedValue : undefined,

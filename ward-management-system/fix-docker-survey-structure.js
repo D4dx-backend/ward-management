@@ -25,7 +25,7 @@ async function fixDockerSurveyStructure() {
 
     // Find all surveys with old structure
     const surveys = await DockerSurvey.find({});
-    console.log(`\n=== Found ${surveys.length} Docker Surveys ===`);
+    console.log(`\n=== Found ${surveys.length} Docket Surveys ===`);
 
     for (const survey of surveys) {
       console.log(`\n--- Processing Survey ${survey._id} ---`);

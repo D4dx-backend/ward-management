@@ -1,9 +1,14 @@
+import { getServerSession } from 'next-auth/next';
 import { getSession } from 'next-auth/react';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import RecurringQuestion from '../../../models/RecurringQuestion';
 
 export default async function handler(req, res) {
-  const session = await getSession({ req });
+  let session = await getServerSession(req, res, authOptions);
+  if (!session) {
+    session = await getSession({ req });
+  }
 
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });

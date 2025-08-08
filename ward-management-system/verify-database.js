@@ -79,7 +79,7 @@ async function verifyDatabase() {
       { model: Response, name: 'Responses' },
       { model: RecurringQuestion, name: 'Recurring Questions' },
       { model: RecurringQuestionResponse, name: 'Recurring Question Responses' },
-      { model: DockerSurvey, name: 'Docker Surveys' },
+      { model: DockerSurvey, name: 'Docket Surveys' },
       { model: Document, name: 'Documents' },
       { model: Instruction, name: 'Instructions' },
       { model: ActivityLog, name: 'Activity Logs' },

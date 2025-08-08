@@ -91,7 +91,7 @@ export default async function handler(req, res) {
       }
     });
   } catch (error) {
-    console.error('Error fetching docker surveys:', error);
-    res.status(500).json({ message: 'Error fetching docker surveys' });
+    console.error('Error fetching Docket Surveys:', error);
+    res.status(500).json({ message: 'Error fetching Docket Surveys' });
   }
 }

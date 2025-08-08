@@ -24,16 +24,21 @@ export default async function handler(req, res) {
       const { limit } = req.query;
       const limitNum = limit ? parseInt(limit) : undefined;
 
-      // Find visits for the Ward Incharge's ward
-      const visits = await WardVisit.find({ 
-        ward: userWard._id 
+      // Find visits for the Ward Incharge's ward, but only those recorded by Ward Incharge
+      // Exclude coordinator-recorded visits from Ward Incharge view
+      const visits = await WardVisit.find({
+        ward: userWard._id,
+        $or: [
+          { recordedByRole: 'wardAdmin' },
+          { recordedBy: session.user.id }
+        ]
       })
-      .populate('coordinator', 'name email role')
-      .populate('recordedBy', 'name email role')
-      .populate('ward', 'name')
-      .sort({ visitDate: -1, visitTime: -1 })
-      .limit(limitNum)
-      .lean();
+        .populate('coordinator', 'name email role')
+        .populate('recordedBy', 'name email role')
+        .populate('ward', 'name')
+        .sort({ visitDate: -1, visitTime: -1 })
+        .limit(limitNum)
+        .lean();
 
       return res.status(200).json(visits);
     }
