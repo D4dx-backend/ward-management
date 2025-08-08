@@ -15,6 +15,7 @@ import ReportModal from '../../components/ReportModal';
 import PendingFormModal from '../../components/PendingFormModal';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
+import { useDashboardRefresh } from '../../hooks/useDashboardRefresh';
 
 export default function WardAdminDashboard() {
   const { data: session, status } = useSession();
@@ -25,6 +26,9 @@ export default function WardAdminDashboard() {
   
   // Use the dashboard data hook with caching
   const { stats, recentReports, loading, error: dataError, refetch } = useDashboardData('wardAdmin');
+  
+  // Use the dashboard refresh hook for automatic refresh after form submissions
+  const { forceRefresh } = useDashboardRefresh(refetch, session?.user?.role);
   
   // Fetch user info with caching
   const { data: userInfo, loading: userLoading } = useApiData(
@@ -107,6 +111,25 @@ export default function WardAdminDashboard() {
       setError('Failed to load dashboard data');
     }
   }, [dataError]);
+
+  // Debug logging for dashboard data
+  useEffect(() => {
+    if (session?.user?.role === 'wardAdmin') {
+      console.log('Ward dashboard data updated:', {
+        statsKeys: Object.keys(stats || {}),
+        recentReportsCount: recentReports?.length || 0,
+        recentReportsSample: (recentReports || []).slice(0, 2).map(r => ({
+          id: r._id,
+          formTitle: r.formTemplate?.title || r.form?.title,
+          submittedAt: r.submittedAt,
+          hasFormTemplate: !!r.formTemplate,
+          hasForm: !!r.form
+        })),
+        loading,
+        error: dataError?.message
+      });
+    }
+  }, [stats, recentReports, loading, dataError, session]);
 
   useEffect(() => {
     // Set additional data from stats and instructions
@@ -233,6 +256,16 @@ export default function WardAdminDashboard() {
                     🪑 Sitting Ward
                   </span>
                 )}
+                <button
+                  onClick={forceRefresh}
+                  className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Refresh dashboard data"
+                >
+                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
                 <div>

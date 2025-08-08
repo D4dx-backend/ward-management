@@ -297,7 +297,7 @@ export default function SubmitSpecificWardReport() {
       }
 
       // Submit response
-      await axios.post('/api/responses', {
+      const response = await axios.post('/api/responses', {
         formTemplateId: form._id,
         responses: apiResponses,
         wardId: selectedWard,
@@ -305,16 +305,26 @@ export default function SubmitSpecificWardReport() {
 
       setSuccess('Ward report submitted successfully');
       
-      // Clear dashboard cache to ensure updated data is shown immediately
-      const { invalidateCache } = await import('../../../../lib/simpleCache');
-      invalidateCache('dashboard-wardAdmin');
-      invalidateCache('responses');
-      invalidateCache('forms');
+      // Clear all relevant cache to ensure updated data is shown immediately
+      try {
+        const { clearCache, invalidateCache } = await import('../../../../lib/simpleCache');
+        
+        // Clear all dashboard-related cache
+        clearCache(); // Clear all cache for immediate refresh
+        
+        // Set flag for dashboard to know form was submitted
+        localStorage.setItem('formSubmitted', 'true');
+        localStorage.setItem('lastSubmissionTime', Date.now().toString());
+        
+        console.log('Cache cleared after form submission');
+      } catch (cacheError) {
+        console.warn('Failed to clear cache:', cacheError);
+      }
       
-      // Redirect to dashboard after successful submission
+      // Redirect to dashboard with submission flag
       setTimeout(() => {
-        router.push('/');
-      }, 2000);
+        router.push('/?submitted=true');
+      }, 1500);
 
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'An error occurred while submitting the report';

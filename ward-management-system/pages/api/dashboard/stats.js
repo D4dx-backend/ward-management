@@ -25,10 +25,20 @@ export default async function handler(req, res) {
 
   try {
     const cacheKey = `dashboard-stats:${session.user.role}:${session.user.id || 'na'}:${session.user.district || 'na'}`;
-    const cached = getServerCache(cacheKey);
-    if (cached) {
-      return res.status(200).json(cached);
+    const forceRefresh = req.query.refresh === 'true';
+    
+    // For ward admins, use shorter cache or bypass cache if refresh requested
+    const shouldUseCache = !forceRefresh && session.user.role !== 'wardAdmin';
+    
+    if (shouldUseCache) {
+      const cached = getServerCache(cacheKey);
+      if (cached) {
+        console.log(`Returning cached dashboard data for ${session.user.role}`);
+        return res.status(200).json(cached);
+      }
     }
+    
+    console.log(`Fetching fresh dashboard data for ${session.user.role} (cache bypassed: ${!shouldUseCache})`);
 
     const stats = {};
     const recentLogs = [];
@@ -442,13 +452,23 @@ export default async function handler(req, res) {
         .limit(10)
         .lean();
 
-      // Transform the reports to match the expected format
+      console.log(`Found ${reports.length} recent reports for ward admin ${session.user.id}`);
+
+      // Transform the reports to match the expected format (fixed for lean queries)
       const transformedReports = reports.map(report => ({
-        ...report.toObject(),
+        _id: report._id,
+        submittedAt: report.submittedAt,
+        weekNumber: report.weekNumber,
+        year: report.year,
+        formTemplate: report.formTemplate,
+        respondent: report.respondent,
+        ward: report.ward,
+        // Add compatibility mappings for dashboard component
         form: report.formTemplate, // Map formTemplate to form for compatibility
         user: report.respondent     // Map respondent to user for compatibility
       }));
 
+      console.log(`Transformed ${transformedReports.length} reports for ward admin dashboard`);
       recentReports.push(...transformedReports);
 
       // Get recent login history for Ward Incharge (last 10)
@@ -475,7 +495,27 @@ export default async function handler(req, res) {
     }
 
     const payload = { stats, recentLogs, recentReports, recentLogins };
-    setServerCache(cacheKey, payload, 30 * 1000);
+    
+    // Use shorter cache time for ward admins to ensure fresh data
+    const cacheTime = session.user.role === 'wardAdmin' ? 10 * 1000 : 30 * 1000; // 10 seconds for ward admin
+    setServerCache(cacheKey, payload, cacheTime);
+    
+    console.log(`Dashboard data refreshed for ${session.user.role}, cached for ${cacheTime}ms`);
+    console.log(`Returning payload with ${recentReports.length} recent reports for ${session.user.role}`);
+    
+    // Debug logging for ward admin
+    if (session.user.role === 'wardAdmin') {
+      console.log('Ward admin dashboard payload:', {
+        statsKeys: Object.keys(stats),
+        recentReportsCount: recentReports.length,
+        recentReportsSample: recentReports.slice(0, 2).map(r => ({
+          id: r._id,
+          formTitle: r.form?.title || r.formTemplate?.title,
+          submittedAt: r.submittedAt
+        }))
+      });
+    }
+    
     return res.status(200).json(payload);
 
   } catch (error) {

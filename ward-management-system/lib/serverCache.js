@@ -37,10 +37,33 @@ export const setServerCache = (key, value, ttlMs = 60 * 1000) => {
 export const clearServerCache = (key) => {
   try {
     const { store } = getGlobalCacheStore();
-    if (key) store.delete(key);
-    else store.clear();
+    if (key) {
+      store.delete(key);
+    } else {
+      store.clear();
+    }
   } catch {
     // no-op
+  }
+};
+
+export const clearServerCachePattern = (pattern) => {
+  try {
+    const { store } = getGlobalCacheStore();
+    const keysToDelete = [];
+    
+    for (const key of store.keys()) {
+      if (typeof pattern === 'string' && key.includes(pattern)) {
+        keysToDelete.push(key);
+      } else if (pattern instanceof RegExp && pattern.test(key)) {
+        keysToDelete.push(key);
+      }
+    }
+    
+    keysToDelete.forEach(key => store.delete(key));
+    return keysToDelete.length;
+  } catch {
+    return 0;
   }
 };
 

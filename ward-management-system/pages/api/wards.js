@@ -277,6 +277,11 @@ async function handleGetWards(req, res, session) {
   }
 }
 
+// Utility function to escape regex special characters
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Handle POST requests - create ward
 async function handleCreateWard(req, res, session) {
   // Only allow stateAdmin to create wards
@@ -324,8 +329,8 @@ async function handleCreateWard(req, res, session) {
 
     // Check if ward with same name and district already exists (case-insensitive)
     const existingWard = await Ward.findOne({ 
-      name: { $regex: new RegExp(`^${normalizedName}$`, 'i') },
-      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
+      name: { $regex: new RegExp(`^${escapeRegex(normalizedName)}$`, 'i') },
+      district: { $regex: new RegExp(`^${escapeRegex(normalizedDistrict)}$`, 'i') },
       isActive: { $ne: false }
     });
 
@@ -347,8 +352,8 @@ async function handleCreateWard(req, res, session) {
     // Check if ward number already exists in the same panchayath (case-insensitive)
     const existingWardNumber = await Ward.findOne({ 
       wardNumber: normalizedWardNumber,
-      panchayath: { $regex: new RegExp(`^${normalizedPanchayath}$`, 'i') },
-      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
+      panchayath: { $regex: new RegExp(`^${escapeRegex(normalizedPanchayath)}$`, 'i') },
+      district: { $regex: new RegExp(`^${escapeRegex(normalizedDistrict)}$`, 'i') },
       isActive: { $ne: false }
     });
 

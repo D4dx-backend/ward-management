@@ -99,6 +99,11 @@ export default async function handler(req, res) {
   return res.status(405).json({ message: 'Method not allowed' });
 }
 
+// Utility function to escape regex special characters
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Handle PUT requests - update ward
 async function handleUpdateWard(req, res, session) {
   try {
@@ -158,8 +163,8 @@ async function handleUpdateWard(req, res, session) {
     // Check if another ward with same name and district already exists (excluding current ward, case-insensitive)
     const duplicateWard = await Ward.findOne({ 
       _id: { $ne: id },
-      name: { $regex: new RegExp(`^${normalizedName}$`, 'i') },
-      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
+      name: { $regex: new RegExp(`^${escapeRegex(normalizedName)}$`, 'i') },
+      district: { $regex: new RegExp(`^${escapeRegex(normalizedDistrict)}$`, 'i') },
       isActive: { $ne: false }
     });
 
@@ -181,8 +186,8 @@ async function handleUpdateWard(req, res, session) {
     const duplicateWardNumber = await Ward.findOne({ 
       _id: { $ne: id },
       wardNumber: normalizedWardNumber,
-      panchayath: { $regex: new RegExp(`^${normalizedPanchayath}$`, 'i') },
-      district: { $regex: new RegExp(`^${normalizedDistrict}$`, 'i') },
+      panchayath: { $regex: new RegExp(`^${escapeRegex(normalizedPanchayath)}$`, 'i') },
+      district: { $regex: new RegExp(`^${escapeRegex(normalizedDistrict)}$`, 'i') },
       isActive: { $ne: false }
     });
 
