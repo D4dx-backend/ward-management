@@ -839,8 +839,19 @@ export default function WardProfile() {
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Profile</h1>
-            <p className="mt-1 text-sm text-gray-600">View and manage your ward information</p>
+            <div className="flex items-center space-x-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {ward?.name || 'Ward Profile'}
+              </h1>
+              {ward?.isSittingWard && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  🪑 Sitting Ward
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-gray-600">
+              {ward ? `Ward #${ward.wardNumber} • ${ward.panchayath}, ${ward.district}` : 'View and manage your ward information'}
+            </p>
           </div>
           <div className="flex space-x-3">
             {!isEditing ? (

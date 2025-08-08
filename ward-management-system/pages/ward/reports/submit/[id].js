@@ -124,8 +124,8 @@ export default function SubmitSpecificWardReport() {
             populateFields(formData.fields);
           }
 
-          // Populate sitting ward fields
-          if (formData.sittingWardFields && formData.sittingWardFields.length > 0) {
+          // Populate sitting ward fields - only for sitting wards
+          if (formData.sittingWardFields && formData.sittingWardFields.length > 0 && wardsResponse.data[0]?.isSittingWard) {
             populateFields(formData.sittingWardFields, 'sitting');
           }
         }
@@ -235,8 +235,8 @@ export default function SubmitSpecificWardReport() {
       validateFields(form.fields);
     }
 
-    // Validate sitting ward fields
-    if (form.sittingWardFields && form.sittingWardFields.length > 0) {
+    // Validate sitting ward fields - only for sitting wards
+    if (form.sittingWardFields && form.sittingWardFields.length > 0 && userWards[0]?.isSittingWard) {
       validateFields(form.sittingWardFields, 'sitting');
     }
 
@@ -291,8 +291,8 @@ export default function SubmitSpecificWardReport() {
         processFields(form.fields);
       }
 
-      // Process sitting ward fields
-      if (form.sittingWardFields && form.sittingWardFields.length > 0) {
+      // Process sitting ward fields - only for sitting wards
+      if (form.sittingWardFields && form.sittingWardFields.length > 0 && userWards[0]?.isSittingWard) {
         processFields(form.sittingWardFields, 'sitting');
       }
 
@@ -488,12 +488,14 @@ export default function SubmitSpecificWardReport() {
 
             <Card className="mt-6">
               <div className="p-6 space-y-6">
+
                 <FormRenderer
                   form={form}
                   formData={formData}
                   setFormData={setFormData}
                   errors={validationErrors}
                   readOnly={!!submittedResponse}
+                  ward={userWards[0]}
                 />
 
                 {!submittedResponse && (
