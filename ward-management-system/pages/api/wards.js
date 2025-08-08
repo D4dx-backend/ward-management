@@ -304,7 +304,15 @@ async function handleCreateWard(req, res, session) {
 
     if (existingWard) {
       return res.status(409).json({ 
-        message: `Ward "${name}" already exists in ${district} district` 
+        message: `Ward "${name}" already exists in ${district} district`,
+        conflictingWard: {
+          id: existingWard._id,
+          name: existingWard.name,
+          wardNumber: existingWard.wardNumber,
+          panchayath: existingWard.panchayath,
+          district: existingWard.district,
+          isActive: existingWard.isActive
+        }
       });
     }
 
@@ -318,7 +326,15 @@ async function handleCreateWard(req, res, session) {
 
     if (existingWardNumber) {
       return res.status(409).json({ 
-        message: `Ward number "${wardNumber}" already exists in ${panchayath}, ${district}` 
+        message: `Ward number "${wardNumber}" already exists in ${panchayath}, ${district}`,
+        conflictingWard: {
+          id: existingWardNumber._id,
+          name: existingWardNumber.name,
+          wardNumber: existingWardNumber.wardNumber,
+          panchayath: existingWardNumber.panchayath,
+          district: existingWardNumber.district,
+          isActive: existingWardNumber.isActive
+        }
       });
     }
 
