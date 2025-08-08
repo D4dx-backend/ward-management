@@ -32,27 +32,26 @@ export function generate4DigitPIN() {
 // Format phone number to E.164 format
 export function formatPhoneNumber(phone) {
   if (!phone) return null;
-
+  
   // Remove all non-digit characters
   let cleaned = phone.replace(/\D/g, '');
-
-  // If it starts with 0 and is 11 digits, remove the leading 0
-  if (cleaned.startsWith('0') && cleaned.length === 11) {
-    cleaned = cleaned.substring(1);
-  }
-
-  // If it's 10 digits, assume Indian number and prefix 91 (no plus) per DXing format
-  if (cleaned.length === 10) {
-    return '91' + cleaned;
-  }
-
-  // If it already starts with 91, return as-is (DXing expects without +)
+  
+  // If it starts with 91, assume it's already formatted
   if (cleaned.startsWith('91')) {
-    return cleaned;
+    return '+' + cleaned;
   }
-
-  // Default: return digits-only string (caller ensures correctness)
-  return cleaned;
+  
+  // If it's 10 digits, assume it's Indian number
+  if (cleaned.length === 10) {
+    return '+91' + cleaned;
+  }
+  
+  // If it starts with 0, remove it and add +91
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    return '+91' + cleaned.substring(1);
+  }
+  
+  return '+' + cleaned;
 }
 
 // Send WhatsApp message using DXing API
@@ -73,7 +72,9 @@ export async function sendWhatsAppMessage({ recipient, message, type = 'text' })
       throw new Error('DXING_ACCOUNT_ID environment variable is not set');
     }
     
-    const dxingUrl = process.env.DXING_API_URL || 'https://app.dxing.in/api/send/whatsapp';
+    if (!process.env.DXING_API_URL) {
+      throw new Error('DXING_API_URL environment variable is not set');
+    }
 
     const payload = {
       secret: process.env.DXING_API_SECRET,
@@ -85,9 +86,9 @@ export async function sendWhatsAppMessage({ recipient, message, type = 'text' })
 
     console.log('WhatsApp API Call - Recipient:', formattedRecipient);
     console.log('WhatsApp API Call - Message length:', message.length);
-    console.log('WhatsApp API Call - URL:', dxingUrl);
+    console.log('WhatsApp API Call - URL:', process.env.DXING_API_URL);
 
-    const response = await axios.post(dxingUrl, payload, {
+    const response = await axios.post(process.env.DXING_API_URL, payload, {
       headers: {
         'Content-Type': 'application/json',
       },
