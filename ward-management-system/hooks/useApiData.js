@@ -153,34 +153,41 @@ export const useDashboardData = (userRole) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (forceRefresh = false) => {
     try {
       setLoading(true);
       setError(null);
 
       const cacheKey = `dashboard-${userRole}`;
-      const cachedData = getCache(cacheKey);
       
-      if (cachedData) {
-        setStats(cachedData.stats || {});
-        setRecentReports(cachedData.recentReports || []);
-        setRecentActivity(cachedData.recentActivity || []);
-        setRecentLogins(cachedData.recentLogins || []);
-        setLoading(false);
-        return;
+      // Skip cache if force refresh is requested
+      if (!forceRefresh) {
+        const cachedData = getCache(cacheKey);
+        
+        if (cachedData) {
+          setStats(cachedData.stats || {});
+          setRecentReports(cachedData.recentReports || []);
+          setRecentActivity(cachedData.recentActivity || []);
+          setRecentLogins(cachedData.recentLogins || []);
+          setLoading(false);
+          return;
+        }
       }
 
       // Fetch dashboard data based on role (prefer optimized single endpoint)
+      // For ward admins, add refresh parameter to bypass cache
+      const refreshParam = userRole === 'wardAdmin' || forceRefresh ? '?refresh=true' : '';
+      
       const endpoints = {
         stateAdmin: [
-          '/api/dashboard/stats'
+          `/api/dashboard/stats${refreshParam}`
         ],
         coordinator: [
-          '/api/dashboard/stats',
+          `/api/dashboard/stats${refreshParam}`,
           '/api/responses?limit=5'
         ],
         wardAdmin: [
-          '/api/dashboard/stats',
+          `/api/dashboard/stats${refreshParam}`,
           '/api/responses?limit=5',
           '/api/instructions?limit=5'
         ]
@@ -225,16 +232,36 @@ export const useDashboardData = (userRole) => {
         const statsData = statsRes.status === 'fulfilled' ? statsRes.value.data : {};
         const reportsData = reportsRes.status === 'fulfilled' ? reportsRes.value.data : [];
         
+        // For ward admin, prioritize the dashboard stats API recent reports
+        // For coordinator, use the separate responses API as fallback
+        let recentReportsData = [];
+        if (userRole === 'wardAdmin') {
+          // Ward admin: use dashboard stats API recent reports (properly formatted)
+          recentReportsData = statsData.recentReports || [];
+          console.log(`Ward admin recent reports from dashboard stats: ${recentReportsData.length}`);
+        } else {
+          // Coordinator: use separate responses API or dashboard stats as fallback
+          recentReportsData = statsData.recentReports || reportsData;
+        }
+        
         dashboardData = {
           stats: statsData.stats || statsData,
-          recentReports: statsData.recentReports || reportsData,
+          recentReports: recentReportsData,
           recentActivity: statsData.recentLogs || [],
           recentLogins: statsData.recentLogins || []
         };
       }
 
       // Cache the result for a shorter time to ensure fresh data
-      setCache(cacheKey, dashboardData, 30 * 1000); // 30 seconds cache for dashboard data
+      // Use very short cache time for ward admin to ensure fresh data after form submissions
+      const cacheTime = userRole === 'wardAdmin' ? 5 * 1000 : 30 * 1000; // 5 seconds for ward admin, 30 for others
+      
+      // For ward admin, don't cache if we just fetched fresh data
+      if (userRole === 'wardAdmin' && forceRefresh) {
+        console.log('Skipping cache for ward admin force refresh');
+      } else {
+        setCache(cacheKey, dashboardData, cacheTime);
+      }
 
       setStats(dashboardData.stats);
       setRecentReports(dashboardData.recentReports);
@@ -260,6 +287,6 @@ export const useDashboardData = (userRole) => {
     recentLogins,
     loading,
     error,
-    refetch: fetchDashboardData
+    refetch: () => fetchDashboardData(true) // Always force refresh when manually called
   };
 };

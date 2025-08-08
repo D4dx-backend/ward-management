@@ -321,8 +321,28 @@ export default async function handler(req, res) {
             select: 'name _id'
           }
         });
+
+      // Clear server-side cache for dashboard stats to ensure fresh data
+      try {
+        const { clearServerCache, clearServerCachePattern } = require('../../../lib/serverCache');
+        
+        // Clear dashboard cache patterns that might be affected by this submission
+        const clearedKeys = clearServerCachePattern('dashboard-stats');
+        console.log(`Cleared ${clearedKeys} dashboard cache entries after form submission`);
+        
+        // Also clear specific user cache
+        clearServerCache(`user-${session.user.id}`);
+        
+        console.log('Dashboard cache cleared after form submission');
+      } catch (cacheError) {
+        console.warn('Failed to clear dashboard cache:', cacheError.message);
+        // Don't fail the request if cache clearing fails
+      }
       
-      return res.status(201).json(populatedResponse);
+      return res.status(201).json({
+        ...populatedResponse.toObject(),
+        _cacheInvalidated: true // Signal to frontend that cache should be refreshed
+      });
     } catch (error) {
       console.error('Error in POST /api/responses:', error);
       return res.status(500).json({ 
