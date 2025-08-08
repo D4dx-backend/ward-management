@@ -476,7 +476,10 @@ export default function WardProfile() {
                                   {formatDateTime(visit.visitDate, visit.visitTime)}
                                 </h4>
                                 <p className="text-xs text-gray-500">
-                                  by {visit.coordinator?.name || 'Unknown'} ({visit.recordedByRole === 'coordinator' ? 'Coordinator' : 'Ward Admin'})
+                                  by {visit.recordedByRole === 'coordinator' 
+                                    ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                                    : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')} 
+                                  ({visit.recordedByRole === 'coordinator' ? 'Coordinator' : 'Ward Admin'})
                                 </p>
                               </div>
                             </div>

@@ -1,12 +1,12 @@
-# Cluster Visit Details Page Fix
+# House Visit Details Page Fix
 
 ## Issue
-The coordinator cluster visit details page was not showing/accessible because there were no navigation links to it.
+The coordinator House Visit details page was not showing/accessible because there were no navigation links to it.
 
 ## Root Cause
 The page `/coordinator/cluster-visit-details` existed and was properly implemented, but users couldn't access it because:
 1. No navigation link from the coordinator dashboard
-2. No navigation link from the cluster visits page
+2. No navigation link from the House Visits page
 3. Users didn't know the page existed
 
 ## Fixes Applied
@@ -16,18 +16,18 @@ The page `/coordinator/cluster-visit-details` existed and was properly implement
 - Links to `/coordinator/cluster-visit-details`
 - Uses a teal-colored icon to distinguish from other cluster-related links
 
-### 2. Added Navigation Button to Cluster Visits Page
-- Added a "Detailed View" button in the cluster visits page (`pages/coordinator/cluster-visits.js`)
+### 2. Added Navigation Button to House Visits Page
+- Added a "Detailed View" button in the House Visits page (`pages/coordinator/cluster-visits.js`)
 - Positioned next to the "Clear Filters" button
 - Uses primary button styling to make it prominent
 
 ### 3. Enhanced Error Handling and Debugging
-- Added console logging to API calls in the cluster visit details page
+- Added console logging to API calls in the House Visit details page
 - Enhanced error messages to show more specific error details
 - Better error handling for both ward data and cluster details fetching
 
 ### 4. Created Test and Seed Scripts
-- `test-cluster-api.js`: Script to test the cluster visit API endpoints
+- `test-cluster-api.js`: Script to test the House Visit API endpoints
 - `seed-cluster-data.js`: Script to seed test data for coordinators, wards, and clusters
 
 ## API Endpoints Verified
@@ -45,8 +45,8 @@ Both required models exist with proper schemas:
 ### 1. Access the Page
 - Login as a coordinator
 - Go to coordinator dashboard
-- Click on "Cluster Visit Details" card
-- OR go to "Cluster Visit Status" → click "Detailed View" button
+- Click on "House Visit Details" card
+- OR go to "House Visit Status" → click "Detailed View" button
 
 ### 2. Test Data Loading
 - Page should load ward list on the left

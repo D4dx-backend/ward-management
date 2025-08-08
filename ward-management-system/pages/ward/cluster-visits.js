@@ -20,7 +20,7 @@ export default function ClusterVisits() {
     if (session?.user?.role === 'wardAdmin') {
       fetchClusterVisits();
     } else if (session?.user?.role && session?.user?.role !== 'wardAdmin') {
-      setError('Access denied. Only Ward Incharges can access cluster visits.');
+      setError('Access denied. Only Ward Incharges can access House Visits.');
       setLoading(false);
     }
   }, [session]);
@@ -30,14 +30,14 @@ export default function ClusterVisits() {
       setLoading(true);
       setError(null);
       
-      console.log('Fetching cluster visits...');
+      console.log('Fetching House Visits...');
       const response = await axios.get(`/api/cluster-visits/my-ward?t=${Date.now()}`);
-      console.log('Cluster visits response:', response.data);
+      console.log('House Visits response:', response.data);
       
       setClusterData(response.data);
     } catch (error) {
-      console.error('Error fetching cluster visits:', error);
-      setError(error.response?.data?.message || 'Failed to load cluster visits');
+      console.error('Error fetching House Visits:', error);
+      setError(error.response?.data?.message || 'Failed to load House Visits');
     } finally {
       setLoading(false);
     }
@@ -50,7 +50,7 @@ export default function ClusterVisits() {
       setSaving(true);
       setError(null);
       
-      console.log('Updating cluster visits...');
+      console.log('Updating House Visits...');
       const response = await axios.put('/api/cluster-visits/my-ward', {
         clusterVisits: clusterData.clusterVisits
       });
@@ -61,12 +61,12 @@ export default function ClusterVisits() {
       await fetchClusterVisits();
       
       // Show success message
-      setSuccessMessage('Cluster visits updated successfully!');
+      setSuccessMessage('House Visits updated successfully!');
       setTimeout(() => setSuccessMessage(''), 5000);
       
     } catch (error) {
-      console.error('Error updating cluster visits:', error);
-      setError(error.response?.data?.message || 'Failed to update cluster visits');
+      console.error('Error updating House Visits:', error);
+      setError(error.response?.data?.message || 'Failed to update House Visits');
     } finally {
       setSaving(false);
     }
@@ -107,10 +107,10 @@ export default function ClusterVisits() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center max-w-md">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {error ? 'Error Loading Cluster Visits' : 'No Data Found'}
+              {error ? 'Error Loading House Visits' : 'No Data Found'}
             </h2>
             <p className="text-gray-600 mb-4">
-              {error || 'Unable to load cluster visits data.'}
+              {error || 'Unable to load House Visits data.'}
             </p>
             <div className="space-x-2">
               <Button onClick={fetchClusterVisits} disabled={loading}>
@@ -132,7 +132,7 @@ export default function ClusterVisits() {
   return (
     <Layout>
       <Head>
-        <title>House Visit - Cluster Visit Reports - Ward Management System</title>
+        <title>House Visit - House Visit Reports - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
@@ -192,13 +192,13 @@ export default function ClusterVisits() {
 
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">House Visit - Cluster Visit Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-900">House Visit - House Visit Reports</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Track house visits and cluster visit progress for form periods - Ward: {clusterData?.ward?.name}
+            Track house visits and House Visit progress for form periods - Ward: {clusterData?.ward?.name}
           </p>
         </div>
 
-        {/* Cluster Visits Table */}
+        {/* House Visits Table */}
         <Card>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -297,9 +297,9 @@ export default function ClusterVisits() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500">No cluster visit data available</p>
+              <p className="text-gray-500">No House Visit data available</p>
               <p className="text-sm text-gray-400 mt-1">
-                Create clusters in your ward to enable cluster visit tracking
+                Create clusters in your ward to enable House Visit tracking
               </p>
               <Button
                 onClick={() => window.location.href = '/admin/clusters'}

@@ -9,12 +9,12 @@ You have 6 clusters in the manage clusters API response:
 5. 35 Name (Cluster #35)
 6. 36 Name (Cluster #36)
 
-But only 3 clusters were showing in the survey cluster visit page.
+But only 3 clusters were showing in the survey House Visit page.
 
 ## Root Cause
 The issue was that the DockerSurvey document was created once with the clusters that existed at that time (3 clusters). When new clusters were added later, the survey document was not updated to include the new clusters.
 
-The docker survey API only created cluster visits when `!survey` (no survey exists), but if a survey already existed, it would return the old data without checking for new clusters.
+The docker survey API only created House Visits when `!survey` (no survey exists), but if a survey already existed, it would return the old data without checking for new clusters.
 
 ## Solution Implemented
 
@@ -28,7 +28,7 @@ The docker survey API only created cluster visits when `!survey` (no survey exis
 - Compare existing cluster IDs in survey vs current cluster IDs in ward
 - Automatically add new clusters to existing surveys
 - Remove inactive/deleted clusters from surveys
-- Preserve existing cluster visit data while adding new clusters
+- Preserve existing House Visit data while adding new clusters
 
 ### 2. **Manual Refresh Endpoint**
 **New File:**
@@ -36,7 +36,7 @@ The docker survey API only created cluster visits when `!survey` (no survey exis
 
 **Purpose:**
 - Allows manual refresh of cluster data
-- Rebuilds cluster visits with all current clusters
+- Rebuilds House Visits with all current clusters
 - Useful for fixing existing surveys with missing clusters
 
 ### 3. **Refresh Button in UI**
@@ -62,7 +62,7 @@ const currentClusterIds = new Set(clusters.map(c => c._id.toString()));
 // Add new clusters
 const newClusters = clusters.filter(cluster => !existingClusterIds.has(cluster._id.toString()));
 if (newClusters.length > 0) {
-  // Create cluster visit data for new clusters and add to survey
+  // Create House Visit data for new clusters and add to survey
 }
 
 // Remove deleted clusters
@@ -77,7 +77,7 @@ if (clustersToRemove.length > 0) {
 ### Manual Refresh
 ```javascript
 // POST /api/docker-survey/refresh
-// Completely rebuilds cluster visits with all current clusters
+// Completely rebuilds House Visits with all current clusters
 // Preserves question and basic survey data
 ```
 
@@ -94,13 +94,13 @@ if (clustersToRemove.length > 0) {
 - Will show all 6 clusters immediately
 
 ### 3. **Preserved Data**
-- Existing cluster visit data is preserved when new clusters are added
+- Existing House Visit data is preserved when new clusters are added
 - Only new clusters get default values
 - Form week logic remains the same
 
 ## Testing Steps
 
-1. **Visit Survey Page**: Go to `/ward/docker-survey` → Cluster Visits tab
+1. **Visit Survey Page**: Go to `/ward/docker-survey` → House Visits tab
 2. **Check Cluster Count**: Should now show all 6 clusters automatically
 3. **Manual Refresh**: Click "Refresh Clusters" if needed
 4. **Verify Data**: All clusters should appear with proper week headers
@@ -122,6 +122,6 @@ The automatic sync logic will prevent this issue from happening again. Whenever:
 - Clusters are deleted or deactivated
 - The survey is accessed
 
-The system will automatically keep the cluster visits in sync with the actual clusters in the ward.
+The system will automatically keep the House Visits in sync with the actual clusters in the ward.
 
 This ensures that the survey always reflects the current state of clusters without manual intervention.

@@ -29,7 +29,7 @@ If no such forms exist, the system shows the old structure.
 
 ### Step 3: Reset Survey Structure
 1. After forms with week numbers exist, go to Docker Survey page
-2. Click on "Cluster Visits" tab
+2. Click on "House Visits" tab
 3. Click the red **"Reset Structure"** button
 4. Wait for the reset to complete
 

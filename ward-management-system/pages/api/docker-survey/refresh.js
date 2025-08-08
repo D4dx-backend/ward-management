@@ -75,7 +75,7 @@ export default async function handler(req, res) {
       sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
     }
 
-    // Create fresh cluster visits for all current clusters
+    // Create fresh House Visits for all current clusters
     const clusterVisits = clusters.map(cluster => {
       const visitData = {
         clusterId: cluster._id,
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
     let survey = await DockerSurvey.findOne({ ward: ward._id });
     
     if (survey) {
-      // Update existing survey with fresh cluster visits
+      // Update existing survey with fresh House Visits
       survey.clusterVisits = clusterVisits;
       survey.markModified('clusterVisits');
       await survey.save();

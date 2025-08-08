@@ -1,11 +1,11 @@
 # Form-Based Weeks Implementation Summary
 
 ## Overview
-The cluster visit system has been updated to show weeks based on actual form creation rather than arbitrary calendar weeks. This ensures that cluster visits are tracked only for weeks when forms were actually created by state admins.
+The House Visit system has been updated to show weeks based on actual form creation rather than arbitrary calendar weeks. This ensures that House Visits are tracked only for weeks when forms were actually created by state admins.
 
 ## Key Changes Made
 
-### 1. **Admin Cluster Visits API** (`/api/admin/cluster-visits.js`)
+### 1. **Admin House Visits API** (`/api/admin/cluster-visits.js`)
 **Changes:**
 - Modified to fetch unique week numbers and years from forms created by state admins
 - Sorts weeks by most recent first (year, then week number)
@@ -36,8 +36,8 @@ const sortedFormWeeks = Array.from(formWeeks)
 
 ### 2. **Docker Survey APIs** (`/api/docker-survey/my-ward.js` & `/api/docker-survey/[wardId].js`)
 **Changes:**
-- Updated cluster visit initialization to use actual form weeks
-- Each cluster visit now includes `formWeeks` array for reference
+- Updated House Visit initialization to use actual form weeks
+- Each House Visit now includes `formWeeks` array for reference
 - Week columns show actual week numbers and years from forms
 - Handles cases where fewer than 4 forms exist
 
@@ -78,15 +78,15 @@ const clusterVisits = clusters.map(cluster => {
 }
 ```
 
-### 4. **Admin Cluster Visits Page** (`/pages/admin/cluster-visits.js`)
+### 4. **Admin House Visits Page** (`/pages/admin/cluster-visits.js`)
 **Changes:**
 - Updated button labels to "Recent Form Weeks" and "All Form Weeks"
 - Modified description to clarify form-based tracking
 - Enhanced week display to show year information
 
-### 5. **Cluster Visit Status Component** (`/components/ClusterVisitStatus.js`)
+### 5. **House Visit Status Component** (`/components/ClusterVisitStatus.js`)
 **Changes:**
-- Updated description to "Cluster visit tracking based on form creation weeks"
+- Updated description to "House Visit tracking based on form creation weeks"
 - Enhanced week display to include year information
 
 ## Benefits of Form-Based Weeks
@@ -104,10 +104,10 @@ const clusterVisits = clusters.map(cluster => {
 ### 3. **Better User Experience**
 - Clear indication of which weeks have forms
 - Shows actual week numbers and years
-- Provides context for cluster visit data
+- Provides context for House Visit data
 
 ### 4. **Data Consistency**
-- Aligns cluster visits with form lifecycle
+- Aligns House Visits with form lifecycle
 - Ensures data integrity across components
 - Maintains relationship between forms and visits
 
@@ -144,7 +144,7 @@ Week 45 (2024) | Week 43 (2024) | Week 41 (2024) | Week 39 (2024)
 
 ## API Response Structure
 
-### Cluster Visits API Response
+### House Visits API Response
 ```json
 {
   "weeks": [
@@ -197,11 +197,11 @@ Week 45 (2024) | Week 43 (2024) | Week 41 (2024) | Week 39 (2024)
 ## Testing Checklist
 
 ### ✅ **Admin Dashboard**
-- [ ] Verify cluster visit status shows form-based weeks
+- [ ] Verify House Visit status shows form-based weeks
 - [ ] Check that only weeks with forms are displayed
 - [ ] Confirm week numbers and years are correct
 
-### ✅ **Admin Cluster Visits Page**
+### ✅ **Admin House Visits Page**
 - [ ] Test "Recent Form Weeks" vs "All Form Weeks" toggle
 - [ ] Verify weeks correspond to actual form creation
 - [ ] Check detailed view shows correct information
@@ -209,17 +209,17 @@ Week 45 (2024) | Week 43 (2024) | Week 41 (2024) | Week 39 (2024)
 ### ✅ **Ward Docker Survey**
 - [ ] Confirm table headers show actual week numbers
 - [ ] Verify "No Form" appears for missing weeks
-- [ ] Test cluster visit data entry and saving
+- [ ] Test House Visit data entry and saving
 
 ### ✅ **Data Consistency**
-- [ ] Create a new form and verify it appears in cluster visits
+- [ ] Create a new form and verify it appears in House Visits
 - [ ] Check that week numbers match between components
 - [ ] Verify responses are properly filtered by week/year
 
 ## Future Enhancements
 
 ### 1. **Form Information Display**
-- Show form titles in cluster visit details
+- Show form titles in House Visit details
 - Add form creation dates for reference
 - Display form status information
 
@@ -229,14 +229,14 @@ Week 45 (2024) | Week 43 (2024) | Week 41 (2024) | Week 39 (2024)
 - Filter by form creator
 
 ### 3. **Analytics**
-- Track cluster visit trends by form
+- Track House Visit trends by form
 - Compare visit rates across different form weeks
 - Generate reports based on form-visit correlation
 
 ## Migration Notes
 
 ### Database Considerations
-- Existing cluster visit data remains compatible
+- Existing House Visit data remains compatible
 - New week/year fields are added progressively
 - No data migration required for existing records
 
@@ -245,4 +245,4 @@ Week 45 (2024) | Week 43 (2024) | Week 41 (2024) | Week 39 (2024)
 - Falls back to current week calculation if needed
 - Maintains existing API structure
 
-The form-based weeks implementation provides a more accurate and meaningful way to track cluster visits, ensuring that data is always relevant to actual form creation activities.
+The form-based weeks implementation provides a more accurate and meaningful way to track House Visits, ensuring that data is always relevant to actual form creation activities.

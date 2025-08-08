@@ -109,7 +109,7 @@ Returns form and week information for cluster survey.
 ```
 GET /api/docker-survey/my-ward
 ```
-Returns the actual survey data with cluster visits.
+Returns the actual survey data with House Visits.
 
 ## Console Log Examples
 

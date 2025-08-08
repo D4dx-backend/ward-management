@@ -1,7 +1,7 @@
 # Docker Survey Feature Implementation
 
 ## Overview
-The Docker Survey feature is a comprehensive survey system that allows Ward Incharges to track the status of various survey questions, with visibility for coordinators and state admins. The feature includes docket survey questions, basic survey status, and cluster visit tracking.
+The Docker Survey feature is a comprehensive survey system that allows Ward Incharges to track the status of various survey questions, with visibility for coordinators and state admins. The feature includes docket survey questions, basic survey status, and House Visit tracking.
 
 ## Features Implemented
 
@@ -10,7 +10,7 @@ The Docker Survey feature is a comprehensive survey system that allows Ward Inch
 - **Status Tracking**: Each question can have status: `completed`, `ongoing`, `not_started`
 - **Previous Status**: Tracks the previous status when changes are made
 - **Basic Survey**: Separate tracking for basic survey completion
-- **Cluster Visits**: Tracks cluster visit data for recent 4 weeks
+- **House Visits**: Tracks House Visit data for recent 4 weeks
 - **Completion Rate**: Automatically calculated based on completed questions
 - **Timestamps**: Tracks creation and last update times
 
@@ -18,7 +18,7 @@ The Docker Survey feature is a comprehensive survey system that allows Ward Inch
 
 #### `/api/docker-survey/[wardId].js`
 - **GET**: Retrieves survey data for a specific ward
-- **PUT**: Updates survey question status, basic survey status, or cluster visits
+- **PUT**: Updates survey question status, basic survey status, or House Visits
 - Auto-creates survey if it doesn't exist
 - Populates ward and Ward Incharge information
 
@@ -42,7 +42,7 @@ The Docker Survey feature is a comprehensive survey system that allows Ward Inch
 - **Tabbed Interface**: 
   - Docket Survey: All 14 questions with status management
   - Basic Survey: Single status tracking
-  - Cluster Visits: 4-week tracking table
+  - House Visits: 4-week tracking table
 - **Status Management**: Easy buttons to change question status
 - **Previous Status Display**: Shows what the previous status was
 - **Progress Tracking**: Visual progress bar and completion percentage
@@ -137,7 +137,7 @@ The system includes 14 predefined questions in Malayalam (exactly as specified i
 
 ### For Ward Incharges
 1. Navigate to "Docker Survey" in the sidebar
-2. Use the tabs to switch between Docket Survey, Basic Survey, and Cluster Visits
+2. Use the tabs to switch between Docket Survey, Basic Survey, and House Visits
 3. Click status buttons to update question progress
 4. Monitor overall completion percentage in the header
 

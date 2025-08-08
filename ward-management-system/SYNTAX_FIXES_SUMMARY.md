@@ -141,4 +141,4 @@ node -c pages/admin/cluster-visits.js        # Exit Code: 0
 - All syntax errors resolved
 - Project ready for development and deployment
 
-The fixes ensure that both cluster visit pages (admin and coordinator) now compile correctly and the entire application builds successfully without syntax errors.
+The fixes ensure that both House Visit pages (admin and coordinator) now compile correctly and the entire application builds successfully without syntax errors.

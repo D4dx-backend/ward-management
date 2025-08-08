@@ -73,8 +73,8 @@ export default function AdminClusterVisits() {
         generateMockData();
       }
     } catch (error) {
-      console.error('Error fetching cluster visit data:', error);
-      setError('Failed to load cluster visit data - using sample data');
+      console.error('Error fetching House Visit data:', error);
+      setError('Failed to load House Visit data - using sample data');
       generateMockData();
     } finally {
       setIsLoading(false);
@@ -385,15 +385,15 @@ export default function AdminClusterVisits() {
   return (
     <Layout>
       <Head>
-        <title>Cluster Visit Analysis - Ward Management System</title>
+        <title>House Visit Analysis - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cluster Visit Analysis</h1>
+            <h1 className="text-2xl font-bold text-gray-900">House Visit Analysis</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Comprehensive analysis of cluster visits across all districts
+              Comprehensive analysis of House Visits across all districts
             </p>
           </div>
           <div className="flex space-x-3">

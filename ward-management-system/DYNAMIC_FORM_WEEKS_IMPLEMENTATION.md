@@ -123,4 +123,4 @@ cluster = {
 2. `pages/ward/docker-survey.js` - Dynamic table rendering
 3. `components/WardClusterVisitStatus.js` - Dynamic dashboard display
 
-The system now provides a truly dynamic experience where cluster visits are tracked for ALL actual form creation periods, giving users complete visibility into their reporting cycles without artificial limitations.
+The system now provides a truly dynamic experience where House Visits are tracked for ALL actual form creation periods, giving users complete visibility into their reporting cycles without artificial limitations.

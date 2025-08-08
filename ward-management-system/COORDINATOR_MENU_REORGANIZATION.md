@@ -39,10 +39,10 @@ This document outlines the complete reorganization of the coordinator menu struc
 - **Path**: `/coordinator/wards`
 - **Status**: Already exists
 
-#### d. **Cluster Visit Details** ✅ (Created)
+#### d. **House Visit Details** ✅ (Created)
 - **Path**: `/coordinator/cluster-visit-details`
 - **Status**: **NEWLY CREATED**
-- **Description**: Detailed cluster visit management page
+- **Description**: Detailed House Visit management page
 - **Features**:
   - Ward selection panel
   - Cluster details view
@@ -94,7 +94,7 @@ This document outlines the complete reorganization of the coordinator menu struc
 - Direct submission links
 ```
 
-### 2. Cluster Visit Details Page (`/coordinator/cluster-visit-details`)
+### 2. House Visit Details Page (`/coordinator/cluster-visit-details`)
 
 **Features Implemented:**
 - **Ward Selection Panel**: Left sidebar with ward list and progress indicators
@@ -148,7 +148,7 @@ coordinator: {
       'Ward Status',
       'Ward Reports', 
       'Ward Profile',
-      'Cluster Visit Details'
+      'House Visit Details'
     ]
   },
   'Survey Status': { single item },
@@ -168,12 +168,12 @@ coordinator: {
 ### Existing APIs:
 - `/api/coordinator/reports` - For SIC reports data
 - `/api/coordinator/reports/[id]` - For individual report details
-- `/api/coordinator/ward-cluster-visits` - For ward cluster visit data
+- `/api/coordinator/ward-cluster-visits` - For ward House Visit data
 - `/api/coordinator/wards/[wardId]/cluster-visits` - For detailed cluster data
 
 ### Data Flow:
 1. **SIC Reports**: Fetches coordinator-specific pending and submitted reports
-2. **Cluster Visit Details**: Fetches ward list → cluster details → visit history
+2. **House Visit Details**: Fetches ward list → cluster details → visit history
 
 ## User Experience Improvements
 
@@ -185,7 +185,7 @@ coordinator: {
 
 ### Functionality:
 - **Combined Reports**: Single page for all coordinator report needs
-- **Detailed Cluster Management**: Comprehensive cluster visit tracking
+- **Detailed Cluster Management**: Comprehensive House Visit tracking
 - **Better Organization**: Logical flow from dashboard to specific functions
 
 ## Security & Performance
@@ -207,7 +207,7 @@ coordinator: {
 - [ ] Pending/Submitted tabs function properly
 - [ ] Report details modal opens correctly
 - [ ] Submit buttons work for pending reports
-- [ ] Cluster Visit Details page loads
+- [ ] House Visit Details page loads
 - [ ] Ward selection updates cluster view
 - [ ] Cluster click opens visit history modal
 - [ ] All existing pages still accessible
@@ -219,7 +219,7 @@ coordinator: {
 ✅ **Completed Tasks:**
 1. Reorganized coordinator menu structure
 2. Created SIC Reports page with tabbed interface
-3. Created Cluster Visit Details page with interactive features
+3. Created House Visit Details page with interactive features
 4. Moved Account Management to Documentation submenu
 5. Added Logout option to Documentation submenu
 6. Updated menu configuration file
@@ -227,6 +227,6 @@ coordinator: {
 
 ✅ **All Requested Pages Created:**
 - SIC Report page (combined pending/submitted reports)
-- Cluster Visit Details page (detailed cluster management)
+- House Visit Details page (detailed cluster management)
 
-The coordinator menu is now more streamlined and focused, with better organization and direct access to the most important functions. The new pages provide comprehensive functionality for managing coordinator reports and cluster visits.
+The coordinator menu is now more streamlined and focused, with better organization and direct access to the most important functions. The new pages provide comprehensive functionality for managing coordinator reports and House Visits.

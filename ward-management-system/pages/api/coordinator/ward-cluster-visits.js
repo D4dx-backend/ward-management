@@ -29,7 +29,7 @@ export default async function handler(req, res) {
       isActive: true
     }).sort({ name: 1 });
 
-    // Get cluster visit data for each ward
+    // Get House Visit data for each ward
     const wardVisitData = await Promise.all(
       wards.map(async (ward) => {
         // Get all clusters for this ward
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error fetching ward cluster visit data:', error);
+    console.error('Error fetching ward House Visit data:', error);
     res.status(500).json({ 
       message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

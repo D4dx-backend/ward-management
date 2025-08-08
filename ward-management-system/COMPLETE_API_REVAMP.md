@@ -10,7 +10,7 @@ Completely rewrote the `pages/api/docker-survey/my-ward.js` API from scratch to 
 2. **🏢 Get Clusters**: Finds all active clusters for the ward
 3. **📋 Get Form Weeks**: Queries FormTemplate collection for state admin forms with week numbers
 4. **🔄 Process Weeks**: Extracts unique weeks and sorts them (most recent first)
-5. **🏗️ Build Structure**: Creates dynamic cluster visits with `formWeeks` and `weeklyData`
+5. **🏗️ Build Structure**: Creates dynamic House Visits with `formWeeks` and `weeklyData`
 6. **💾 Save Survey**: Creates new DockerSurvey with dynamic structure
 7. **📤 Return Data**: Returns populated survey with dynamic weeks
 
@@ -18,13 +18,13 @@ Completely rewrote the `pages/api/docker-survey/my-ward.js` API from scratch to 
 1. **🔍 Find Survey**: Locates existing survey
 2. **✏️ Update Questions**: Updates docket survey questions
 3. **📊 Update Basic Survey**: Updates basic survey status
-4. **🏘️ Update Cluster Visits**: Updates cluster visit data
+4. **🏘️ Update House Visits**: Updates House Visit data
 5. **💾 Save Changes**: Saves all modifications
 6. **📤 Return Updated**: Returns updated survey
 
 ## New Data Structure
 
-### Dynamic Cluster Visits Structure
+### Dynamic House Visits Structure
 ```javascript
 clusterVisits: [
   {
@@ -103,7 +103,7 @@ When you visit the cluster survey, check your server console for:
    - Week 30, 2025 from "form_title"
    - Week 29, 2025 from "form_title"
 ✅ Sorted form weeks: [...]
-✅ Created cluster visits structure:
+✅ Created House Visits structure:
    - 6 clusters
    - 3 weeks per cluster
 ✅ Survey saved with ID: [survey_id]
@@ -111,7 +111,7 @@ When you visit the cluster survey, check your server console for:
 ```
 
 ### 2. Check Frontend
-Visit: `http://localhost:3000/ward/docker-survey` → Cluster Visits tab
+Visit: `http://localhost:3000/ward/docker-survey` → House Visits tab
 - Should show "Week 31, 2025", "Week 30, 2025", "Week 29, 2025" headers
 - Should show all 6 clusters
 - Should have input fields for Houses and Days

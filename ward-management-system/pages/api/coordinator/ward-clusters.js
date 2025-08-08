@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ message: 'Access denied to this ward' });
     }
 
-    // Get cluster visits for the ward
+    // Get House Visits for the ward
     const clusterVisits = await ClusterVisit.find({ ward: wardId })
       .populate('ward', 'name wardNumber')
       .sort({ createdAt: -1 });

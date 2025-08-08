@@ -47,8 +47,8 @@ async function debugDockerSurveySave() {
             console.log(`     Completed: ${completedQuestions.map(([key]) => key).join(', ')}`);
           }
           
-          // Check cluster visits
-          console.log(`     Cluster Visits: ${survey.clusterVisits?.length || 0} clusters`);
+          // Check House Visits
+          console.log(`     House Visits: ${survey.clusterVisits?.length || 0} clusters`);
           if (survey.clusterVisits?.length > 0) {
             const firstCluster = survey.clusterVisits[0];
             console.log(`     First Cluster: ${firstCluster.clusterName}`);

@@ -64,9 +64,16 @@ async function handleGet(req, res, session) {
 
     // Get visits with populated data
     const visits = await WardVisit.find(query)
-      .populate('ward', 'name wardNumber district panchayath')
+      .populate('ward', 'name wardNumber district panchayath wardAdmin')
       .populate('coordinator', 'name email')
       .populate('recordedBy', 'name email role')
+      .populate({
+        path: 'ward',
+        populate: {
+          path: 'wardAdmin',
+          select: 'name email'
+        }
+      })
       .sort({ visitDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -133,9 +140,16 @@ async function handlePost(req, res, session) {
 
     // Populate the response
     const populatedVisit = await WardVisit.findById(newVisit._id)
-      .populate('ward', 'name wardNumber district panchayath')
+      .populate('ward', 'name wardNumber district panchayath wardAdmin')
       .populate('coordinator', 'name email')
-      .populate('recordedBy', 'name email role');
+      .populate('recordedBy', 'name email role')
+      .populate({
+        path: 'ward',
+        populate: {
+          path: 'wardAdmin',
+          select: 'name email'
+        }
+      });
 
     res.status(201).json(populatedVisit);
   } catch (error) {
@@ -182,9 +196,16 @@ async function handlePut(req, res, session) {
       },
       { new: true }
     )
-    .populate('ward', 'name wardNumber district panchayath')
+    .populate('ward', 'name wardNumber district panchayath wardAdmin')
     .populate('coordinator', 'name email')
-    .populate('recordedBy', 'name email role');
+    .populate('recordedBy', 'name email role')
+    .populate({
+      path: 'ward',
+      populate: {
+        path: 'wardAdmin',
+        select: 'name email'
+      }
+    });
 
     res.status(200).json(updatedVisit);
   } catch (error) {

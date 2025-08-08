@@ -88,7 +88,7 @@ export default function CoordinatorAnalytics() {
         alerts: [
           { type: 'warning', message: 'Ward 5 has not submitted reports for 2 weeks', wardId: 'w5' },
           { type: 'error', message: 'Ward 8 admin has not logged in for 10 days', wardId: 'w8' },
-          { type: 'info', message: '3 wards have pending cluster visits', count: 3 }
+          { type: 'info', message: '3 wards have pending House Visits', count: 3 }
         ]
       });
     } finally {
@@ -339,7 +339,7 @@ export default function CoordinatorAnalytics() {
         <Card>
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Cluster Visit Analytics</h3>
+              <h3 className="text-lg font-medium text-gray-900">House Visit Analytics</h3>
               <Link href="/coordinator/cluster-visits">
                 <Button variant="outline" size="sm">View Details</Button>
               </Link>

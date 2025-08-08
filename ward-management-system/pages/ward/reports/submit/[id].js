@@ -69,7 +69,9 @@ export default function SubmitSpecificWardReport() {
       }
 
       // Get user's wards
+      console.log('Fetching wards for ward admin...');
       const wardsResponse = await axios.get('/api/wards');
+      console.log('Wards response:', wardsResponse.data);
 
       // Get existing response to check submission status
       const responsesResponse = await axios.get('/api/responses', {
@@ -140,12 +142,22 @@ export default function SubmitSpecificWardReport() {
 
       setError('');
     } catch (error) {
+      console.error('=== FORM SUBMISSION PAGE ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
       if (error.response?.status === 404) {
         setError('Form not found');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setError('Access denied. You may not have permission to access this form.');
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
       } else {
         setError('Failed to fetch form data');
       }
-      console.error(error);
     } finally {
       setIsLoading(false);
     }

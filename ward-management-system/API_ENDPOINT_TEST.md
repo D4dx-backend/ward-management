@@ -75,7 +75,7 @@ GET /api/forms/responses/user (for submitted reports)
 - [ ] Survey loads without errors
 - [ ] Question status updates save properly
 - [ ] Basic survey status updates save properly
-- [ ] Cluster visits data updates save properly
+- [ ] House Visits data updates save properly
 - [ ] Progress calculation works correctly
 - [ ] Error messages are user-friendly
 

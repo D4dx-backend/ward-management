@@ -32,7 +32,7 @@ The Docker Survey page was stuck in an infinite loading state for Ward Incharges
 ### 4. Enhanced Admin View
 **File**: `pages/admin/docker-surveys.js`
 - Added comprehensive question details with timestamps
-- Included cluster visits summary with statistics
+- Included House Visits summary with statistics
 - Enhanced modal with better organization and scrolling
 - Added total houses visited calculation
 
@@ -41,7 +41,7 @@ The Docker Survey page was stuck in an infinite loading state for Ward Incharges
 ### For Ward Incharges
 - **Automatic Ward Detection**: No need to specify ward ID
 - **Real-time Updates**: Changes save immediately with visual feedback
-- **Cluster Integration**: Auto-populates cluster visit tracking
+- **Cluster Integration**: Auto-populates House Visit tracking
 - **Progress Tracking**: Visual progress bar and completion percentage
 - **Error Handling**: Proper error messages and retry options
 
@@ -56,7 +56,7 @@ The Docker Survey page was stuck in an infinite loading state for Ward Incharges
 - **Advanced Filtering**: Search and filter by various criteria
 - **Detailed Analytics**: Question-by-question breakdown
 - **Export Capability**: CSV export for data analysis
-- **Cluster Statistics**: Summary of cluster visit data
+- **Cluster Statistics**: Summary of House Visit data
 
 ## Technical Improvements
 
@@ -112,7 +112,7 @@ The Docker Survey page was stuck in an infinite loading state for Ward Incharges
 
 1. **Ward Incharge Access**: Verify Ward Incharges can access their survey without issues
 2. **Data Persistence**: Ensure status changes are saved correctly
-3. **Cluster Integration**: Test cluster visit data updates
+3. **Cluster Integration**: Test House Visit data updates
 4. **Role-based Access**: Verify proper access control for different roles
 5. **Error Handling**: Test error scenarios and recovery
 

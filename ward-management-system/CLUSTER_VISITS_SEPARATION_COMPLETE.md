@@ -1,13 +1,13 @@
-# Cluster Visits Separation - Complete Revamp
+# House Visits Separation - Complete Revamp
 
 ## 🎯 **Problem Solved**
-Completely separated cluster visits from DockerSurvey to eliminate all the old structure issues and create a clean, dedicated system.
+Completely separated House Visits from DockerSurvey to eliminate all the old structure issues and create a clean, dedicated system.
 
 ## 🏗️ **New Architecture**
 
 ### 1. **Separate ClusterVisit Model** ✅
 **File**: `models/ClusterVisit.js`
-- **Dedicated model** for cluster visits only
+- **Dedicated model** for House Visits only
 - **Dynamic weekly data** using Map structure
 - **Form weeks integration** with FormTemplate
 - **Built-in methods** for data management
@@ -15,14 +15,14 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 
 ### 2. **Dedicated API Endpoints** ✅
 **File**: `pages/api/cluster-visits/my-ward.js`
-- **GET**: Retrieves cluster visits with dynamic form weeks
-- **PUT**: Updates cluster visit data
+- **GET**: Retrieves House Visits with dynamic form weeks
+- **PUT**: Updates House Visit data
 - **Automatic sync** with FormTemplate weeks
 - **Clean separation** from DockerSurvey
 
 ### 3. **Standalone Frontend Page** ✅
 **File**: `pages/ward/cluster-visits.js`
-- **Dedicated cluster visits page**
+- **Dedicated House Visits page**
 - **Dynamic table** based on actual form weeks
 - **Real-time updates** and saving
 - **Summary statistics**
@@ -89,14 +89,14 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 
 ## 🚀 **How to Use the New System**
 
-### 1. **Access Cluster Visits**
+### 1. **Access House Visits**
 **URL**: `http://localhost:3000/ward/cluster-visits`
-- **Dedicated page** for cluster visits only
+- **Dedicated page** for House Visits only
 - **Clean interface** with dynamic form weeks
 - **Real-time saving** and updates
 
 ### 2. **Dashboard Integration**
-- **Ward dashboard** shows cluster visit summary
+- **Ward dashboard** shows House Visit summary
 - **Click "View Details"** to go to dedicated page
 - **Dynamic week display** based on FormTemplate
 
@@ -116,7 +116,7 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 
 ### 1. **Complete Separation**
 - ✅ **No more conflicts** with DockerSurvey
-- ✅ **Clean data model** dedicated to cluster visits
+- ✅ **Clean data model** dedicated to House Visits
 - ✅ **Independent updates** and management
 
 ### 2. **Dynamic Form Integration**
@@ -125,12 +125,12 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 - ✅ **Unlimited weeks** support
 
 ### 3. **Better Performance**
-- ✅ **Optimized queries** for cluster visits only
+- ✅ **Optimized queries** for House Visits only
 - ✅ **Efficient data structure** using Map
 - ✅ **Built-in aggregation** methods
 
 ### 4. **Improved UX**
-- ✅ **Dedicated interface** for cluster visits
+- ✅ **Dedicated interface** for House Visits
 - ✅ **Clear navigation** and purpose
 - ✅ **Real-time feedback** and saving
 
@@ -143,7 +143,7 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 - **Static methods** for ward initialization
 
 ### API Features:
-- **Automatic initialization** of cluster visits
+- **Automatic initialization** of House Visits
 - **Dynamic week synchronization** with FormTemplate
 - **Bulk update support** for efficiency
 - **Comprehensive error handling**
@@ -163,12 +163,12 @@ Completely separated cluster visits from DockerSurvey to eliminate all the old s
 
 ### For Users:
 1. **DockerSurvey page** still works for docket/basic survey
-2. **New cluster visits page** handles all cluster visit functionality
+2. **New House Visits page** handles all House Visit functionality
 3. **Dashboard** automatically uses new system
 
 ## 🚀 **Ready to Use**
 
-The new cluster visits system is completely ready and will:
+The new House Visits system is completely ready and will:
 - ✅ **Show your actual form weeks** (31, 30, 29 from 2025)
 - ✅ **Display all 6 clusters** dynamically
 - ✅ **Save data independently** from DockerSurvey
@@ -176,4 +176,4 @@ The new cluster visits system is completely ready and will:
 
 **Visit**: `http://localhost:3000/ward/cluster-visits` to see the new system in action!
 
-The separation is complete and the cluster visits system now works independently with your actual FormTemplate weeks! 🎉
+The separation is complete and the House Visits system now works independently with your actual FormTemplate weeks! 🎉

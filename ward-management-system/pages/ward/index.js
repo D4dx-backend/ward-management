@@ -367,7 +367,7 @@ export default function WardAdminDashboard() {
           </Link>
         </div>
 
-        {/* Cluster Visit Status - Recent 4 Weeks */}
+        {/* House Visit Status - Recent 4 Weeks */}
         <WardClusterVisitStatus />
 
         {/* Main Content - Three Column Layout */}

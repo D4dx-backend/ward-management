@@ -7,7 +7,7 @@ Successfully implemented form-based periods in the cluster survey system, replac
 
 ### 1. Removed Unnecessary Buttons ✅
 - **File**: `pages/ward/docker-survey.js`
-- **Action**: Removed "Refresh Clusters" and "Force Reset" buttons from cluster visit tab
+- **Action**: Removed "Refresh Clusters" and "Force Reset" buttons from House Visit tab
 - **Reason**: These were debug buttons that are no longer needed since the system now works correctly
 
 ### 2. Updated Period Display Format ✅
@@ -26,7 +26,7 @@ Successfully implemented form-based periods in the cluster survey system, replac
   1. Finds all forms created by state admins
   2. Extracts weekNumber and year from forms
   3. Gets the 4 most recent form periods
-  4. Uses these periods for cluster visit tracking
+  4. Uses these periods for House Visit tracking
 
 ## How Form Periods Work
 
@@ -44,7 +44,7 @@ Successfully implemented form-based periods in the cluster survey system, replac
 2. Extracts unique week periods from forms
 3. Sorts by most recent (year, then week number)
 4. Takes the 4 most recent periods
-5. Creates cluster visit tracking for these specific periods
+5. Creates House Visit tracking for these specific periods
 
 ## Expected User Experience
 
@@ -61,7 +61,7 @@ Successfully implemented form-based periods in the cluster survey system, replac
 
 ## Technical Benefits
 
-1. **Accuracy**: Cluster visits now track actual reporting periods, not arbitrary weeks
+1. **Accuracy**: House Visits now track actual reporting periods, not arbitrary weeks
 2. **Consistency**: Period format matches form creation interface
 3. **Clarity**: Users understand these are form-based reporting periods
 4. **Automation**: System automatically picks up new form periods without manual intervention
@@ -82,4 +82,4 @@ Successfully implemented form-based periods in the cluster survey system, replac
 3. `pages/api/docker-survey/my-ward.js` - Already had form period logic
 4. `pages/api/docker-survey/[wardId].js` - Already had form period logic
 
-The system now provides a seamless experience where cluster visits are tracked according to actual form creation periods, giving users meaningful context about which reporting periods they're updating.
+The system now provides a seamless experience where House Visits are tracked according to actual form creation periods, giving users meaningful context about which reporting periods they're updating.

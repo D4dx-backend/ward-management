@@ -96,8 +96,8 @@ export default function CoordinatorClusterVisits() {
       setVisitHistory(mockVisitHistory);
       setShowClusterModal(true);
     } catch (error) {
-      console.error('Error fetching cluster visit history:', error);
-      alert('Failed to load cluster visit history');
+      console.error('Error fetching House Visit history:', error);
+      alert('Failed to load House Visit history');
     }
   };
 
@@ -168,14 +168,14 @@ export default function CoordinatorClusterVisits() {
   return (
     <Layout>
       <Head>
-        <title>Cluster Visits - Ward Management System</title>
+        <title>House Visits - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Cluster Visits</h1>
+          <h1 className="text-2xl font-bold text-gray-900">House Visits</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Track and manage cluster visits across all wards under your coordination
+            Track and manage House Visits across all wards under your coordination
           </p>
         </div>
 
@@ -341,7 +341,7 @@ export default function CoordinatorClusterVisits() {
           </div>
         </div>
 
-        {/* Cluster Visit History Modal */}
+        {/* House Visit History Modal */}
         <Modal
           isOpen={showClusterModal}
           onClose={() => {
@@ -349,7 +349,7 @@ export default function CoordinatorClusterVisits() {
             setSelectedCluster(null);
             setVisitHistory([]);
           }}
-          title={selectedCluster ? `${selectedCluster.name} - Visit History` : 'Cluster Visit History'}
+          title={selectedCluster ? `${selectedCluster.name} - Visit History` : 'House Visit History'}
           size="lg"
         >
           {selectedCluster && (

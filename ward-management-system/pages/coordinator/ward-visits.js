@@ -733,14 +733,12 @@ export default function WardVisits() {
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              visit.recordedByRole === 'coordinator' || 
-                              (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                              visit.recordedByRole === 'coordinator'
                                 ? 'bg-blue-100' 
                                 : 'bg-green-100'
                             }`}>
                               <svg className={`w-4 h-4 ${
-                                visit.recordedByRole === 'coordinator' || 
-                                (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                                visit.recordedByRole === 'coordinator'
                                   ? 'text-blue-600' 
                                   : 'text-green-600'
                               }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -749,26 +747,25 @@ export default function WardVisits() {
                             </div>
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                {visit.recordedByRole === 'coordinator' || 
-                                 (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                                {visit.recordedByRole === 'coordinator'
                                   ? 'Coordinator' 
                                   : 'Ward Admin'}
                               </div>
                               <div className="text-xs text-gray-500">
-                                {visit.coordinator?.name || 'Unknown'}
+                                {visit.recordedByRole === 'coordinator' 
+                                  ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                                  : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')}
                               </div>
                             </div>
                           </div>
                           <div className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            visit.recordedByRole === 'coordinator' || 
-                            (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                            visit.recordedByRole === 'coordinator'
                               ? 'bg-blue-100 text-blue-800' 
                               : 'bg-green-100 text-green-800'
                           }`}>
-                            {visit.recordedByRole === 'coordinator' || 
-                             (visit.coordinator?._id === session?.user?.id && !visit.recordedByRole)
+                            {visit.recordedByRole === 'coordinator'
                               ? 'Coordinator Visit' 
-                              : 'Ward Admin Record'}
+                              : 'Ward Admin Visit'}
                           </div>
                         </div>
                       </td>
@@ -793,7 +790,9 @@ export default function WardVisits() {
                             </div>
                           )}
                           <div className="text-xs text-gray-500">
-                            by {visit.coordinator?.name || 'Unknown'}
+                            by {visit.recordedByRole === 'coordinator' 
+                              ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                              : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')}
                           </div>
                         </div>
                       </td>
@@ -871,7 +870,7 @@ export default function WardVisits() {
                             </svg>
                             View
                           </button>
-                          {visit.coordinator?._id === session?.user?.id && (
+                          {(visit.recordedBy?._id === session?.user?.id || visit.coordinator?._id === session?.user?.id) && (
                             <>
                               <button
                                 onClick={() => handleEdit(visit)}
@@ -1044,16 +1043,20 @@ export default function WardVisits() {
                 <div className="border-t pt-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
                     <div>
-                      <span className="font-medium">Recorded by:</span> {selectedVisit.coordinator?.name || 'Unknown'}
+                      <span className="font-medium">Recorded by:</span> {
+                        selectedVisit.recordedByRole === 'coordinator' 
+                          ? (selectedVisit.recordedBy?.name || selectedVisit.coordinator?.name || 'Unknown Coordinator')
+                          : (selectedVisit.recordedBy?.name || selectedVisit.ward?.wardAdmin?.name || 'Ward Admin')
+                      }
                     </div>
                     <div>
                       <span className="font-medium">Record Type:</span> 
                       <span className={`ml-1 px-2 py-1 text-xs rounded-full ${
-                        selectedVisit.recordedBy === 'coordinator' 
+                        selectedVisit.recordedByRole === 'coordinator' 
                           ? 'bg-blue-100 text-blue-800' 
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {selectedVisit.recordedBy === 'coordinator' ? 'Coordinator Visit' : 'Ward Incharge Record'}
+                        {selectedVisit.recordedByRole === 'coordinator' ? 'Coordinator Visit' : 'Ward Admin Visit'}
                       </span>
                     </div>
                   </div>
@@ -1067,7 +1070,7 @@ export default function WardVisits() {
                 >
                   Close
                 </Button>
-                {selectedVisit.coordinator?._id === session?.user?.id && (
+                {(selectedVisit.recordedBy?._id === session?.user?.id || selectedVisit.coordinator?._id === session?.user?.id) && (
                   <Button
                     onClick={() => {
                       setShowViewModal(false);

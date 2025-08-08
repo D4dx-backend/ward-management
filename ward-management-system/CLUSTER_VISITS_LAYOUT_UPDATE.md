@@ -1,8 +1,8 @@
-# Cluster Visits Layout Update
+# House Visits Layout Update
 
 ## 🎯 **Changes Made**
 
-Updated the cluster visits page layout to match the consistent style used across other pages in your ward management system.
+Updated the House Visits page layout to match the consistent style used across other pages in your ward management system.
 
 ## 🔄 **Layout Changes**
 
@@ -12,7 +12,7 @@ Updated the cluster visits page layout to match the consistent style used across
 <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-6">
   <div className="flex items-center justify-between">
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Cluster Visits</h1>
+      <h1 className="text-2xl font-bold text-gray-900">House Visits</h1>
       <p className="text-sm text-gray-600 mt-1">
         Ward: {clusterData?.ward?.name} | Clusters: {clusterData?.totalClusters} | Form Weeks: {clusterData?.totalWeeks}
       </p>
@@ -31,9 +31,9 @@ Updated the cluster visits page layout to match the consistent style used across
 ```jsx
 {/* Simple header matching other pages */}
 <div>
-  <h1 className="text-2xl font-bold text-gray-900">Cluster Visits</h1>
+  <h1 className="text-2xl font-bold text-gray-900">House Visits</h1>
   <p className="mt-1 text-sm text-gray-600">
-    Track cluster visit progress for form periods - Ward: {clusterData?.ward?.name}
+    Track House Visit progress for form periods - Ward: {clusterData?.ward?.name}
   </p>
 </div>
 ```
@@ -45,7 +45,7 @@ Updated the cluster visits page layout to match the consistent style used across
   <div className="p-6">
     <div className="flex items-center justify-between mb-6">
       <h2 className="text-lg font-semibold text-gray-900">
-        Cluster Visit Status
+        House Visit Status
       </h2>
       <Button>Save Changes</Button>
     </div>
@@ -64,7 +64,7 @@ Updated the cluster visits page layout to match the consistent style used across
 
 ## 🎯 **Result**
 
-The cluster visits page now has the same look and feel as:
+The House Visits page now has the same look and feel as:
 - `/ward/reports/submit`
 - `/ward/docker-survey`
 - Other ward management pages
@@ -84,4 +84,4 @@ Layout
 └── Summary Stats Card (if data exists)
 ```
 
-The layout is now consistent with your system's design language while maintaining all the dynamic functionality for cluster visits tracking.
+The layout is now consistent with your system's design language while maintaining all the dynamic functionality for House Visits tracking.

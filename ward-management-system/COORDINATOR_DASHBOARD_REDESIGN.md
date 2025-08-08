@@ -1,7 +1,7 @@
 # Coordinator Dashboard Redesign
 
 ## Overview
-This document outlines the complete redesign of the coordinator dashboard based on the requirements to remove certain sections and add new functionality focused on coordinator-specific data and cluster visit tracking.
+This document outlines the complete redesign of the coordinator dashboard based on the requirements to remove certain sections and add new functionality focused on coordinator-specific data and House Visit tracking.
 
 ## Changes Made
 
@@ -12,10 +12,10 @@ This document outlines the complete redesign of the coordinator dashboard based 
 
 ### 2. Added New Components
 
-#### A. Ward Cluster Visit Status Component
-- **Purpose**: Shows cumulative ward cluster visit data similar to Ward Report Status
+#### A. Ward House Visit Status Component
+- **Purpose**: Shows cumulative ward House Visit data similar to Ward Report Status
 - **Features**:
-  - Ward-wise cluster visit progress
+  - Ward-wise House Visit progress
   - Visual progress bars with color coding
   - Click to view detailed cluster information
   - Status indicators (Excellent, Good, Average, Poor)
@@ -33,7 +33,7 @@ This document outlines the complete redesign of the coordinator dashboard based 
 ### 3. New API Endpoints
 
 #### `/api/coordinator/ward-cluster-visits.js`
-- **Purpose**: Fetch cumulative cluster visit data for all coordinator's wards
+- **Purpose**: Fetch cumulative House Visit data for all coordinator's wards
 - **Returns**: Ward list with visit statistics and status
 - **Features**:
   - Calculates visit percentages
@@ -41,8 +41,8 @@ This document outlines the complete redesign of the coordinator dashboard based 
   - Provides summary statistics
 
 #### `/api/coordinator/wards/[wardId]/cluster-visits.js`
-- **Purpose**: Fetch detailed cluster visit data for a specific ward
-- **Returns**: Individual cluster visit details
+- **Purpose**: Fetch detailed House Visit data for a specific ward
+- **Returns**: Individual House Visit details
 - **Features**:
   - Cluster-wise visit status
   - Visit counts and dates
@@ -63,7 +63,7 @@ This document outlines the complete redesign of the coordinator dashboard based 
 #### WardClusterVisitStatus Component
 ```javascript
 // Key features:
-- Ward-wise cluster visit tracking
+- Ward-wise House Visit tracking
 - Progress visualization
 - Status color coding
 - Modal for detailed cluster view
@@ -88,7 +88,7 @@ Coordinator Dashboard
 ├── Stats Cards (unchanged)
 ├── Form Statistics Overview (unchanged)
 ├── Ward Report Status (unchanged)
-├── Ward Cluster Visit Status (NEW)
+├── Ward House Visit Status (NEW)
 │   ├── Ward List with Visit Progress
 │   ├── Status Indicators
 │   └── Cluster Details Modal
@@ -100,7 +100,7 @@ Coordinator Dashboard
 ```
 
 ### Data Flow
-1. **Ward Cluster Visits**: Fetch all wards → Calculate cluster visit stats → Display with progress bars
+1. **Ward House Visits**: Fetch all wards → Calculate House Visit stats → Display with progress bars
 2. **Coordinator Reports**: Fetch coordinator-specific reports → Separate by type → Display in lists
 3. **Report Details**: Click report → Fetch full details → Show in modal
 4. **Cluster Details**: Click ward → Fetch cluster details → Show in modal
@@ -115,19 +115,19 @@ Coordinator Dashboard
 ### Before Redesign:
 - Generic ward list without cluster focus
 - Mixed report types (Ward Incharge + coordinator)
-- No cluster visit tracking
+- No House Visit tracking
 - Limited drill-down capabilities
 
 ### After Redesign:
 - **Focused Data**: Only coordinator-relevant information
-- **Cluster Visibility**: Clear cluster visit tracking across wards
+- **Cluster Visibility**: Clear House Visit tracking across wards
 - **Report Clarity**: Separate submitted and pending coordinator reports
 - **Interactive Details**: Click to view detailed information
 - **Better Organization**: Logical grouping of related data
 
 ## Visual Design
 
-### Ward Cluster Visit Status
+### Ward House Visit Status
 - **Progress Bars**: Visual representation of visit completion
 - **Color Coding**: 
   - Green (≥80%): Excellent
@@ -159,7 +159,7 @@ Coordinator Dashboard
 
 For development and testing, mock data is provided when API calls fail:
 
-### Ward Cluster Visit Mock Data
+### Ward House Visit Mock Data
 ```javascript
 const mockWardData = [
   {
@@ -191,15 +191,15 @@ const mockReports = [
 1. **Real-time Updates**: WebSocket integration for live data updates
 2. **Advanced Filtering**: Filter reports by date range, status, etc.
 3. **Bulk Operations**: Select multiple reports for batch operations
-4. **Export Functionality**: Export cluster visit data and reports
+4. **Export Functionality**: Export House Visit data and reports
 5. **Notification System**: Alerts for overdue visits or pending reports
 6. **Mobile Optimization**: Enhanced mobile responsiveness
 7. **Analytics Dashboard**: Advanced analytics and charts
 
 ## Testing Checklist
 
-- [ ] Ward cluster visit data loads correctly
-- [ ] Cluster visit progress bars display accurate percentages
+- [ ] Ward House Visit data loads correctly
+- [ ] House Visit progress bars display accurate percentages
 - [ ] Ward click opens detailed cluster modal
 - [ ] Coordinator submitted reports display correctly
 - [ ] Coordinator pending reports display correctly
@@ -212,4 +212,4 @@ const mockReports = [
 
 ## Conclusion
 
-The coordinator dashboard redesign successfully focuses on coordinator-specific data while providing comprehensive cluster visit tracking and report management. The new design improves data organization, enhances user experience, and provides better insights into ward cluster activities and coordinator report status. The implementation maintains security standards while offering improved performance and usability.
+The coordinator dashboard redesign successfully focuses on coordinator-specific data while providing comprehensive House Visit tracking and report management. The new design improves data organization, enhances user experience, and provides better insights into ward cluster activities and coordinator report status. The implementation maintains security standards while offering improved performance and usability.

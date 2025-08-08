@@ -120,7 +120,7 @@ const DockerSurveySchema = new mongoose.Schema({
     lastUpdated: Date
   },
   
-  // Cluster Visit Data - supports both old and new structure
+  // House Visit Data - supports both old and new structure
   clusterVisits: [{
     clusterId: {
       type: mongoose.Schema.Types.ObjectId,

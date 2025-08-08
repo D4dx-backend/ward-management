@@ -61,7 +61,7 @@ export default function DebugClusterSurvey() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Debug Cluster Survey</h1>
-            <p className="mt-1 text-sm text-gray-600">Debug information for cluster visits and forms</p>
+            <p className="mt-1 text-sm text-gray-600">Debug information for House Visits and forms</p>
           </div>
           <Button onClick={fetchDebugInfo} disabled={loading}>
             {loading ? 'Loading...' : 'Refresh'}

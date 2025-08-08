@@ -45,7 +45,7 @@ The API should now work correctly and return the dynamic cluster survey structur
 
 ## Next Steps
 1. Test the API: Visit `http://localhost:3000/api/debug/test-my-ward-api`
-2. Check cluster survey: Visit `http://localhost:3000/ward/docker-survey` → Cluster Visits tab
+2. Check cluster survey: Visit `http://localhost:3000/ward/docker-survey` → House Visits tab
 3. Verify dynamic weeks are displayed correctly
 
 The error should now be resolved and the cluster survey should show your actual form periods!

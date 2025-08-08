@@ -1,7 +1,7 @@
 # Week-Based Recurring Questions Review
 
 ## Overview
-Restructured the Review Recurring Questions functionality to display responses organized by weeks, similar to the cluster visit structure. This provides a more intuitive way to analyze recurring question responses over time.
+Restructured the Review Recurring Questions functionality to display responses organized by weeks, similar to the House Visit structure. This provides a more intuitive way to analyze recurring question responses over time.
 
 ## New Structure
 
@@ -33,14 +33,14 @@ Each week shows:
 
 ### 1. **Better Data Organization**
 - **Week-based grouping** makes it easy to track responses over time
-- **Clear temporal structure** similar to cluster visit reports
+- **Clear temporal structure** similar to House Visit reports
 - **No data repetition** - question shown once, answers grouped by time
 
 ### 2. **Improved User Experience**
 - **Mandatory question selection** ensures focused analysis
 - **Combined search interface** reduces complexity
 - **Week-based cards** provide clear visual separation
-- **Consistent with existing patterns** (cluster visits)
+- **Consistent with existing patterns** (House Visits)
 
 ### 3. **Enhanced Analysis**
 - **Time-based trends** are immediately visible
@@ -156,7 +156,7 @@ const [searchFilters, setSearchFilters] = useState({
 - ✅ Single question focus per search
 - ✅ Clear week-by-week organization
 - ✅ Easy temporal analysis
-- ✅ Consistent with cluster visit pattern
+- ✅ Consistent with House Visit pattern
 - ✅ Better visual hierarchy
 
 ## Future Enhancements
@@ -199,4 +199,4 @@ const [searchFilters, setSearchFilters] = useState({
 
 ## Conclusion
 
-The new week-based structure provides a more intuitive and organized way to review recurring question responses. By focusing on a single question at a time and organizing results by week, users can better understand response patterns and trends over time. This approach aligns with the existing cluster visit structure and provides a consistent user experience across the application.
+The new week-based structure provides a more intuitive and organized way to review recurring question responses. By focusing on a single question at a time and organizing results by week, users can better understand response patterns and trends over time. This approach aligns with the existing House Visit structure and provides a consistent user experience across the application.

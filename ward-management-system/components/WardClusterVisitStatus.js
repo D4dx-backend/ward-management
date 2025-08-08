@@ -28,14 +28,14 @@ export default function WardClusterVisitStatus() {
       setIsLoading(true);
       setError('');
 
-      console.log('Fetching ward cluster visit data from API...');
+      console.log('Fetching ward House Visit data from API...');
       const response = await axios.get('/api/coordinator/ward-cluster-visits');
       console.log('API response:', response.data);
       
       setVisitData(response.data.wards || []);
     } catch (error) {
-      console.error('Error fetching ward cluster visit data:', error);
-      setError(`Failed to load ward cluster visit data: ${error.response?.data?.message || error.message}`);
+      console.error('Error fetching ward House Visit data:', error);
+      setError(`Failed to load ward House Visit data: ${error.response?.data?.message || error.message}`);
       setVisitData([]); // Set empty array instead of mock data
     } finally {
       setIsLoading(false);
@@ -47,7 +47,7 @@ export default function WardClusterVisitStatus() {
       setSelectedWard(ward);
       
       console.log(`Fetching cluster details for ward ${ward._id}...`);
-      // Fetch detailed cluster visit data for this ward
+      // Fetch detailed House Visit data for this ward
       const response = await axios.get(`/api/coordinator/wards/${ward._id}/cluster-visits`);
       console.log('Ward cluster details response:', response.data);
       
@@ -123,8 +123,8 @@ export default function WardClusterVisitStatus() {
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h2 className="text-lg font-medium text-gray-900">Ward Cluster Visit Status</h2>
-              <p className="text-sm text-gray-600">Cluster visit tracking across all your wards</p>
+              <h2 className="text-lg font-medium text-gray-900">Ward House Visit Status</h2>
+              <p className="text-sm text-gray-600">House Visit tracking across all your wards</p>
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-1 text-xs text-gray-500">
@@ -169,7 +169,7 @@ export default function WardClusterVisitStatus() {
                 <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                <p className="mt-2 text-sm text-gray-500">No ward cluster visit data available</p>
+                <p className="mt-2 text-sm text-gray-500">No ward House Visit data available</p>
               </div>
             ) : (
               visitData.map((ward) => {
@@ -249,7 +249,7 @@ export default function WardClusterVisitStatus() {
           setSelectedWard(null);
           setWardClusterDetails([]);
         }}
-        title={selectedWard ? `${selectedWard.name} - Cluster Visit Details` : 'Cluster Visit Details'}
+        title={selectedWard ? `${selectedWard.name} - House Visit Details` : 'House Visit Details'}
         size="lg"
       >
         {selectedWard && (

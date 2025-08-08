@@ -21,7 +21,7 @@ The Docker Survey has been implemented as a static form that always shows the cu
 ### 3. Automatic Survey Creation
 - **Auto-initialization**: Surveys are created automatically when accessed
 - **Complete Question Set**: All 14 Malayalam questions are initialized
-- **Cluster Integration**: Cluster visit tracking is auto-populated
+- **Cluster Integration**: House Visit tracking is auto-populated
 - **Default Values**: All questions start with proper default status
 
 ### 4. Enhanced API Endpoints
@@ -30,7 +30,7 @@ The Docker Survey has been implemented as a static form that always shows the cu
 - Automatically finds Ward Incharge's assigned ward
 - Creates survey if it doesn't exist
 - Initializes all questions with default status
-- Populates cluster visit data
+- Populates House Visit data
 
 #### `/api/docker-survey/[wardId]` (General Access)
 - Supports coordinator and admin access
@@ -47,7 +47,7 @@ The Docker Survey has been implemented as a static form that always shows the cu
 **File**: `scripts/initialize-docker-surveys.js`
 - Creates Docker Surveys for all existing wards
 - Initializes all questions with default status
-- Populates cluster visit data
+- Populates House Visit data
 - Can be run with: `npm run init-docker-surveys`
 
 ## Question Structure
@@ -70,7 +70,7 @@ The Docker Survey has been implemented as a static form that always shows the cu
 
 ### Additional Sections
 - **Basic Survey**: Single status tracking
-- **Cluster Visits**: 4-week tracking for each cluster
+- **House Visits**: 4-week tracking for each cluster
 
 ## Status Options
 Each question can have one of three statuses:
@@ -85,7 +85,7 @@ Each question can have one of three statuses:
 2. **Always Available**: Form is always accessible with current status
 3. **Easy Updates**: Click status buttons to change question status
 4. **Visual Progress**: Progress bar shows completion percentage
-5. **Tabbed Interface**: Organized into Docket Survey, Basic Survey, and Cluster Visits
+5. **Tabbed Interface**: Organized into Docket Survey, Basic Survey, and House Visits
 
 ### For Coordinators
 1. **Overview Dashboard**: See all ward surveys in their district
@@ -153,7 +153,7 @@ const questionStatusSchema = {
 ### For New Installations
 1. The system will automatically create Docker Surveys when Ward Incharges first access them
 2. All questions will be initialized with "Not Started" status
-3. Cluster visit data will be populated from existing clusters
+3. House Visit data will be populated from existing clusters
 
 ### For Existing Installations
 1. Run the initialization script: `npm run init-docker-surveys`

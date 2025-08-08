@@ -21,7 +21,7 @@ The API response is still returning the old structure with `week1`, `week2`, `we
 
 ### 2. Added Reset Button to UI ✅
 **File**: `pages/ward/docker-survey.js`
-- **Location**: Cluster Visits tab header
+- **Location**: House Visits tab header
 - **Button**: "Reset Structure" (red button)
 - **Function**: Calls the reset API and updates the survey state
 
@@ -35,7 +35,7 @@ The API response is still returning the old structure with `week1`, `week2`, `we
 
 ### Step 1: Use the Reset Button
 1. Go to the Docker Survey page
-2. Click on "Cluster Visits" tab
+2. Click on "House Visits" tab
 3. Click the red "Reset Structure" button
 4. Wait for the reset to complete
 

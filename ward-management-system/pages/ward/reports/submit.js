@@ -39,12 +39,20 @@ export default function SubmitWardReport() {
   };
 
   useEffect(() => {
+    console.log('=== WARD ADMIN SUBMIT - USEEFFECT ===');
+    console.log('Status:', status);
+    console.log('Session:', session);
+    console.log('User role:', session?.user?.role);
+    
     // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
+      console.log('User unauthenticated, redirecting to signin');
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
+      console.log('User not ward admin, redirecting to home');
       router.push('/');
     } else if (status === 'authenticated') {
+      console.log('User authenticated as ward admin, fetching data');
       fetchData();
     }
   }, [status, session, router]);
@@ -52,24 +60,85 @@ export default function SubmitWardReport() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
+      setError(''); // Clear any previous errors
+
+      console.log('=== WARD ADMIN REPORT SUBMIT - FETCHING DATA ===');
+      console.log('Session user:', session?.user);
+
+      // Initialize variables for error handling
+      let formsResponse, wardsResponse, responsesResponse;
 
       // Get published ward report forms
-      const formsResponse = await axios.get('/api/forms', {
-        params: {
-          formType: 'wardReport',
-          availableOnly: true,
-        }
-      });
+      try {
+        console.log('Fetching forms...');
+        formsResponse = await axios.get('/api/forms', {
+          params: {
+            formType: 'wardReport',
+            availableOnly: true,
+          }
+        });
+        console.log('Forms response:', formsResponse.data);
+      } catch (formsError) {
+        console.error('Forms API error:', formsError.response?.data || formsError.message);
+        throw new Error(`Failed to fetch forms: ${formsError.response?.data?.message || formsError.message}`);
+      }
 
-      // Get user's wards
-      const wardsResponse = await axios.get('/api/wards');
+      // Get user's wards - with enhanced error handling and fallback
+      try {
+        console.log('Fetching wards...');
+        wardsResponse = await axios.get('/api/wards', {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        console.log('Wards response:', wardsResponse.data);
+        
+        // Validate wards response
+        if (!Array.isArray(wardsResponse.data)) {
+          console.error('Invalid wards response format:', wardsResponse.data);
+          throw new Error('Invalid wards data format received');
+        }
+        
+        if (wardsResponse.data.length === 0) {
+          console.warn('No wards found for ward admin user');
+          // This is not necessarily an error - ward admin might not have assigned wards
+        }
+        
+      } catch (wardsError) {
+        console.error('Wards API error:', wardsError.response?.data || wardsError.message);
+        console.error('Wards error status:', wardsError.response?.status);
+        console.error('Wards error config:', wardsError.config);
+        
+        // Provide more specific error handling
+        if (wardsError.code === 'ECONNABORTED') {
+          throw new Error('Request timeout while fetching wards. Please try again.');
+        } else if (wardsError.response?.status === 401) {
+          throw new Error('Authentication failed. Please log out and log in again.');
+        } else if (wardsError.response?.status === 403) {
+          throw new Error('Access denied. You may not have permission to access ward data.');
+        } else if (wardsError.response?.status === 500) {
+          throw new Error('Server error while fetching wards. Please contact support if this persists.');
+        } else {
+          throw new Error(`Failed to fetch wards: ${wardsError.response?.data?.message || wardsError.message}`);
+        }
+      }
 
       // Get existing responses to check submission status
-      const responsesResponse = await axios.get('/api/responses', {
-        params: {
-          formType: 'wardReport'
-        }
-      });
+      try {
+        console.log('Fetching responses...');
+        responsesResponse = await axios.get('/api/responses', {
+          params: {
+            formType: 'wardReport'
+          },
+          timeout: 10000 // 10 second timeout
+        });
+        console.log('Responses response:', responsesResponse.data);
+      } catch (responsesError) {
+        console.error('Responses API error:', responsesError.response?.data || responsesError.message);
+        throw new Error(`Failed to fetch responses: ${responsesError.response?.data?.message || responsesError.message}`);
+      }
 
       console.log('=== DEBUGGING FORM SUBMISSION ISSUE ===');
       console.log('Forms data:', formsResponse.data);
@@ -166,8 +235,22 @@ export default function SubmitWardReport() {
 
       setError('');
     } catch (error) {
-      setError('Failed to fetch data');
-      console.error(error);
+      console.error('=== WARD ADMIN REPORT SUBMIT - ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to fetch form data';
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'Access denied. You may not have permission to access ward reports.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -248,7 +331,26 @@ export default function SubmitWardReport() {
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
               </svg>
-              <p className="mt-2 text-sm">You are not assigned to any wards. Please contact your coordinator.</p>
+              <p className="mt-2 text-sm font-medium">No wards assigned</p>
+              <p className="mt-1 text-sm">You are not assigned to any wards. Please contact your coordinator to assign you to a ward.</p>
+              <div className="mt-4 space-y-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => fetchData()}
+                  className="mr-2"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Retry
+                </Button>
+                <Link href="/" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                  Back to Dashboard
+                </Link>
+              </div>
             </div>
           </Card>
         ) : activeForms.length === 0 ? (

@@ -1,7 +1,7 @@
-# Cluster Visit Status Implementation
+# House Visit Status Implementation
 
 ## Overview
-Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge Dashboard that tracks cluster visits over the past 4 weeks, focusing on the current week with a redesigned interface for Ward Incharges.
+Added a "House Visit Status (Recent 4 Weeks)" component to the Ward Incharge Dashboard that tracks House Visits over the past 4 weeks, focusing on the current week with a redesigned interface for Ward Incharges.
 
 ## Files Created/Modified
 
@@ -9,13 +9,13 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 - **New File**: Created the main admin dashboard page
 - **Features**:
   - Dashboard statistics (total wards, clusters, users, forms)
-  - Cluster Visit Status component integration
+  - House Visit Status component integration
   - Quick action buttons for common admin tasks
   - Recent activities and system health monitoring
   - Responsive design with modern UI
 
-### 2. Cluster Visit Status Component (`components/ClusterVisitStatus.js`)
-- **New File**: Dedicated component for cluster visit tracking
+### 2. House Visit Status Component (`components/ClusterVisitStatus.js`)
+- **New File**: Dedicated component for House Visit tracking
 - **Features**:
   - Recent 4 weeks view with current week highlighting
   - Progress bars showing visit completion percentage
@@ -25,7 +25,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
   - Responsive design optimized for admin dashboard
 
 ### 3. API Endpoint (`pages/api/admin/cluster-visits.js`)
-- **New File**: Backend API for cluster visit data
+- **New File**: Backend API for House Visit data
 - **Features**:
   - Fetches cluster data from database
   - Correlates with ward visit records
@@ -38,7 +38,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 
 ### Dashboard Integration
 - Seamlessly integrated into the admin dashboard
-- Shows at-a-glance cluster visit status
+- Shows at-a-glance House Visit status
 - Focuses on current week performance
 - Easy navigation to detailed views
 
@@ -50,7 +50,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 
 ### Detailed Modal View
 - **Week Summary**: Period, status, completion statistics
-- **Cluster Details**: Individual cluster visit status
+- **Cluster Details**: Individual House Visit status
 - **Visit Information**: Purpose, findings, coordinator details when available
 - **Visual Status**: Green/red indicators for visited/not visited clusters
 
@@ -118,7 +118,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 
 ### For Ward Incharges
 1. **Dashboard Access**: Navigate to `/admin` to view the dashboard
-2. **Week Overview**: See 4 weeks of cluster visit data at a glance
+2. **Week Overview**: See 4 weeks of House Visit data at a glance
 3. **Current Week Focus**: Current week is highlighted in blue
 4. **Status Understanding**:
    - Green (Excellent): ≥80% clusters visited
@@ -153,7 +153,7 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 
 ### Functionality
 - [ ] Dashboard loads correctly for admin users
-- [ ] Cluster visit data displays for recent 4 weeks
+- [ ] House Visit data displays for recent 4 weeks
 - [ ] Current week is properly highlighted
 - [ ] Status indicators show correct colors and text
 - [ ] Progress bars reflect accurate percentages
@@ -179,6 +179,6 @@ Added a "Cluster Visit Status (Recent 4 Weeks)" component to the Ward Incharge D
 
 ## Conclusion
 
-The Cluster Visit Status implementation provides Ward Incharges with a comprehensive, user-friendly interface to monitor cluster visits over recent weeks. The focus on the current week, combined with clear visual indicators and detailed drill-down capabilities, makes it easy to identify areas needing attention and track overall performance trends.
+The House Visit Status implementation provides Ward Incharges with a comprehensive, user-friendly interface to monitor House Visits over recent weeks. The focus on the current week, combined with clear visual indicators and detailed drill-down capabilities, makes it easy to identify areas needing attention and track overall performance trends.
 
 The modular design allows for easy maintenance and future enhancements, while the robust API ensures reliable data delivery. The component successfully bridges the gap between high-level overview and detailed operational data, making it a valuable tool for Ward Inchargeistration.

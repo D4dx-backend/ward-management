@@ -33,7 +33,7 @@ wardAdmin: {
   'Dashboard': { ... },           // ✅ Dashboard access
   'Ward Report': { ... },         // ✅ Report submission
   'Ward Visit': { ... },          // ✅ Visit tracking
-  'House Visit': { ... },         // ✅ Cluster visits
+  'House Visit': { ... },         // ✅ House Visits
   'Ward Management': { ... },     // ✅ Profile & cluster management
   'Survey Status': { ... },       // ✅ Survey monitoring
   'Documentation': { ... }        // ✅ Instructions & documents

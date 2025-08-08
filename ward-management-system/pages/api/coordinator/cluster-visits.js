@@ -84,7 +84,7 @@ export default async function handler(req, res) {
           return true; // Include all if no district info
         });
 
-        // Get responses for cluster visits in this week (by week number and year)
+        // Get responses for House Visits in this week (by week number and year)
         const responses = await Response.find({
           weekNumber: weekNumber,
           year: year
@@ -155,8 +155,8 @@ export default async function handler(req, res) {
 
       res.status(200).json({ weeks });
     } catch (error) {
-      console.error('Error fetching coordinator cluster visit data:', error);
-      res.status(500).json({ error: 'Failed to fetch cluster visit data' });
+      console.error('Error fetching coordinator House Visit data:', error);
+      res.status(500).json({ error: 'Failed to fetch House Visit data' });
     }
   } else {
     res.setHeader('Allow', ['GET']);

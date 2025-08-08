@@ -1,4 +1,4 @@
-# Cluster Visit Status Enhancements
+# House Visit Status Enhancements
 
 ## Issues Fixed & Features Added
 
@@ -11,7 +11,7 @@
 - Added realistic coordinator names like "Priya Nair", "Rajesh Kumar"
 - Added proper ward names like "Thiruvananthapuram Central", "Pettah"
 
-### ✅ 2. Created Detailed Admin Cluster Visit Analysis Page
+### ✅ 2. Created Detailed Admin House Visit Analysis Page
 **Location**: `/pages/admin/cluster-visits.js`
 
 **Features**:
@@ -30,7 +30,7 @@
 - Date Range: All Time, Last Week, Last Month, Last Quarter
 - Visit Status: All, Visited Only, Not Visited Only
 
-### ✅ 3. Created Detailed Coordinator Cluster Visit Management Page
+### ✅ 3. Created Detailed Coordinator House Visit Management Page
 **Location**: `/pages/coordinator/cluster-visits.js`
 
 **Features**:
@@ -151,7 +151,7 @@ const getFilteredData = () => {
 ## Benefits
 
 ### For State Admins
-- **Comprehensive Overview**: See all cluster visits across all districts
+- **Comprehensive Overview**: See all House Visits across all districts
 - **Performance Analysis**: Identify high and low performing areas
 - **Data Export**: Generate reports for higher authorities
 - **Trend Analysis**: Track performance over time

@@ -102,11 +102,11 @@ async function testDockerSurveySave() {
       console.log(`❌ Failed to save basic survey update:`, saveError.message);
     }
     
-    // Test 3: Update cluster visits
-    console.log('\n=== TEST 3: Update Cluster Visits ===');
+    // Test 3: Update House Visits
+    console.log('\n=== TEST 3: Update House Visits ===');
     
     if (survey.clusterVisits && survey.clusterVisits.length > 0) {
-      console.log(`Found ${survey.clusterVisits.length} cluster visits`);
+      console.log(`Found ${survey.clusterVisits.length} House Visits`);
       
       // Update first cluster's first week data
       const firstCluster = survey.clusterVisits[0];
@@ -132,12 +132,12 @@ async function testDockerSurveySave() {
       
       try {
         const savedSurvey = await survey.save();
-        console.log(`✅ Cluster visits updated successfully`);
+        console.log(`✅ House Visits updated successfully`);
       } catch (saveError) {
-        console.log(`❌ Failed to save cluster visits update:`, saveError.message);
+        console.log(`❌ Failed to save House Visits update:`, saveError.message);
       }
     } else {
-      console.log(`❌ No cluster visits found`);
+      console.log(`❌ No House Visits found`);
     }
     
     // Final verification

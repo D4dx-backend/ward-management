@@ -55,14 +55,14 @@ Visit: `/api/test-survey` (as Ward Incharge)
 ### 2. Test Survey Page
 Visit: `/ward/docker-survey`
 - Should load without "Error Loading Survey" message
-- Should show cluster visits tab with your ward's clusters
+- Should show House Visits tab with your ward's clusters
 
 ### 3. Check Console Logs
 Look for:
 ```
 Found 6 clusters for ward [ward-id]
-Survey exists with X cluster visits
-Rebuilding cluster visits: X -> 6
+Survey exists with X House Visits
+Rebuilding House Visits: X -> 6
 Survey updated with 6 ward-specific clusters
 ```
 

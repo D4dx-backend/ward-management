@@ -106,8 +106,8 @@ export default function AdminDashboard() {
       color: 'bg-indigo-500'
     },
     {
-      title: 'Cluster Visits',
-      description: 'Track cluster visit status and surveys',
+      title: 'House Visits',
+      description: 'Track House Visit status and surveys',
       href: '/admin/cluster-visits',
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Cluster Visit Status - Recent 4 Weeks */}
+        {/* House Visit Status - Recent 4 Weeks */}
         <ClusterVisitStatus />
 
         {/* Quick Actions */}

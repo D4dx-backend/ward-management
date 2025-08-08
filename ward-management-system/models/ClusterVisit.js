@@ -110,7 +110,7 @@ ClusterVisitSchema.methods.getWeeklyData = function(weekKey) {
   return this.weeklyData.get(weekKey) || { houses: 0, days: 0 };
 };
 
-// Static method to get all cluster visits for a ward
+// Static method to get all House Visits for a ward
 ClusterVisitSchema.statics.getByWard = function(wardId) {
   return this.find({ ward: wardId })
     .populate('cluster', 'name clusterNumber')
@@ -118,7 +118,7 @@ ClusterVisitSchema.statics.getByWard = function(wardId) {
     .sort({ 'cluster.clusterNumber': 1 });
 };
 
-// Static method to initialize cluster visits for a ward
+// Static method to initialize House Visits for a ward
 ClusterVisitSchema.statics.initializeForWard = async function(wardId, formWeeks, createdBy) {
   const Cluster = require('./Cluster').default;
   const clusters = await Cluster.find({ ward: wardId, isActive: { $ne: false } }).sort({ clusterNumber: 1 });
@@ -126,7 +126,7 @@ ClusterVisitSchema.statics.initializeForWard = async function(wardId, formWeeks,
   const clusterVisits = [];
   
   for (const cluster of clusters) {
-    // Check if cluster visit already exists
+    // Check if House Visit already exists
     const existing = await this.findOne({ ward: wardId, cluster: cluster._id });
     
     if (!existing) {

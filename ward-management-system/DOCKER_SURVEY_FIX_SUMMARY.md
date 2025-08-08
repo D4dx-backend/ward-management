@@ -87,8 +87,8 @@ clusterVisits: [{
 - [ ] Refresh page - should persist
 - [ ] Verify in database
 
-### Cluster Visits (if using new structure):
-- [ ] Update cluster visit data
+### House Visits (if using new structure):
+- [ ] Update House Visit data
 - [ ] Refresh page - data should persist
 - [ ] Check weekly data structure
 

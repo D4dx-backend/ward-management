@@ -93,7 +93,7 @@ export default async function handler(req, res) {
       sortedFormWeeks.push({ year: currentYear, weekNumber: currentWeekNumber });
     }
 
-    // Create cluster visits structure based on ALL form weeks (dynamic)
+    // Create House Visits structure based on ALL form weeks (dynamic)
     const clusterVisits = clusters.map(cluster => {
       const visitData = {
         clusterId: cluster._id,
@@ -116,8 +116,8 @@ export default async function handler(req, res) {
       return visitData;
     });
 
-    console.log(`Created ${clusterVisits.length} cluster visits with new structure`);
-    console.log('First cluster visit structure:', JSON.stringify(clusterVisits[0], null, 2));
+    console.log(`Created ${clusterVisits.length} House Visits with new structure`);
+    console.log('First House Visit structure:', JSON.stringify(clusterVisits[0], null, 2));
 
     // Create survey with all questions initialized to default status
     const initialQuestions = {
