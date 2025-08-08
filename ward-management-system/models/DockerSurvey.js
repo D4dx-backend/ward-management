@@ -120,9 +120,30 @@ const DockerSurveySchema = new mongoose.Schema({
     lastUpdated: Date
   },
   
-  // Cluster Visit Data for recent 4 weeks
+  // Cluster Visit Data - supports both old and new structure
   clusterVisits: [{
+    clusterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cluster'
+    },
     clusterName: String,
+    
+    // New dynamic structure based on actual form weeks
+    formWeeks: [{
+      year: Number,
+      weekNumber: Number
+    }],
+    weeklyData: {
+      type: Map,
+      of: {
+        houses: { type: Number, default: 0 },
+        days: { type: Number, default: 0 },
+        weekNumber: Number,
+        year: Number
+      }
+    },
+    
+    // Legacy structure for backward compatibility
     week1: {
       houses: { type: Number, default: 0 },
       days: { type: Number, default: 0 }

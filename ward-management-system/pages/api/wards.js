@@ -40,9 +40,11 @@ export default async function handler(req, res) {
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch wards
+    // Fetch wards with full population for admin use
     const wards = await Ward.find(query)
-      .select('name district _id')
+      .populate('coordinator', 'name email district')
+      .populate('wardAdmin', 'name email district')
+      .populate('basicData')
       .sort({ district: 1, name: 1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -50,17 +52,8 @@ export default async function handler(req, res) {
     // Get total count
     const totalCount = await Ward.countDocuments(query);
 
-    // For backward compatibility, return wards directly for Ward Incharges
-    if (session.user.role === 'wardAdmin') {
-      res.status(200).json(wards);
-    } else {
-      res.status(200).json({
-        wards,
-        totalCount,
-        totalPages: Math.ceil(totalCount / parseInt(limit)),
-        currentPage: parseInt(page)
-      });
-    }
+    // Return wards directly for backward compatibility
+    res.status(200).json(wards);
   } catch (error) {
     console.error('Error fetching wards:', error);
     res.status(500).json({ message: 'Failed to fetch wards' });

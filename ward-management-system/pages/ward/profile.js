@@ -20,7 +20,7 @@ export default function WardProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+
   const [success, setSuccess] = useState('');
   const [isEditingAdvanced, setIsEditingAdvanced] = useState(false);
   const [advancedEditData, setAdvancedEditData] = useState({});
@@ -70,6 +70,9 @@ export default function WardProfile() {
         if (profileData.advancedData) {
           setAdvancedEditData(profileData.advancedData.responses || {});
           setAdvancedClusterData(profileData.advancedData.clusterResponses || {});
+        } else {
+          setAdvancedEditData({});
+          setAdvancedClusterData({});
         }
 
         setError(''); // Clear any previous errors
@@ -200,30 +203,7 @@ export default function WardProfile() {
     }
   };
 
-  const handleExportPDF = async () => {
-    setIsExporting(true);
 
-    try {
-      const response = await axios.get(`/api/ward-profile/${ward._id}/export-pdf`, {
-        responseType: 'blob'
-      });
-
-      // Create blob link to download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `ward-profile-${ward.name}-${ward.wardNumber}.html`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      setError('Failed to export ward profile');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleEditAdvanced = () => {
     setIsEditingAdvanced(true);
@@ -236,6 +216,9 @@ export default function WardProfile() {
     if (advancedData) {
       setAdvancedEditData(advancedData.responses || {});
       setAdvancedClusterData(advancedData.clusterResponses || {});
+    } else {
+      setAdvancedEditData({});
+      setAdvancedClusterData({});
     }
     setError('');
   };
@@ -860,12 +843,6 @@ export default function WardProfile() {
             <p className="mt-1 text-sm text-gray-600">View and manage your ward information</p>
           </div>
           <div className="flex space-x-3">
-            <Button onClick={handleExportPDF} disabled={isExporting} variant="outline">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              {isExporting ? 'Exporting...' : 'Export PDF'}
-            </Button>
             {!isEditing ? (
               <Button onClick={handleEdit}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1187,7 +1164,7 @@ export default function WardProfile() {
                                 </div>
                               ) : (
                                 <div>
-                                  {formatFieldValue(field, advancedData.responses[field.id])}
+                                  {formatFieldValue(field, advancedData?.responses?.[field.id])}
                                 </div>
                               )}
                             </div>
@@ -1223,7 +1200,7 @@ export default function WardProfile() {
                                         </div>
                                       ) : (
                                         <div>
-                                          {formatFieldValue(field, advancedData.clusterResponses[cluster._id]?.[field.id])}
+                                          {formatFieldValue(field, advancedData?.clusterResponses?.[cluster._id]?.[field.id])}
                                         </div>
                                       )}
                                     </div>

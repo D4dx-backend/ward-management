@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import axios from 'axios';
 
 export default function UserProfileDropdown() {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const dropdownRef = useRef(null);
   const timeoutRef = useRef(null);
 
@@ -23,6 +25,42 @@ export default function UserProfileDropdown() {
 
   const handleSignOut = () => {
     signOut();
+  };
+
+  const handleResetPassword = async () => {
+    if (!session?.user?.id) return;
+    
+    setIsResetting(true);
+    try {
+      const response = await axios.post('/api/users/reset-password', {
+        userId: session.user.id
+      });
+      
+      // Create detailed feedback message
+      const credentialType = response.data.isPIN ? 'PIN' : 'Password';
+      let message = `${credentialType} reset successfully!\n\n`;
+      message += `New ${credentialType}: ${response.data.newPassword}\n`;
+      message += `User Mobile: ${response.data.userMobileNumber}\n\n`;
+      
+      if (response.data.whatsappSent) {
+        message += '✅ WhatsApp notification sent successfully!';
+      } else {
+        message += '❌ WhatsApp notification failed to send.\n';
+        if (response.data.whatsappError) {
+          message += `Error: ${response.data.whatsappError}`;
+        }
+        if (response.data.userMobileNumber === 'Not provided') {
+          message += '\nReason: User has no mobile number on file.';
+        }
+      }
+      
+      alert(message);
+      setIsOpen(false);
+    } catch (error) {
+      alert('Failed to reset password: ' + (error.response?.data?.message || error.message));
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const getRoleDisplayName = (role) => {
@@ -118,17 +156,16 @@ export default function UserProfileDropdown() {
 
           {/* Menu Items */}
           <div className="py-1">
-            <Link 
-              href="/reset-password" 
-              className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              onClick={() => setIsOpen(false)}
+            <button
+              onClick={handleResetPassword}
+              disabled={isResetting}
+              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 01-2 2m2-2h-6m6 0H9.5a2.5 2.5 0 000 5H11" />
               </svg>
-              Account Settings
-            </Link>
+              {isResetting ? 'Resetting...' : 'Reset Password'}
+            </button>
 
             {/* Profile/Settings based on role */}
             {session.user.role === 'wardAdmin' && (

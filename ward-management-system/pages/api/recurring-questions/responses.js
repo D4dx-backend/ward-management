@@ -69,9 +69,11 @@ export default async function handler(req, res) {
 
     // For coordinator role, filter by their assigned wards
     if (session.user.role === 'coordinator') {
-      const coordinatorUser = await User.findById(session.user.id);
-      if (coordinatorUser && coordinatorUser.assignedWards && coordinatorUser.assignedWards.length > 0) {
-        query.ward = { $in: coordinatorUser.assignedWards };
+      const assignedWards = await Ward.find({ coordinator: session.user.id }).select('_id');
+      const wardIds = assignedWards.map(ward => ward._id);
+      
+      if (wardIds.length > 0) {
+        query.ward = { $in: wardIds };
       } else {
         // If coordinator has no assigned wards, return empty result
         if (process.env.NODE_ENV === 'development') {
@@ -90,9 +92,10 @@ export default async function handler(req, res) {
 
     // Apply additional filters
     if (coordinatorId && session.user.role === 'stateAdmin') {
-      const coordinatorUser = await User.findById(coordinatorId);
-      if (coordinatorUser && coordinatorUser.assignedWards) {
-        query.ward = { $in: coordinatorUser.assignedWards };
+      const assignedWards = await Ward.find({ coordinator: coordinatorId }).select('_id');
+      const wardIds = assignedWards.map(ward => ward._id);
+      if (wardIds.length > 0) {
+        query.ward = { $in: wardIds };
       }
     }
 

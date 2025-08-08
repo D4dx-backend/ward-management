@@ -30,12 +30,65 @@ export default function WardReportDetail() {
   const fetchReportDetail = async () => {
     setLoading(true);
     try {
+      console.log('Fetching report detail for ID:', id);
       const response = await axios.get(`/api/responses/${id}`);
+      console.log('Report detail response:', response.data);
       setReport(response.data);
       setError('');
     } catch (error) {
       console.error('Error fetching report detail:', error);
-      setError('Failed to fetch report details');
+      console.error('Error response:', error.response?.data);
+      
+      // Try fallback: fetch from general responses API with filters
+      if (week && year && ward) {
+        try {
+          console.log('Trying fallback with filters:', { ward, week, year });
+          const fallbackResponse = await axios.get('/api/responses', {
+            params: {
+              formType: 'wardReport',
+              weekNumber: week,
+              year: year,
+              coordinatorOnly: 'true'
+            }
+          });
+          
+          // Find the specific report by ward name and other criteria
+          const matchingReport = fallbackResponse.data.find(report => 
+            report.ward?.name === decodeURIComponent(ward) &&
+            report.weekNumber === parseInt(week) &&
+            report.year === parseInt(year)
+          );
+          
+          if (matchingReport) {
+            console.log('Found matching report via fallback:', matchingReport);
+            setReport(matchingReport);
+            setError('');
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+        }
+      }
+      
+      let errorMessage = 'Failed to fetch report details';
+      if (error.response?.status === 403) {
+        errorMessage = 'Access denied. You do not have permission to view this report.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Report not found. The report may have been deleted or the ID is invalid.';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setError(errorMessage);
+      
+      // Try debug endpoint for more information
+      try {
+        console.log('Trying debug endpoint...');
+        const debugResponse = await axios.get(`/api/debug-response?id=${id}`);
+        console.log('Debug response:', debugResponse.data);
+      } catch (debugError) {
+        console.error('Debug endpoint also failed:', debugError);
+      }
     } finally {
       setLoading(false);
     }

@@ -50,12 +50,7 @@ export default function Users() {
   });
   const [showWardsModal, setShowWardsModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [resetPasswordModal, setResetPasswordModal] = useState({
-    isOpen: false,
-    userId: null,
-    userName: '',
-    isResetting: false
-  });
+
 
   // Calculate pagination values
   const totalItems = filteredUsers.length;
@@ -63,6 +58,8 @@ export default function Users() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -88,26 +85,35 @@ export default function Users() {
     try {
       setIsLoading(true);
       
-      // Fetch users and wards
-      const [usersResponse, wardsResponse] = await Promise.all([
-        axios.get('/api/users'),
-        axios.get('/api/wards')
-      ]);
-
+      // Fetch users only - the API already includes assignedWards
+      const usersResponse = await axios.get('/api/users');
       const usersData = usersResponse.data;
-      const wardsData = wardsResponse.data;
 
-      // Process users data with ward counts
+      // Ensure usersData is an array
+      if (!Array.isArray(usersData)) {
+        throw new Error('Users data is not an array');
+      }
+
+      // Process users data with ward counts based on assignedWards
       const usersWithWardCounts = usersData.map(user => {
-        const coordinatorWards = wardsData.filter(ward => ward.coordinator?._id === user._id);
-        const wardAdminWards = wardsData.filter(ward => ward.wardAdmin?._id === user._id);
+        const assignedWards = user.assignedWards || [];
+        
+        // For coordinators and wardAdmins, count their assigned wards
+        let coordinatorCount = 0;
+        let wardAdminCount = 0;
+        
+        if (user.role === 'coordinator') {
+          coordinatorCount = assignedWards.length;
+        } else if (user.role === 'wardAdmin') {
+          wardAdminCount = assignedWards.length;
+        }
         
         return {
           ...user,
           wardCounts: {
-            coordinator: coordinatorWards.length,
-            wardAdmin: wardAdminWards.length,
-            total: coordinatorWards.length + wardAdminWards.length
+            coordinator: coordinatorCount,
+            wardAdmin: wardAdminCount,
+            total: coordinatorCount + wardAdminCount
           }
         };
       });
@@ -117,7 +123,7 @@ export default function Users() {
       setError('');
     } catch (error) {
       console.error('Error fetching data:', error);
-      setError('Failed to fetch users data');
+      setError('Failed to fetch users data: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -298,61 +304,7 @@ export default function Users() {
     setShowWardsModal(true);
   };
 
-  const openResetPasswordModal = (user) => {
-    setResetPasswordModal({
-      isOpen: true,
-      userId: user._id,
-      userName: user.name,
-      isResetting: false
-    });
-  };
 
-  const closeResetPasswordModal = () => {
-    if (!resetPasswordModal.isResetting) {
-      setResetPasswordModal({
-        isOpen: false,
-        userId: null,
-        userName: '',
-        isResetting: false
-      });
-    }
-  };
-
-  const confirmResetPassword = async () => {
-    setResetPasswordModal(prev => ({ ...prev, isResetting: true }));
-
-    try {
-      const response = await axios.post('/api/users/reset-password', {
-        userId: resetPasswordModal.userId
-      });
-      
-      setError('');
-      
-      // Create detailed feedback message
-      const credentialType = response.data.isPIN ? 'PIN' : 'Password';
-      let message = `${credentialType} reset successfully!\n\n`;
-      message += `New ${credentialType}: ${response.data.newPassword}\n`;
-      message += `User Mobile: ${response.data.userMobileNumber}\n\n`;
-      
-      if (response.data.whatsappSent) {
-        message += '✅ WhatsApp notification sent successfully!';
-      } else {
-        message += '❌ WhatsApp notification failed to send.\n';
-        if (response.data.whatsappError) {
-          message += `Error: ${response.data.whatsappError}`;
-        }
-        if (response.data.userMobileNumber === 'Not provided') {
-          message += '\nReason: User has no mobile number on file.';
-        }
-      }
-      
-      alert(message);
-      closeResetPasswordModal();
-    } catch (error) {
-      setError('Failed to reset password: ' + (error.response?.data?.message || error.message));
-      setResetPasswordModal(prev => ({ ...prev, isResetting: false }));
-    }
-  };
 
   if (status === 'loading' || isLoading) {
     return (
@@ -597,7 +549,7 @@ export default function Users() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedUsers.map((user) => (
+                {paginatedUsers && paginatedUsers.length > 0 ? paginatedUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -671,17 +623,6 @@ export default function Users() {
                           Edit
                         </Button>
                         <Button
-                          variant="warning"
-                          size="sm"
-                          onClick={() => openResetPasswordModal(user)}
-                          title="Reset user password and send via WhatsApp"
-                        >
-                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m0 0a2 2 0 01-2 2m2-2h-6m6 0H9.5a2.5 2.5 0 000 5H11" />
-                          </svg>
-                          Reset
-                        </Button>
-                        <Button
                           variant="danger"
                           size="sm"
                           onClick={() => openDeleteModal(user)}
@@ -691,8 +632,8 @@ export default function Users() {
                       </div>
                     </td>
                   </tr>
-                ))}
-                {paginatedUsers.length === 0 && totalItems === 0 && (
+                )) : null}
+                {(!paginatedUsers || paginatedUsers.length === 0) && totalItems === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -771,17 +712,7 @@ export default function Users() {
           user={selectedUser}
         />
 
-        {/* Reset Password Modal */}
-        <DeleteModal
-          isOpen={resetPasswordModal.isOpen}
-          onClose={closeResetPasswordModal}
-          onConfirm={confirmResetPassword}
-          title="Reset Password"
-          message="Are you sure you want to reset the password for this user? A new password will be generated and sent via WhatsApp if available."
-          itemName={resetPasswordModal.userName}
-          confirmText="Reset Password"
-          isLoading={resetPasswordModal.isResetting}
-        />
+
       </div>
     </Layout>
   );

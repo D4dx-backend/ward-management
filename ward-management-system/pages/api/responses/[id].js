@@ -19,6 +19,9 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     try {
+      console.log('Fetching response with ID:', id);
+      console.log('User session:', { id: session.user.id, role: session.user.role, district: session.user.district });
+      
       // Find the response by ID and populate related data
       const response = await Response.findById(id)
         .populate('respondent', 'name email role')
@@ -34,18 +37,53 @@ export default async function handler(req, res) {
         .lean();
 
       if (!response) {
+        console.log('Response not found for ID:', id);
         return res.status(404).json({ error: 'Response not found' });
       }
+      
+      console.log('Found response:', {
+        id: response._id,
+        district: response.district,
+        wardId: response.ward?._id,
+        wardCoordinator: response.ward?.coordinator?._id,
+        respondentId: response.respondent._id
+      });
 
       // Check if user has access to this response
       if (session.user.role === 'stateAdmin') {
         // State admin can view all responses
         return res.status(200).json(response);
       } else if (session.user.role === 'coordinator') {
-        // Coordinators can only view responses from their district
-        if (response.district !== session.user.district) {
+        // Coordinators can view responses from their district or from wards they coordinate
+        let hasAccess = false;
+        
+        // Check district match
+        if (response.district === session.user.district) {
+          hasAccess = true;
+        }
+        
+        // Check if coordinator manages the ward (for ward reports)
+        if (response.ward && response.ward.coordinator && 
+            response.ward.coordinator._id.toString() === session.user.id) {
+          hasAccess = true;
+        }
+        
+        // Check if this is a coordinator's own response
+        if (response.respondent._id.toString() === session.user.id) {
+          hasAccess = true;
+        }
+        
+        if (!hasAccess) {
+          console.log('Coordinator access denied:', {
+            responseDistrict: response.district,
+            userDistrict: session.user.district,
+            wardCoordinator: response.ward?.coordinator?._id,
+            userId: session.user.id,
+            respondentId: response.respondent._id.toString()
+          });
           return res.status(403).json({ error: 'Access denied' });
         }
+        
         return res.status(200).json(response);
       } else if (session.user.role === 'wardAdmin') {
         // Ward Incharges can only view their own responses
@@ -58,13 +96,21 @@ export default async function handler(req, res) {
       }
     } catch (error) {
       console.error('Error fetching response:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       
       // Handle invalid ObjectId
       if (error.name === 'CastError') {
-        return res.status(404).json({ error: 'Response not found' });
+        return res.status(404).json({ error: 'Response not found - Invalid ID format' });
       }
       
-      return res.status(500).json({ error: 'Failed to fetch response' });
+      return res.status(500).json({ 
+        error: 'Failed to fetch response', 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
     }
   } else if (req.method === 'PUT') {
     const { id } = req.query;
