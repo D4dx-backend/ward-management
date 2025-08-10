@@ -256,10 +256,7 @@ export default function SignIn() {
               >
                 Admin Login
               </button>
-            )}
-            <p className="text-sm text-gray-600">
-              Demo: admin@d4media.com / admin123
-            </p>
+            )}          
           </div>
         </Card>
       </div>
