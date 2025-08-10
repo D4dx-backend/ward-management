@@ -176,4 +176,3 @@ pm2 restart nextjs-app || pm2 start npm --name "nextjs-app" -- start
 - Test API endpoints directly
 - Ensure all environment variables are set
 - For more, see `PRODUCTION_TROUBLESHOOTING.md`
-# CI/CD Test - Sun Aug 10 06:25:55 UTC 2025
