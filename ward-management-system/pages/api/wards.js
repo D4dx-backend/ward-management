@@ -2,7 +2,6 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
 import dbConnect from '../../lib/mongodb';
 import Ward from '../../models/Ward';
-import { log, logError } from '../../lib/logger';
 
 export default async function handler(req, res) {
   // Set CORS headers for production
@@ -19,7 +18,7 @@ export default async function handler(req, res) {
   let session;
   try {
     session = await getServerSession(req, res, authOptions);
-    log('Session debug:', {
+    console.log('Session debug:', {
       hasSession: !!session,
       userId: session?.user?.id,
       userRole: session?.user?.role,
@@ -27,7 +26,7 @@ export default async function handler(req, res) {
       environment: process.env.NODE_ENV
     });
   } catch (sessionError) {
-    logError('Session error:', sessionError);
+    console.error('Session error:', sessionError);
     return res.status(401).json({ 
       message: 'Session authentication failed',
       error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
@@ -35,17 +34,17 @@ export default async function handler(req, res) {
   }
 
   if (!session) {
-    logError('No session found');
+    console.error('No session found');
     return res.status(401).json({ message: 'Unauthorized - No session' });
   }
 
   if (!session.user) {
-    logError('No user in session');
+    console.error('No user in session');
     return res.status(401).json({ message: 'Unauthorized - No user in session' });
   }
 
   if (!session.user.id) {
-    logError('No user ID in session');
+    console.error('No user ID in session');
     return res.status(401).json({ message: 'Unauthorized - Invalid session data' });
   }
 
@@ -58,7 +57,7 @@ export default async function handler(req, res) {
   try {
     await dbConnect();
   } catch (dbError) {
-    logError('Database connection error:', dbError);
+    console.error('Database connection error:', dbError);
     return res.status(503).json({ 
       message: 'Database connection failed',
       error: process.env.NODE_ENV === 'development' ? dbError.message : 'Service unavailable'
@@ -85,23 +84,23 @@ async function handleGetWards(req, res, session) {
   try {
     const { district, page = 1, limit = 100 } = req.query;
 
-    log('=== WARDS API GET DEBUG ===');
-    log('Environment:', process.env.NODE_ENV);
-    log('User role:', session.user.role);
-    log('User ID:', session.user.id);
-    log('Request method:', req.method);
-    log('Database URL exists:', !!process.env.MONGODB_URI);
+    console.log('=== WARDS API GET DEBUG ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('User role:', session.user.role);
+    console.log('User ID:', session.user.id);
+    console.log('Request method:', req.method);
+    console.log('Database URL exists:', !!process.env.MONGODB_URI);
 
     // Validate session user data
     if (!session.user.id) {
-      logError('Session user missing ID');
+      console.error('Session user missing ID');
       return res.status(400).json({ message: 'Invalid session: missing user ID' });
     }
 
     // Validate user ID format for production
     const mongoose = require('mongoose');
     if (!mongoose.Types.ObjectId.isValid(session.user.id)) {
-      logError('Invalid user ID format:', session.user.id);
+      console.error('Invalid user ID format:', session.user.id);
       return res.status(400).json({ message: 'Invalid user ID format' });
     }
 
@@ -113,13 +112,13 @@ async function handleGetWards(req, res, session) {
       // Ensure ObjectId conversion for production
       const userId = new mongoose.Types.ObjectId(session.user.id);
       query.wardAdmin = userId;
-      log('Ward admin query:', { wardAdmin: userId.toString() });
+      console.log('Ward admin query:', { wardAdmin: userId.toString() });
     } else {
       // For stateAdmin and coordinator, apply district filter if provided
       if (district) {
         query.district = district;
       }
-      log('Other role query:', query);
+      console.log('Other role query:', query);
     }
 
     // Add active ward filter
@@ -130,19 +129,19 @@ async function handleGetWards(req, res, session) {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 100));
     const skip = (pageNum - 1) * limitNum;
 
-    log('Pagination:', { page: pageNum, limit: limitNum, skip });
-    log('Database connection state:', mongoose.connection.readyState);
+    console.log('Pagination:', { page: pageNum, limit: limitNum, skip });
+    console.log('Database connection state:', mongoose.connection.readyState);
     
     // Test database connection with timeout
     if (mongoose.connection.readyState !== 1) {
-      logError('Database not connected, state:', mongoose.connection.readyState);
+      console.error('Database not connected, state:', mongoose.connection.readyState);
       return res.status(503).json({ message: 'Database connection not ready' });
     }
     
     // Fetch wards with production-optimized query
     let wards;
     try {
-      log('Executing ward query with timeout...');
+      console.log('Executing ward query with timeout...');
       
       // Use Promise.race for timeout handling
       const queryPromise = Ward.find(query)
@@ -160,12 +159,12 @@ async function handleGetWards(req, res, session) {
 
       wards = await Promise.race([queryPromise, timeoutPromise]);
       
-      log(`Query successful: Found ${wards.length} wards`);
+      console.log(`Query successful: Found ${wards.length} wards`);
       
     } catch (queryError) {
-      logError('Database query error:', queryError);
-      logError('Query error name:', queryError.name);
-      logError('Query error message:', queryError.message);
+      console.error('Database query error:', queryError);
+      console.error('Query error name:', queryError.name);
+      console.error('Query error message:', queryError.message);
       
       if (queryError.message === 'Query timeout') {
         return res.status(504).json({ 
@@ -182,15 +181,15 @@ async function handleGetWards(req, res, session) {
 
     // Validate results
     if (!Array.isArray(wards)) {
-      logError('Invalid query result:', typeof wards);
+      console.error('Invalid query result:', typeof wards);
       return res.status(500).json({ message: 'Invalid query result format' });
     }
 
-    log(`Found ${wards.length} wards for user ${session.user.id}`);
+    console.log(`Found ${wards.length} wards for user ${session.user.id}`);
     
     // Log ward details for debugging (production-safe)
     if (wards.length > 0) {
-      log('Sample ward:', {
+      console.log('Sample ward:', {
         id: wards[0]._id?.toString(),
         name: wards[0].name,
         hasWardAdmin: !!wards[0].wardAdmin,
@@ -208,22 +207,22 @@ async function handleGetWards(req, res, session) {
       
       totalCount = await Promise.race([countPromise, countTimeoutPromise]);
     } catch (countError) {
-      logError('Count query failed, using result length:', countError.message);
+      console.warn('Count query failed, using result length:', countError.message);
       // Use wards.length as fallback
     }
 
-    log('Total count:', totalCount);
+    console.log('Total count:', totalCount);
 
     // For ward admin users, provide helpful logging
     if (session.user.role === 'wardAdmin') {
       if (wards.length === 0) {
-        logError(`Ward admin ${session.user.id} has no assigned wards`);
-        logError('This could mean:');
-        logError('1. User is not assigned to any wards');
-        logError('2. Ward assignment is incorrect in database');
-        logError('3. User ID mismatch between session and database');
+        console.warn(`Ward admin ${session.user.id} has no assigned wards`);
+        console.warn('This could mean:');
+        console.warn('1. User is not assigned to any wards');
+        console.warn('2. Ward assignment is incorrect in database');
+        console.warn('3. User ID mismatch between session and database');
       } else {
-        log(`Ward admin ${session.user.id} has ${wards.length} assigned ward(s)`);
+        console.log(`Ward admin ${session.user.id} has ${wards.length} assigned ward(s)`);
       }
     }
 
@@ -244,13 +243,13 @@ async function handleGetWards(req, res, session) {
     // For backward compatibility, return just the wards array
     res.status(200).json(wards);
   } catch (error) {
-    logError('=== WARDS API GET ERROR ===');
-    logError('Error fetching wards:', error);
-    logError('Error name:', error.name);
-    logError('Error message:', error.message);
-    logError('Error stack:', error.stack);
-    logError('Session user:', session?.user);
-    logError('Database state:', require('mongoose').connection.readyState);
+    console.error('=== WARDS API GET ERROR ===');
+    console.error('Error fetching wards:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Session user:', session?.user);
+    console.error('Database state:', require('mongoose').connection.readyState);
     
     // Provide more specific error messages
     let errorMessage = 'Failed to fetch wards';
@@ -293,8 +292,8 @@ async function handleCreateWard(req, res, session) {
   try {
     const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard } = req.body;
 
-    log('=== WARDS API CREATE DEBUG ===');
-    log('Creating ward:', { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard });
+    console.log('=== WARDS API CREATE DEBUG ===');
+    console.log('Creating ward:', { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard });
 
     // Validate required fields
     if (!name || !wardNumber || !panchayath || !district || !coordinatorId) {
@@ -321,7 +320,7 @@ async function handleCreateWard(req, res, session) {
     const normalizedPanchayath = panchayath.trim().toLowerCase();
     const normalizedDistrict = district.trim().toLowerCase();
 
-    log('Normalized input:', { 
+    console.log('Normalized input:', { 
       normalizedName, 
       normalizedWardNumber, 
       normalizedPanchayath, 
@@ -336,7 +335,7 @@ async function handleCreateWard(req, res, session) {
     });
 
     if (existingWard) {
-      log('Found existing ward with same name:', existingWard);
+      console.log('Found existing ward with same name:', existingWard);
       return res.status(409).json({ 
         message: `Ward "${name}" already exists in ${district} district`,
         conflictingWard: {
@@ -359,7 +358,7 @@ async function handleCreateWard(req, res, session) {
     });
 
     if (existingWardNumber) {
-      log('Found existing ward with same number:', existingWardNumber);
+      console.log('Found existing ward with same number:', existingWardNumber);
       return res.status(409).json({ 
         message: `Ward with this number already exists in this panchayath and district`,
         details: `Ward number "${wardNumber}" already exists in ${panchayath}, ${district}`,
@@ -401,12 +400,12 @@ async function handleCreateWard(req, res, session) {
       .populate('wardAdmin', 'name email district')
       .lean();
 
-    log('Ward created successfully:', populatedWard._id);
+    console.log('Ward created successfully:', populatedWard._id);
 
     res.status(201).json(populatedWard);
   } catch (error) {
-    logError('=== WARDS API CREATE ERROR ===');
-    logError('Error creating ward:', error);
+    console.error('=== WARDS API CREATE ERROR ===');
+    console.error('Error creating ward:', error);
     
     let errorMessage = 'Failed to create ward';
     let statusCode = 500;
