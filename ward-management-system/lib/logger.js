@@ -77,3 +77,18 @@ export const ACTIONS = {
   PASSWORD_RESET: 'PASSWORD_RESET',
   PROFILE_UPDATE: 'PROFILE_UPDATE'
 };
+
+// logger.js - Simple logger for API requests and errors
+const log = (message, ...args) => {
+  if (process.env.NODE_ENV !== 'production' || process.env.LOG_API === 'true') {
+    // eslint-disable-next-line no-console
+    console.log(`[LOG] ${new Date().toISOString()}:`, message, ...args);
+  }
+};
+
+const logError = (error, context = '') => {
+  // eslint-disable-next-line no-console
+  console.error(`[ERROR] ${new Date().toISOString()}${context ? ' [' + context + ']' : ''}:`, error);
+};
+
+module.exports = { log, logError };
