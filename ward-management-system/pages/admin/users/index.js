@@ -498,21 +498,12 @@ export default function Users() {
         </div>
       )}
 
-      {/* WhatsApp Notification Option */}
+      {/* WhatsApp Notification Info (always enabled) */}
       {!isEdit && formData.mobileNumber && (
-        <div className="flex items-center space-x-2 p-4 bg-green-50 rounded-lg">
-          <input
-            type="checkbox"
-            id="sendWhatsApp"
-            name="sendWhatsApp"
-            checked={formData.sendWhatsApp}
-            onChange={(e) => setFormData({ ...formData, sendWhatsApp: e.target.checked })}
-            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-          />
-          <label htmlFor="sendWhatsApp" className="text-sm text-gray-700">
-            <span className="font-medium">Send WhatsApp notification</span>
-            <p className="text-xs text-gray-500">Send login credentials via WhatsApp to the provided mobile number</p>
-          </label>
+        <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+          <p className="text-sm text-green-800">
+            WhatsApp notification will be sent automatically with the login credentials.
+          </p>
         </div>
       )}
 
