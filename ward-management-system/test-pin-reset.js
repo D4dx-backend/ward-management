@@ -1,33 +1,41 @@
-// Test script to verify PIN reset functionality
-const bcrypt = require('bcryptjs');
+// Test script for PIN reset functionality
+// Run with: node test-pin-reset.js
+
+const fetch = require('node-fetch');
 
 async function testPinReset() {
-  console.log('Testing PIN Reset Functionality...\n');
+  const testMobileNumber = '9876543210'; // Replace with a test mobile number
   
-  // Simulate the old (broken) approach
-  const testPIN = '1234';
-  const hashedPIN = await bcrypt.hash(testPIN, 12);
-  
-  console.log('Original PIN:', testPIN);
-  console.log('Hashed PIN (old approach):', hashedPIN);
-  
-  // Test comparison (this would fail)
-  const oldComparison = testPIN === hashedPIN;
-  console.log('Direct comparison (old approach):', oldComparison);
-  
-  // Test bcrypt comparison (this would work but is wrong for PIN)
-  const bcryptComparison = await bcrypt.compare(testPIN, hashedPIN);
-  console.log('Bcrypt comparison:', bcryptComparison);
-  
-  console.log('\n--- New (Fixed) Approach ---');
-  console.log('PIN stored as plain text:', testPIN);
-  console.log('PIN comparison (new approach):', testPIN === testPIN);
-  
-  console.log('\n✅ Fix Summary:');
-  console.log('- PINs are now stored as plain text in pinCode field');
-  console.log('- Passwords are still hashed and stored in password field');
-  console.log('- Mobile-PIN auth compares against pinCode field');
-  console.log('- Email-Password auth compares against password field');
+  try {
+    console.log('Testing PIN reset functionality...');
+    console.log('Mobile Number:', testMobileNumber);
+    
+    const response = await fetch('http://localhost:3000/api/auth/reset-pin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        mobileNumber: testMobileNumber
+      })
+    });
+    
+    const result = await response.json();
+    
+    console.log('Response Status:', response.status);
+    console.log('Response:', result);
+    
+    if (response.ok) {
+      console.log('✅ PIN reset test successful!');
+      console.log('📱 Check WhatsApp for the new PIN message');
+    } else {
+      console.log('❌ PIN reset test failed');
+    }
+    
+  } catch (error) {
+    console.error('Test error:', error.message);
+  }
 }
 
-testPinReset().catch(console.error);
+// Run the test
+testPinReset();

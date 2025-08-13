@@ -192,6 +192,16 @@ export default function SignIn() {
                   'Sign in'
                 )}
               </Button>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => router.push('/auth/reset-pin')}
+                  className="text-sm text-green-600 hover:text-green-800 font-medium"
+                >
+                  Forgot your PIN?
+                </button>
+              </div>
             </form>
           )}
           
