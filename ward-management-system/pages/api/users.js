@@ -151,6 +151,56 @@ export default async function handler(req, res) {
 
       await newUser.save();
 
+      // Send WhatsApp message for coordinators and Ward Incharges (always enabled)
+      if ((role === 'coordinator' || role === 'wardAdmin') && mobileNumber && pinCode) {
+        try {
+          const whatsappMessage = `🎉 Welcome to Model Ward Management System!
+
+👤 New Account Created for you Successfully
+
+Your Ward and Login Details:
+☎️ Phone Number: ${mobileNumber}
+🔐 PIN: ${pinCode}
+👥 Role: ${role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
+🌐 Login URL: https://model.myward.in
+
+⚠️ Important Security Notes:
+• Keep your PIN secure
+• Do not share your PIN with anyone
+• Use this 4-digit PIN to login
+
+Need help? Contact the State Admin
+Ph: 8606016678
+
+Best regards,
+State Election Committee
+Welfare Party Kerala`;
+
+          const response = await fetch(process.env.DXING_API_URL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${process.env.DXING_API_SECRET}`
+            },
+            body: JSON.stringify({
+              account_id: process.env.DXING_ACCOUNT_ID,
+              recipient: mobileNumber,
+              message: whatsappMessage,
+              type: 'text'
+            })
+          });
+
+          if (!response.ok) {
+            console.warn('WhatsApp message failed to send:', await response.text());
+          } else {
+            console.log('WhatsApp message sent successfully to:', mobileNumber);
+          }
+        } catch (whatsappError) {
+          console.warn('WhatsApp sending error:', whatsappError.message);
+          // Don't fail user creation if WhatsApp fails
+        }
+      }
+
       // Log activity (best-effort)
       try {
         await logActivity({
@@ -162,7 +212,7 @@ export default async function handler(req, res) {
           metadata: {
             userRole: newUser.role,
             district: newUser.district || null,
-            sendWhatsApp: Boolean(sendWhatsApp)
+            sendWhatsApp: (role === 'coordinator' || role === 'wardAdmin') ? true : false
           },
           district: session.user.district,
           ward: session.user.ward,
