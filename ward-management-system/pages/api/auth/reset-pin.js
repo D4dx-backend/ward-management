@@ -8,12 +8,12 @@ async function sendWhatsAppMessage(phoneNumber, message) {
     const response = await fetch(process.env.DXING_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.DXING_API_SECRET}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        account_id: process.env.DXING_ACCOUNT_ID,
-        recipient: phoneNumber,
+        secret: process.env.DXING_API_SECRET,
+        account: process.env.DXING_ACCOUNT_ID,
+        recipient: `+91${phoneNumber}`,
         message: message,
         type: 'text'
       })
