@@ -18,6 +18,14 @@ export const KERALA_DISTRICTS = [
 // Complete list of panchayaths for each district in Kerala
 export const PANCHAYATHS_BY_DISTRICT = {
   'Thiruvananthapuram': [
+    // Corporation
+    'Thiruvananthapuram Corporation',
+    // Municipalities
+    'Attingal Municipality',
+    'Nedumangad Municipality',
+    'Neyyattinkara Municipality',
+    'Varkala Municipality',
+    // Panchayaths
     'Amboori',
     'Anad',
     'Andoorkonam',
@@ -93,6 +101,13 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vithura'
   ],
   'Kollam': [
+    // Corporation
+    'Kollam Corporation',
+    // Municipalities
+    'Karunagappally Municipality',
+    'Kottarakkara Municipality',
+    'Punalur Municipality',
+    // Panchayaths
     'Adichanalloor',
     'Alappad',
     'Alayamon',
@@ -163,6 +178,12 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Yeroor'
   ],
   'Pathanamthitta': [
+    // Municipalities
+    'Adoor Municipality',
+    'Pandalam Municipality',
+    'Pathanamthitta Municipality',
+    'Thiruvalla Municipality',
+    // Panchayaths
     'Anicadu',
     'Aranmula',
     'Aruvapulam',
@@ -218,6 +239,12 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vechuchira'
   ],
   'Alappuzha': [
+    // Municipalities
+    'Alappuzha Municipality',
+    'Cherthala Municipality',
+    'Kayamkulam Municipality',
+    'Mavelikkara Municipality',
+    // Panchayaths
     'Ala',
     'Ambalapuzha North',
     'Ambalapuzha South',
@@ -292,6 +319,14 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Venmony'
   ],
   'Kottayam': [
+    // Municipalities
+    'Changanassery Municipality',
+    'Ettumanoor Municipality',
+    'Kanjirappally Municipality',
+    'Kottayam Municipality',
+    'Pala Municipality',
+    'Vaikom Municipality',
+    // Panchayaths
     'Aimanam',
     'Akalakunnam',
     'Arpookara',
@@ -365,6 +400,9 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vijayapuram'
   ],
   'Idukki': [
+    // Municipalities
+    'Thodupuzha Municipality',
+    // Panchayaths
     'Adimaly',
     'Alakkode',
     'Arakulam',
@@ -419,6 +457,19 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Velliyamattom'
   ],
   'Ernakulam': [
+    // Corporation
+    'Kochi Corporation',
+    // Municipalities
+    'Aluva Municipality',
+    'Angamaly Municipality',
+    'Kalamassery Municipality',
+    'Kothamangalam Municipality',
+    'Muvattupuzha Municipality',
+    'North Paravur Municipality',
+    'Perumbavoor Municipality',
+    'Piravom Municipality',
+    'Thrikkakara Municipality',
+    // Panchayaths
     'Aikaranad',
     'Alangad',
     'Amballur',
@@ -503,6 +554,15 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vengoor'
   ],
   'Thrissur': [
+    // Corporation
+    'Thrissur Corporation',
+    // Municipalities
+    'Chalakudy Municipality',
+    'Guruvayur Municipality',
+    'Irinjalakuda Municipality',
+    'Kodungallur Municipality',
+    'Kunnamkulam Municipality',
+    // Panchayaths
     'Adat',
     'Alagappa Nagar',
     'Alur',
@@ -591,6 +651,14 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Venkitangu'
   ],
   'Palakkad': [
+    // Municipalities
+    'Chittur-Thathamangalam Municipality',
+    'Mannarkkad Municipality',
+    'Ottapalam Municipality',
+    'Palakkad Municipality',
+    'Pattambi Municipality',
+    'Shoranur Municipality',
+    // Panchayaths
     'Agali',
     'Akathethara',
     'Alanallur',
@@ -681,6 +749,16 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vilayur'
   ],
   'Malappuram': [
+    // Municipalities
+    'Kondotty Municipality',
+    'Kottakkal Municipality',
+    'Malappuram Municipality',
+    'Nilambur Municipality',
+    'Perinthalmanna Municipality',
+    'Ponnani Municipality',
+    'Tanur Municipality',
+    'Tirur Municipality',
+    // Panchayaths
     'Abdul Rahiman Nagar',
     'Alamcode',
     'Aliparamba',
@@ -777,6 +855,14 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Wandoor'
   ],
   'Kozhikode': [
+    // Corporation
+    'Kozhikode Corporation',
+    // Municipalities
+    'Feroke Municipality',
+    'Koyilandy Municipality',
+    'Mukkam Municipality',
+    'Vadakara Municipality',
+    // Panchayaths
     'Arikulam',
     'Atholi',
     'Ayancheri',
@@ -849,6 +935,11 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Villiyappally'
   ],
   'Wayanad': [
+    // Municipalities
+    'Kalpetta Municipality',
+    'Mananthavady Municipality',
+    'Sulthan Bathery Municipality',
+    // Panchayaths
     'Ambalavayal',
     'Edavaka',
     'Kaniambetta',
@@ -874,6 +965,16 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vythiri'
   ],
   'Kannur': [
+    // Corporation
+    'Kannur Corporation',
+    // Municipalities
+    'Anthoor Municipality',
+    'Iritty Municipality',
+    'Mattannur Municipality',
+    'Payyannur Municipality',
+    'Taliparamba Municipality',
+    'Thalassery Municipality',
+    // Panchayaths
     'Alakode',
     'Ancharakandy',
     'Aralam',
@@ -947,6 +1048,11 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Vengad'
   ],
   'Kasaragod': [
+    // Municipalities
+    'Kasaragod Municipality',
+    'Kanhangad Municipality',
+    'Nileshwar Municipality',
+    // Panchayaths
     'Ajanoor',
     'Badiyadka',
     'Balal',
