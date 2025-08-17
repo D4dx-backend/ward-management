@@ -34,8 +34,13 @@ export default function AdminInstructions() {
     targetCoordinators: [],
     isHighlighted: false,
     allowReplies: true,
-    specificWardOrGroup: false
+    specificWardOrGroup: false,
+    fileUrl: '',
+    fileName: '',
+    fileSize: null
   });
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [fileError, setFileError] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -96,10 +101,95 @@ export default function AdminInstructions() {
         [name]: type === 'checkbox' ? checked : value
       };
       
-
-      
       return newData;
     });
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    console.log('File selected:', file.name, file.size, file.type);
+
+    // Validate file size (20MB limit)
+    if (file.size > 20 * 1024 * 1024) {
+      setFileError('File size must be less than 20MB');
+      return;
+    }
+
+    // Validate file type (basic validation)
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'application/zip',
+      'application/x-rar-compressed'
+    ];
+
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt|jpg|jpeg|png|gif|zip|rar)$/i)) {
+      setFileError('File type not supported. Please use PDF, DOC, DOCX, TXT, JPG, PNG, GIF, ZIP, or RAR files.');
+      return;
+    }
+
+    setUploadingFile(true);
+    setFileError('');
+
+    try {
+      console.log('Starting file upload...');
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await axios.post('/api/upload', uploadFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000, // 60 second timeout
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log('Upload progress:', percentCompleted + '%');
+        }
+      });
+
+      console.log('Upload successful:', response.data);
+
+      setFormData(prev => ({
+        ...prev,
+        fileUrl: response.data.url,
+        fileName: response.data.filename,
+        fileSize: response.data.size
+      }));
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      console.error('Error response:', error.response?.data);
+      
+      let errorMessage = 'Failed to upload file';
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Upload timeout - file may be too large or connection too slow';
+      } else if (error.response?.status === 413) {
+        errorMessage = 'File too large for server';
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      setFileError(errorMessage);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const removeFile = () => {
+    setFormData(prev => ({
+      ...prev,
+      fileUrl: '',
+      fileName: '',
+      fileSize: null
+    }));
+    setFileError('');
   };
 
   const handleMultiSelectChange = (name, value) => {
@@ -138,7 +228,10 @@ export default function AdminInstructions() {
         targetCoordinators: [],
         isHighlighted: false,
         allowReplies: true,
-        specificWardOrGroup: false
+        specificWardOrGroup: false,
+        fileUrl: '',
+        fileName: '',
+        fileSize: null
       });
       setError('');
     } catch (error) {
@@ -159,7 +252,10 @@ export default function AdminInstructions() {
       ...(instruction.targetGroups && { targetGroups: instruction.targetGroups }),
       isHighlighted: instruction.isHighlighted,
       allowReplies: instruction.allowReplies,
-      specificWardOrGroup: false
+      specificWardOrGroup: false,
+      fileUrl: instruction.fileUrl || '',
+      fileName: instruction.fileName || '',
+      fileSize: instruction.fileSize || null
     });
     setShowEditModal(true);
   };
@@ -345,6 +441,43 @@ export default function AdminInstructions() {
                     </div>
                   </div>
 
+                  {/* File Attachment Display */}
+                  {instruction.fileUrl && instruction.fileName && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-blue-800">Attachment:</p>
+                          <a
+                            href={instruction.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            {instruction.fileName}
+                          </a>
+                          {instruction.fileSize && (
+                            <p className="text-xs text-blue-600">
+                              ({(instruction.fileSize / 1024 / 1024).toFixed(2)} MB)
+                            </p>
+                          )}
+                        </div>
+                        <a
+                          href={instruction.fileUrl}
+                          download={instruction.fileName}
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-100 rounded hover:bg-blue-200"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Target Audience Info */}
                   <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center space-x-2">
@@ -485,6 +618,67 @@ export default function AdminInstructions() {
                 placeholder="Enter detailed instruction description"
                 required
               />
+            </div>
+
+            {/* File Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Attachment (Optional)
+              </label>
+              
+              {!formData.fileUrl ? (
+                <div>
+                  <input
+                    type="file"
+                    id="file-upload"
+                    onChange={handleFileUpload}
+                    disabled={uploadingFile}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.zip,.rar"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className={`inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 cursor-pointer ${
+                      uploadingFile ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    {uploadingFile ? 'Uploading...' : 'Choose File'}
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Max file size: 20MB. Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG, GIF, ZIP, RAR
+                  </p>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-green-800">{formData.fileName}</p>
+                      <p className="text-xs text-green-600">
+                        {formData.fileSize ? `${(formData.fileSize / 1024 / 1024).toFixed(2)} MB` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={removeFile}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {fileError && (
+                <p className="text-sm text-red-600 mt-1">{fileError}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -667,6 +861,22 @@ export default function AdminInstructions() {
                   setEditingInstruction(null);
                   setWardSearch('');
                   setCoordinatorSearch('');
+                  setFormData({
+                    title: '',
+                    description: '',
+                    priority: 'medium',
+                    targetAudience: 'all',
+                    targetWards: [],
+                    targetCoordinators: [],
+                    isHighlighted: false,
+                    allowReplies: true,
+                    specificWardOrGroup: false,
+                    fileUrl: '',
+                    fileName: '',
+                    fileSize: null
+                  });
+                  setFileError('');
+                  setUploadingFile(false);
                 }}
               >
                 Cancel
