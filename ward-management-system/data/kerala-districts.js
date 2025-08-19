@@ -562,6 +562,7 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Irinjalakuda Municipality',
     'Kodungallur Municipality',
     'Kunnamkulam Municipality',
+    'Chalakudy Municipality',
     // Panchayaths
     'Adat',
     'Alagappa Nagar',
@@ -658,6 +659,7 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Palakkad Municipality',
     'Pattambi Municipality',
     'Shoranur Municipality',
+      'Cherpulassery Municipality',
     // Panchayaths
     'Agali',
     'Akathethara',
