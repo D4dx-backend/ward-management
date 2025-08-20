@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -12,15 +12,12 @@ import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import ClusterTableManager from '../../../components/ClusterTableManager';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
-import { useApiData } from '../../../hooks/useApiData';
+import { usePersistedData } from '../../../lib/simpleCache';
+import { useSmartPagination } from '../../../hooks/useSmartPagination';
 
 export default function Clusters() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [clusters, setClusters] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [filteredClusters, setFilteredClusters] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -53,10 +50,41 @@ export default function Clusters() {
     clusterName: '',
     isDeleting: false
   });
-  
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+
+  // Use persistent data hooks to prevent unnecessary reloading
+  const { 
+    data: clusters = [], 
+    loading: clustersLoading, 
+    error: clustersError,
+    refresh: refreshClusters
+  } = usePersistedData(
+    'admin_clusters',
+    async () => {
+      const response = await axios.get('/api/clusters');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const { 
+    data: wards = [], 
+    loading: wardsLoading 
+  } = usePersistedData(
+    'admin_wards_for_clusters',
+    async () => {
+      const response = await axios.get('/api/wards');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000,
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const isLoading = clustersLoading || wardsLoading;
 
   useEffect(() => {
     // Check if user is authenticated and has appropriate role
@@ -64,26 +92,31 @@ export default function Clusters() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && !['stateAdmin', 'coordinator', 'wardAdmin'].includes(session.user.role)) {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchClusters();
-      fetchWards();
-      
-      // Set selected ward from query parameter or for Ward Incharge
-      if (router.query.wardId) {
-        setSelectedWard(router.query.wardId);
-        setFormData(prev => ({
-          ...prev,
-          wardId: router.query.wardId
-        }));
-      } else if (session.user.role === 'wardAdmin') {
-        // For Ward Incharges, auto-select their ward once wards are loaded
-        // This will be handled in a separate useEffect after wards are fetched
-      }
     }
   }, [status, session, router]);
 
   useEffect(() => {
-    // Filter clusters based on search term and all filters
+    if (clustersError) {
+      const errorMessage = clustersError.response?.data?.message || 'Failed to fetch clusters';
+      setError(errorMessage);
+    } else {
+      setError('');
+    }
+  }, [clustersError]);
+
+  useEffect(() => {
+    // Set selected ward from query parameter or for Ward Incharge
+    if (router.query.wardId) {
+      setSelectedWard(router.query.wardId);
+      setFormData(prev => ({
+        ...prev,
+        wardId: router.query.wardId
+      }));
+    }
+  }, [router.query.wardId]);
+
+  // Filter clusters based on search term and all filters
+  const filteredClusters = useMemo(() => {
     let filtered = clusters;
     
     if (searchTerm) {
@@ -120,8 +153,7 @@ export default function Clusters() {
       }
     }
     
-    setFilteredClusters(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    return filtered;
   }, [clusters, searchTerm, selectedWard, selectedDistrict, selectedPanchayath, selectedStatus, selectedCoordinator]);
 
   // Filter wards based on district and panchayath selection
@@ -151,15 +183,20 @@ export default function Clusters() {
     return result;
   })();
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredClusters.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedClusters = filteredClusters.slice(startIndex, endIndex);
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  // Smart pagination that preserves current page when possible
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedClusters,
+    totalItems,
+    totalPages,
+    handlePageChange,
+    handleItemsPerPageChange,
+    paginationInfo
+  } = useSmartPagination(filteredClusters, 10, {
+    preservePageOnFilter: true,
+    resetOnDataChange: false
+  });
 
   // Get unique districts from wards (not clusters) so all wards are discoverable
   const getUniqueDistricts = () => {
@@ -223,31 +260,10 @@ export default function Clusters() {
     setFormData(prev => ({ ...prev, wardId: '' })); // Reset ward selection
   };
 
-  const fetchClusters = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get('/api/clusters');
-      setClusters(response.data || []);
-      setError('');
-    } catch (error) {
-      console.error('Fetch clusters error:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to fetch clusters';
-      setError(errorMessage);
-      setClusters([]); // Set empty array on error
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchWards = async () => {
-    try {
-      const response = await axios.get('/api/wards');
-      setWards(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch wards:', error);
-      setWards([]);
-      // Don't set error here as it's not critical for the page to function
-    }
+  // Update clusters state after successful operations
+  const updateClustersState = (newClusters) => {
+    // This will be handled by the persistent data hook automatically
+    refreshClusters();
   };
 
   // Auto-select ward for Ward Incharges
@@ -306,7 +322,7 @@ export default function Clusters() {
       console.log('Creating cluster with data:', formData);
       const response = await axios.post('/api/clusters', formData);
       console.log('Cluster created successfully:', response.data);
-      setClusters([...clusters, response.data]);
+      await refreshClusters(); // Refresh data after creation
       resetForm();
       setShowCreateModal(false);
       setError('');
@@ -322,10 +338,7 @@ export default function Clusters() {
     e.preventDefault();
     try {
       const response = await axios.put(`/api/clusters/${editingCluster._id}`, formData);
-      const updatedClusters = clusters.map(cluster => 
-        cluster._id === editingCluster._id ? response.data : cluster
-      );
-      setClusters(updatedClusters);
+      await refreshClusters(); // Refresh data after update
       
       resetForm();
       setShowEditModal(false);
@@ -377,8 +390,7 @@ export default function Clusters() {
 
     try {
       await axios.delete(`/api/clusters/${deleteModal.clusterId}`);
-      const updatedClusters = clusters.filter(cluster => cluster._id !== deleteModal.clusterId);
-      setClusters(updatedClusters);
+      await refreshClusters(); // Refresh data after deletion
       closeDeleteModal();
       setError('');
     } catch (error) {
@@ -407,8 +419,8 @@ export default function Clusters() {
       const responses = await Promise.all(promises);
       const newClusters = responses.map(response => response.data);
       
-      // Update the clusters list
-      setClusters([...clusters, ...newClusters]);
+      // Refresh the clusters list
+      await refreshClusters();
       // Keep modal open and show success message inside the modal
       setBulkStatus({ type: 'success', message: `${newClusters.length} clusters created successfully.` });
       // Reset table/form state ward selection remains
@@ -1126,12 +1138,12 @@ export default function Clusters() {
             <div className="px-6 py-4 border-t border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-gray-700">
-                  Page {currentPage} of {totalPages}
+                  Showing {paginationInfo.startItem} to {paginationInfo.endItem} of {totalItems} clusters
                 </div>
                 <div className="flex space-x-2">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    disabled={!paginationInfo.hasPreviousPage}
                     className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
@@ -1166,7 +1178,7 @@ export default function Clusters() {
                   
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={!paginationInfo.hasNextPage}
                     className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next

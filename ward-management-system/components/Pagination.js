@@ -43,14 +43,34 @@ const Pagination = ({
 
   const visiblePages = totalPages > 1 ? getVisiblePages() : [];
 
-  // Don't show pagination if there are no items or only one page
-  if (totalItems === 0 || totalPages <= 1) {
-    return showItemsInfo && totalItems > 0 ? (
+  // Don't show pagination if there are no items
+  if (totalItems === 0) {
+    return null;
+  }
+
+  // Show info only if there's only one page
+  if (totalPages <= 1) {
+    return showItemsInfo ? (
       <div className={`flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 ${className}`}>
         <div className="text-sm text-gray-700">
           Showing <span className="font-medium">{totalItems}</span> of{' '}
           <span className="font-medium">{totalItems}</span> results
         </div>
+        {showPageSizeSelector && (
+          <div className="flex items-center space-x-2">
+            <label className="text-sm text-gray-700">Show:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => onItemsPerPageChange(parseInt(e.target.value))}
+              className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            >
+              {pageSizeOptions.map(size => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+            </select>
+            <span className="text-sm text-gray-700">per page</span>
+          </div>
+        )}
       </div>
     ) : null;
   }

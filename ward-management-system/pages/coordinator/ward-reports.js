@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -10,16 +10,14 @@ import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
 import Modal from '../../components/Modal';
 import { ShimmerDashboard } from '../../components/Shimmer';
-import { setCache, getCache } from '../../lib/simpleCache';
-import usePagination from '../../hooks/usePagination';
+import { usePersistentData } from '../../hooks/usePersistentData';
+import { CACHE_KEYS, getCacheConfig } from '../../config/cache';
+import { useSmartPagination } from '../../hooks/useSmartPagination';
 
 export default function CoordinatorWardReports() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [wardReports, setWardReports] = useState([]);
-  const [filteredReports, setFilteredReports] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
@@ -30,41 +28,26 @@ export default function CoordinatorWardReports() {
     status: ''
   });
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
-      router.push('/');
-    } else if (status === 'authenticated') {
-      fetchWardReports();
-    }
-  }, [status, session, router]);
-
-  const fetchWardReports = async (useCache = true) => {
-    const cacheKey = 'coordinator_ward_reports';
-    
-    // Check cache first
-    if (useCache) {
-      const cachedData = getCache(cacheKey);
-      if (cachedData) {
-        setWardReports(cachedData);
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    setIsLoading(true);
-
-    try {
+  // Use enhanced persistent data hook to prevent unnecessary reloading
+  const { 
+    data: wardReports = [], 
+    loading: isLoading, 
+    error: dataError, 
+    refresh: refreshReports,
+    isStale
+  } = usePersistentData(
+    CACHE_KEYS.COORDINATOR_WARD_REPORTS,
+    async ({ signal }) => {
       const response = await axios.get('/api/responses', {
         params: {
           formType: 'wardReport',
           coordinatorOnly: 'true'
-        }
+        },
+        signal // Support for request cancellation
       });
 
       // Transform the response data to match the expected format
-      const transformedReports = response.data.map(report => ({
+      return response.data.map(report => ({
         _id: report._id,
         title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
         type: report.formType,
@@ -77,34 +60,39 @@ export default function CoordinatorWardReports() {
         responses: report.responses,
         formTemplate: report.formTemplate
       }));
-      
-      // Cache the data for 5 minutes
-      setCache(cacheKey, transformedReports, 5 * 60 * 1000);
-      setWardReports(transformedReports);
-      setError('');
-    } catch (error) {
-      console.error('Error fetching ward reports:', error);
-      setError('Failed to fetch ward reports. Please try again.');
-      setWardReports([]);
-    } finally {
-      setIsLoading(false);
+    },
+    {
+      ...getCacheConfig(CACHE_KEYS.COORDINATOR_WARD_REPORTS),
+      dependencies: [status, session?.user?.role],
+      onSuccess: (data) => {
+        console.log(`Loaded ${data.length} ward reports from ${isLoading ? 'server' : 'cache'}`);
+      },
+      onError: (error) => {
+        console.error('Failed to load ward reports:', error);
+      }
     }
-  };
-  
-  // Pagination using custom hook
-  const {
-    currentPage,
-    itemsPerPage,
-    paginatedData: paginatedReports,
-    totalItems,
-    handlePageChange,
-    handleItemsPerPageChange,
-    resetPagination,
-  } = usePagination(filteredReports, 10);
+  );
 
-
+  const [error, setError] = useState('');
 
   useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
+      router.push('/');
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (dataError) {
+      setError('Failed to fetch ward reports. Please try again.');
+    } else {
+      setError('');
+    }
+  }, [dataError]);
+  
+  // Filter reports based on search and filters
+  const filteredReports = useMemo(() => {
     let filtered = wardReports;
 
     if (searchTerm) {
@@ -134,9 +122,22 @@ export default function CoordinatorWardReports() {
       }
     }
 
-    setFilteredReports(filtered);
-    resetPagination(); // Reset to first page when filters change
-  }, [wardReports, searchTerm, filter, resetPagination]);
+    return filtered;
+  }, [wardReports, searchTerm, filter]);
+
+  // Smart pagination that preserves current page when possible
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedReports,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    paginationInfo
+  } = useSmartPagination(filteredReports, 10, {
+    preservePageOnFilter: true,
+    resetOnDataChange: false
+  });
 
 
 
@@ -199,16 +200,35 @@ export default function CoordinatorWardReports() {
             <p className="mt-1 text-sm text-gray-600">Monitor ward progress reports submitted by Ward Incharges in your district</p>
           </div>
           <Button
-            onClick={() => fetchWardReports(false)}
+            onClick={refreshReports}
             disabled={isLoading}
-            className="flex items-center gap-2"
+            className={`flex items-center gap-2 ${isStale ? 'bg-yellow-500 hover:bg-yellow-600' : ''}`}
+            title={isStale ? 'Data may be outdated - click to refresh' : 'Refresh data'}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {isLoading ? 'Refreshing...' : 'Refresh'}
+            {isLoading ? 'Refreshing...' : isStale ? 'Update Available' : 'Refresh'}
           </Button>
         </div>
+
+        {/* Data freshness indicator */}
+        {isStale && !isLoading && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">
+                  You're viewing cached data. Fresh data is being loaded in the background.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">

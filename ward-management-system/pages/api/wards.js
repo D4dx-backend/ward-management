@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 // Handle GET requests - fetch wards
 async function handleGetWards(req, res, session) {
   try {
-    const { district, page = 1, limit = 100 } = req.query;
+    const { district, page = 1, limit } = req.query;
 
     console.log('=== WARDS API GET DEBUG ===');
     console.log('Environment:', process.env.NODE_ENV);
@@ -124,12 +124,17 @@ async function handleGetWards(req, res, session) {
     // Add active ward filter
     query.isActive = { $ne: false };
 
-    // Calculate pagination with validation
+    // Calculate pagination only if limit is explicitly provided
     const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 100));
-    const skip = (pageNum - 1) * limitNum;
+    const limitNum = limit ? Math.min(1000, Math.max(1, parseInt(limit))) : null;
+    const skip = limitNum ? (pageNum - 1) * limitNum : 0;
 
-    console.log('Pagination:', { page: pageNum, limit: limitNum, skip });
+    console.log('Pagination:', { 
+      page: pageNum, 
+      limit: limitNum || 'no limit', 
+      skip,
+      paginationEnabled: !!limitNum 
+    });
     console.log('Database connection state:', mongoose.connection.readyState);
     
     // Test database connection with timeout
@@ -144,14 +149,17 @@ async function handleGetWards(req, res, session) {
       console.log('Executing ward query with timeout...');
       
       // Use Promise.race for timeout handling
-      const queryPromise = Ward.find(query)
+      let wardQuery = Ward.find(query)
         .populate('coordinator', 'name email district')
         .populate('wardAdmin', 'name email district')
-        .sort({ district: 1, name: 1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean()
-        .exec();
+        .sort({ district: 1, name: 1 });
+      
+      // Only apply pagination if limit is specified
+      if (limitNum) {
+        wardQuery = wardQuery.skip(skip).limit(limitNum);
+      }
+      
+      const queryPromise = wardQuery.lean().exec();
 
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Query timeout')), 15000)
