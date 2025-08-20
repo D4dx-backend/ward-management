@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -12,7 +12,7 @@ import SearchInput from '../../../components/SearchInput';
 import SearchableSelect from '../../../components/SearchableSelect';
 import DeleteModal from '../../../components/DeleteModal';
 import Pagination from '../../../components/Pagination';
-import usePagination from '../../../hooks/usePagination';
+
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
@@ -47,17 +47,42 @@ export default function AdminWards() {
   const [filterPanchayath, setFilterPanchayath] = useState('');
   const [filterCoordinator, setFilterCoordinator] = useState('');
   
-  // Pagination using custom hook
-  const {
-    currentPage,
-    itemsPerPage,
-    paginatedData: paginatedWards,
-    totalPages,
-    totalItems,
-    handlePageChange,
-    handleItemsPerPageChange,
-    resetPagination,
-  } = usePagination(filteredWards, 10);
+  // Simple pagination state (like users page)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  // Calculate pagination values
+  const totalItems = filteredWards.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedWards = filteredWards.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Debug pagination in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Pagination Debug:', {
+        totalWards: wards.length,
+        filteredWards: filteredWards.length,
+        paginatedWards: paginatedWards.length,
+        currentPage,
+        totalPages,
+        itemsPerPage,
+        totalItems,
+        startIndex,
+        endIndex
+      });
+    }
+  }, [wards.length, filteredWards.length, paginatedWards.length, currentPage, totalPages, itemsPerPage, totalItems, startIndex, endIndex]);
   
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -109,8 +134,8 @@ export default function AdminWards() {
     }
 
     setFilteredWards(filtered);
-    resetPagination(); // Reset to first page when filters change
-  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, resetPagination]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator]);
 
   // Get unique districts, panchayaths, and coordinators for filters
   const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();
@@ -133,6 +158,13 @@ export default function AdminWards() {
 
       // Get all wards
       const wardsResponse = await axios.get('/api/wards');
+      
+      // Debug: Log the actual number of wards received
+      console.log('Wards API Response:', {
+        totalReceived: wardsResponse.data.length,
+        firstWard: wardsResponse.data[0]?.name,
+        lastWard: wardsResponse.data[wardsResponse.data.length - 1]?.name
+      });
 
       // Get all users
       const usersResponse = await axios.get('/api/users');
@@ -606,6 +638,11 @@ export default function AdminWards() {
             
             <div className="mt-4 text-sm text-gray-600">
               Showing {paginatedWards.length} of {totalItems} wards
+              {process.env.NODE_ENV === 'development' && (
+                <span className="ml-4 text-xs text-blue-600">
+                  (Page {currentPage} of {totalPages}, {itemsPerPage} per page)
+                </span>
+              )}
             </div>
           </div>
 
@@ -758,13 +795,15 @@ export default function AdminWards() {
           </div>
           
           {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalItems}
-            itemsPerPage={itemsPerPage}
-            onPageChange={handlePageChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-          />
+          {totalItems > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+            />
+          )}
         </Card>
 
         {/* Create Ward Modal */}

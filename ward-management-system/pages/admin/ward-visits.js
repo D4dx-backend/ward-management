@@ -9,17 +9,12 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
-import { useApiData } from '../../hooks/useApiData';
+import { usePersistedData } from '../../lib/simpleCache';
 
 export default function AdminWardVisits() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [visits, setVisits] = useState([]);
   const [filteredVisits, setFilteredVisits] = useState([]);
-  const [coordinators, setCoordinators] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [statistics, setStatistics] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showViewModal, setShowViewModal] = useState(false);
@@ -32,16 +27,86 @@ export default function AdminWardVisits() {
     followUpStatus: ''
   });
 
+  // Use persistent data hooks to prevent unnecessary reloading
+  const { 
+    data: visits = [], 
+    loading: visitsLoading, 
+    error: visitsError 
+  } = usePersistedData(
+    'admin_ward_visits',
+    async () => {
+      const response = await axios.get('/api/admin/ward-visits');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const { 
+    data: coordinators = [], 
+    loading: coordinatorsLoading 
+  } = usePersistedData(
+    'admin_coordinators',
+    async () => {
+      const response = await axios.get('/api/users/?role=coordinator');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000,
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const { 
+    data: wards = [], 
+    loading: wardsLoading 
+  } = usePersistedData(
+    'admin_wards',
+    async () => {
+      const response = await axios.get('/api/wards/');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000,
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const { 
+    data: statistics = {}, 
+    loading: statisticsLoading 
+  } = usePersistedData(
+    'admin_ward_visits_statistics',
+    async () => {
+      const response = await axios.get('/api/admin/ward-visits/statistics');
+      return response.data || {};
+    },
+    {
+      ttl: 30 * 60 * 1000, // Cache statistics for 30 minutes
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const isLoading = visitsLoading || coordinatorsLoading || wardsLoading || statisticsLoading;
+
   useEffect(() => {
     // Check if user is authenticated and is admin
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchData();
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (visitsError) {
+      setError('Failed to fetch ward visits data');
+    } else {
+      setError('');
+    }
+  }, [visitsError]);
 
   useEffect(() => {
     // Filter visits based on search term and filters
@@ -98,36 +163,7 @@ export default function AdminWardVisits() {
     setFilteredVisits(filtered);
   }, [visits, searchTerm, filter]);
 
-  const fetchData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Fetch all data
-      const [visitsResponse, coordinatorsResponse, wardsResponse, statsResponse] = await Promise.all([
-        axios.get('/api/admin/ward-visits'),
-        axios.get('/api/users/?role=coordinator'),
-        axios.get('/api/wards/'),
-        axios.get('/api/admin/ward-visits/statistics')
-      ]);
-      
-      setVisits(visitsResponse.data || []);
-      setCoordinators(coordinatorsResponse.data || []);
-      setWards(wardsResponse.data || []);
-      setStatistics(statsResponse.data || {});
-      setError('');
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Failed to fetch ward visits data');
-      
-      // Set empty arrays instead of mock data
-      setVisits([]);
-      setCoordinators([]);
-      setWards([]);
-      setStatistics({});
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;

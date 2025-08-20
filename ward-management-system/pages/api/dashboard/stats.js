@@ -47,13 +47,19 @@ export default async function handler(req, res) {
 
     if (session.user.role === 'stateAdmin') {
       // State Admin Dashboard Stats
+      // Debug: Log the exact query being used
+      const wardQuery = { isActive: { $ne: false } };
+      console.log('Dashboard ward count query:', JSON.stringify(wardQuery));
+      
       const [users, wards, forms, responses, clusters] = await Promise.all([
         User.countDocuments(),
-        Ward.countDocuments(),
+        Ward.countDocuments(wardQuery), // Only count active wards
         FormTemplate.countDocuments({ isPublished: true }),
         Response.countDocuments(),
         Cluster.countDocuments()
       ]);
+
+      console.log('Dashboard ward count result:', wards);
 
       stats.users = users;
       stats.wards = wards;

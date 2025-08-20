@@ -10,25 +10,56 @@ import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard } from '../../components/Shimmer';
 
+import { usePersistedData } from '../../lib/simpleCache';
+
 export default function CoordinatorWards() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [wards, setWards] = useState([]);
   const [filteredWards, setFilteredWards] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Use persistent data hook to prevent unnecessary reloading
+  const { 
+    data: wards = [], 
+    loading: isLoading, 
+    error: dataError, 
+    refresh: refreshWards 
+  } = usePersistedData(
+    'coordinator_wards_detailed',
+    async () => {
+      try {
+        const response = await axios.get('/api/coordinator/wards-detailed');
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching detailed wards:', error);
+        // Fallback to basic wards API
+        const basicResponse = await axios.get('/api/coordinator/wards');
+        return basicResponse.data || [];
+      }
+    },
+    {
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchWards();
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (dataError) {
+      setError(`Failed to load wards: ${dataError.message || 'Unknown error'}`);
+    } else {
+      setError('');
+    }
+  }, [dataError]);
 
   useEffect(() => {
     // Filter wards based on search term
@@ -44,32 +75,6 @@ export default function CoordinatorWards() {
 
     setFilteredWards(filtered);
   }, [wards, searchTerm]);
-
-  const fetchWards = async () => {
-    try {
-      setIsLoading(true);
-      setError('');
-
-      const response = await axios.get('/api/coordinator/wards-detailed');
-      console.log('Wards data:', response.data);
-      setWards(response.data || []);
-    } catch (error) {
-      console.error('Error fetching wards:', error);
-      setError(`Failed to load wards: ${error.response?.data?.message || error.message}`);
-      
-      // Fallback to basic wards API
-      try {
-        const basicResponse = await axios.get('/api/coordinator/wards');
-        setWards(basicResponse.data || []);
-        setError('');
-      } catch (basicError) {
-        console.error('Error fetching basic wards:', basicError);
-        setError('Failed to load wards data');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleWardClick = (ward) => {
     // Navigate to dedicated ward profile page instead of modal
@@ -113,11 +118,11 @@ export default function CoordinatorWards() {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button onClick={fetchWards} variant="outline">
+            <Button onClick={refreshWards} variant="outline" disabled={isLoading}>
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Refresh
+              {isLoading ? 'Refreshing...' : 'Refresh'}
             </Button>
             <Link href="/">
               <Button variant="outline">

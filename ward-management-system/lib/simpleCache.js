@@ -5,7 +5,8 @@ const cache = new Map();
 const timestamps = new Map();
 const listeners = new Map();
 
-export const setCache = (key, data, ttl = 5 * 60 * 1000) => {
+// Extended default TTL to 30 minutes to prevent frequent reloading
+export const setCache = (key, data, ttl = 30 * 60 * 1000) => {
   if (typeof window === 'undefined') return;
   
   cache.set(key, data);
@@ -79,9 +80,9 @@ export const subscribeCacheChange = (key, callback) => {
   };
 };
 
-// React hook for cached data
+// React hook for cached data with extended TTL
 export const useCachedData = (key, fetcher, options = {}) => {
-  const { ttl = 5 * 60 * 1000, enabled = true } = options;
+  const { ttl = 30 * 60 * 1000, enabled = true, staleWhileRevalidate = false } = options;
   const [data, setData] = useState(() => getCache(key));
   const [loading, setLoading] = useState(!data && enabled);
   const [error, setError] = useState(null);
@@ -149,7 +150,67 @@ export const useCachedData = (key, fetcher, options = {}) => {
   return { data, loading, error, refetch };
 };
 
-// Auto cleanup expired entries every 5 minutes
+// Hook to prevent unnecessary data reloading when navigating back to pages
+export const usePersistedData = (key, fetcher, options = {}) => {
+  const { 
+    ttl = 60 * 60 * 1000, // 1 hour default for persisted data
+    forceRefresh = false,
+    dependencies = []
+  } = options;
+  
+  const [data, setData] = useState(() => getCache(key));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchData = useCallback(async (force = false) => {
+    // If we have cached data and not forcing refresh, use cached data
+    if (!force && data && getCache(key)) {
+      return data;
+    }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await fetcher();
+      setCache(key, result, ttl);
+      setData(result);
+      setError(null);
+      return result;
+    } catch (err) {
+      setError(err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [key, fetcher, ttl, data]);
+
+  useEffect(() => {
+    const cachedData = getCache(key);
+    if (cachedData && !forceRefresh) {
+      setData(cachedData);
+      setLoading(false);
+      return;
+    }
+
+    // Only fetch if we don't have data or force refresh is requested
+    if (!data || forceRefresh) {
+      fetchData(forceRefresh);
+    }
+  }, [forceRefresh, ...dependencies]);
+
+  useEffect(() => {
+    return subscribeCacheChange(key, (newData) => {
+      setData(newData);
+    });
+  }, [key]);
+
+  const refresh = useCallback(() => fetchData(true), [fetchData]);
+
+  return { data, loading, error, refresh };
+};
+
+// Auto cleanup expired entries every 10 minutes (increased interval)
 if (typeof window !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
@@ -159,5 +220,5 @@ if (typeof window !== 'undefined') {
         timestamps.delete(key);
       }
     }
-  }, 5 * 60 * 1000);
+  }, 10 * 60 * 1000);
 }

@@ -9,15 +9,12 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
-import { useApiData } from '../../hooks/useApiData';
+import { usePersistedData } from '../../lib/simpleCache';
 
 export default function WardVisits() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [visits, setVisits] = useState([]);
   const [filteredVisits, setFilteredVisits] = useState([]);
-  const [wards, setWards] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,16 +44,58 @@ export default function WardVisits() {
     remarks: ''
   });
 
+  // Use persistent data hooks to prevent unnecessary reloading
+  const { 
+    data: visits = [], 
+    loading: visitsLoading, 
+    error: visitsError, 
+    refresh: refreshVisits 
+  } = usePersistedData(
+    'coordinator_ward_visits',
+    async () => {
+      const response = await axios.get('/api/ward-visits');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const { 
+    data: wards = [], 
+    loading: wardsLoading, 
+    error: wardsError 
+  } = usePersistedData(
+    'coordinator_wards',
+    async () => {
+      const response = await axios.get('/api/coordinator/wards');
+      return response.data || [];
+    },
+    {
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
+    }
+  );
+
+  const isLoading = visitsLoading || wardsLoading;
+
   useEffect(() => {
     // Check if user is authenticated and is coordinator
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchData();
     }
   }, [status, session, router]);
+
+  useEffect(() => {
+    if (visitsError || wardsError) {
+      setError(`Failed to load data: ${visitsError?.message || wardsError?.message || 'Unknown error'}`);
+    } else {
+      setError('');
+    }
+  }, [visitsError, wardsError]);
 
   useEffect(() => {
     // Filter visits based on search term and filters
@@ -91,85 +130,14 @@ export default function WardVisits() {
     setFilteredVisits(filtered);
   }, [visits, searchTerm, filter]);
 
-  const fetchData = async () => {
+  // Refresh function that updates both visits and wards
+  const refreshData = async () => {
     try {
-      setIsLoading(true);
-      
-      // Fetch visits and wards
-      const [visitsResponse, wardsResponse] = await Promise.all([
-        axios.get('/api/ward-visits'),
-        axios.get('/api/coordinator/wards')
-      ]);
-      
-      console.log('Visits data:', visitsResponse.data);
-      setVisits(visitsResponse.data || []);
-      setWards(wardsResponse.data || []);
-      setError('');
+      await refreshVisits();
+      setSuccess('Data refreshed successfully!');
+      setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      console.error('Error details:', error.response?.data);
-      
-      setError(`Failed to load data: ${error.response?.data?.message || error.message}`);
-      
-      // Fallback to mock data
-      const mockWards = [
-        {
-          _id: 'ward1',
-          name: 'Panchayath Ward 1',
-          wardNumber: 1,
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: 'ward2',
-          name: 'Panchayath Ward 2',
-          wardNumber: 2,
-          district: session?.user?.district || 'Thiruvananthapuram'
-        },
-        {
-          _id: 'ward3',
-          name: 'Panchayath Ward 3',
-          wardNumber: 3,
-          district: session?.user?.district || 'Thiruvananthapuram'
-        }
-      ];
-
-      const mockVisits = [
-        {
-          _id: 'visit1',
-          ward: mockWards[0],
-          visitDate: new Date().toISOString(),
-          visitTime: '10:00',
-          purpose: 'Monthly inspection and progress review',
-          findings: 'Infrastructure development is on track. Water supply issues in sector 3.',
-          recommendations: 'Prioritize water supply repairs. Continue infrastructure work.',
-          followUpRequired: true,
-          followUpDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          attendees: 'Ward Incharge, Local Representatives',
-          remarks: 'Overall progress is satisfactory',
-          coordinator: session?.user?.id,
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: 'visit2',
-          ward: mockWards[1],
-          visitDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          visitTime: '14:30',
-          purpose: 'Complaint resolution and community meeting',
-          findings: 'Waste management system needs improvement. Good community participation.',
-          recommendations: 'Implement new waste collection schedule. Increase community awareness.',
-          followUpRequired: false,
-          attendees: 'Ward Incharge, Community Leaders, Residents',
-          remarks: 'Community is cooperative and engaged',
-          coordinator: session?.user?.id,
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      
-      setWards(mockWards);
-      setVisits(mockVisits);
-      setError('');
-    } finally {
-      setIsLoading(false);
+      setError('Failed to refresh data. Please try again.');
     }
   };
 
@@ -218,7 +186,7 @@ export default function WardVisits() {
         setTimeout(() => setSuccess(''), 5000);
         
         // Refresh data to ensure consistency
-        await fetchData();
+        await refreshVisits();
       }
       
       // Reset form
@@ -276,7 +244,7 @@ export default function WardVisits() {
   const confirmDelete = async () => {
     try {
       await axios.delete(`/api/ward-visits?visitId=${visitToDelete._id}`);
-      setVisits(visits.filter(v => v._id !== visitToDelete._id));
+      await refreshVisits(); // Refresh data after deletion
       setSuccess('Visit deleted successfully!');
       
       // Clear success message after 5 seconds
