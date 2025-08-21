@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 
-export const useDashboardRefresh = (refetchFunction, userRole) => {
+export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = true) => {
   const router = useRouter();
 
   const forceRefresh = useCallback(() => {
@@ -32,7 +32,7 @@ export const useDashboardRefresh = (refetchFunction, userRole) => {
   }, [refetchFunction]);
 
   useEffect(() => {
-    if (userRole !== 'wardAdmin') return;
+    if (userRole !== 'wardAdmin' || !autoRefresh) return;
 
     // Check for form submission completion indicators
     const checkFormSubmission = () => {
@@ -112,11 +112,11 @@ export const useDashboardRefresh = (refetchFunction, userRole) => {
       window.removeEventListener('focus', handleFocus);
       router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [userRole, forceRefresh, router]);
+  }, [userRole, forceRefresh, router, autoRefresh]);
 
   // Periodic refresh for ward admin (every 2 minutes)
   useEffect(() => {
-    if (userRole !== 'wardAdmin') return;
+    if (userRole !== 'wardAdmin' || !autoRefresh) return;
 
     const interval = setInterval(() => {
       console.log('Periodic dashboard refresh for ward admin...');
@@ -124,7 +124,7 @@ export const useDashboardRefresh = (refetchFunction, userRole) => {
     }, 2 * 60 * 1000); // 2 minutes
 
     return () => clearInterval(interval);
-  }, [userRole, forceRefresh]);
+  }, [userRole, forceRefresh, autoRefresh]);
 
   return { forceRefresh };
 };
