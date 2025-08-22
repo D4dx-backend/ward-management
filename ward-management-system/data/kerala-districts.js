@@ -106,6 +106,7 @@ export const PANCHAYATHS_BY_DISTRICT = {
     // Municipalities
     'Karunagappally Municipality',
     'Kottarakkara Municipality',
+    'Paravoor Municipality',
     'Punalur Municipality',
     // Panchayaths
     'Adichanalloor',
@@ -241,7 +242,9 @@ export const PANCHAYATHS_BY_DISTRICT = {
   'Alappuzha': [
     // Municipalities
     'Alappuzha Municipality',
+    'Chengannur Municipality',
     'Cherthala Municipality',
+    'Haripad Municipality',
     'Kayamkulam Municipality',
     'Mavelikkara Municipality',
     // Panchayaths
@@ -321,6 +324,7 @@ export const PANCHAYATHS_BY_DISTRICT = {
   'Kottayam': [
     // Municipalities
     'Changanassery Municipality',
+    'Erattupetta Municipality',
     'Ettumanoor Municipality',
     'Kanjirappally Municipality',
     'Kottayam Municipality',
@@ -401,6 +405,7 @@ export const PANCHAYATHS_BY_DISTRICT = {
   ],
   'Idukki': [
     // Municipalities
+    'Kattappana Municipality',
     'Thodupuzha Municipality',
     // Panchayaths
     'Adimaly',
@@ -462,13 +467,17 @@ export const PANCHAYATHS_BY_DISTRICT = {
     // Municipalities
     'Aluva Municipality',
     'Angamaly Municipality',
+    'Eloor Municipality',
     'Kalamassery Municipality',
+    'Koothattukulam Municipality',
     'Kothamangalam Municipality',
+    'Maradu Municipality',
     'Muvattupuzha Municipality',
     'North Paravur Municipality',
     'Perumbavoor Municipality',
     'Piravom Municipality',
     'Thrikkakara Municipality',
+    'Tripunithura Municipality',
     // Panchayaths
     'Aikaranad',
     'Alangad',
@@ -558,11 +567,12 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Thrissur Corporation',
     // Municipalities
     'Chalakudy Municipality',
+    'Chavakkad Municipality',
     'Guruvayur Municipality',
     'Irinjalakuda Municipality',
     'Kodungallur Municipality',
     'Kunnamkulam Municipality',
-    'Chalakudy Municipality',
+    'Wadakanchery Municipality',
     // Panchayaths
     'Adat',
     'Alagappa Nagar',
@@ -755,11 +765,15 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Kondotty Municipality',
     'Kottakkal Municipality',
     'Malappuram Municipality',
+    'Manjeri Municipality',
     'Nilambur Municipality',
+    'Parappanangadi Municipality',
     'Perinthalmanna Municipality',
     'Ponnani Municipality',
     'Tanur Municipality',
+    'Tirurangadi Municipality',
     'Tirur Municipality',
+    'Valanchery Municipality',
     // Panchayaths
     'Abdul Rahiman Nagar',
     'Alamcode',
@@ -861,8 +875,11 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Kozhikode Corporation',
     // Municipalities
     'Feroke Municipality',
+    'Koduvally Municipality',
     'Koyilandy Municipality',
     'Mukkam Municipality',
+    'Payyoli Municipality',
+    'Ramanattukara Municipality',
     'Vadakara Municipality',
     // Panchayaths
     'Arikulam',
@@ -972,8 +989,11 @@ export const PANCHAYATHS_BY_DISTRICT = {
     // Municipalities
     'Anthoor Municipality',
     'Iritty Municipality',
+    'Koothuparamba Municipality',
     'Mattannur Municipality',
+    'Panoor Municipality',
     'Payyannur Municipality',
+    'Sreekandapuram Municipality',
     'Taliparamba Municipality',
     'Thalassery Municipality',
     // Panchayaths
