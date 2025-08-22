@@ -326,7 +326,6 @@ export const PANCHAYATHS_BY_DISTRICT = {
     'Changanassery Municipality',
     'Erattupetta Municipality',
     'Ettumanoor Municipality',
-    'Kanjirappally Municipality',
     'Kottayam Municipality',
     'Pala Municipality',
     'Vaikom Municipality',
