@@ -68,6 +68,7 @@ export default function CoordinatorUsers() {
     handlePageChange,
     handleItemsPerPageChange,
     resetPagination,
+    conditionalReset,
   } = usePagination(filteredUsers, 10);
 
   useEffect(() => {
@@ -95,6 +96,9 @@ export default function CoordinatorUsers() {
     }
   }, [usersData, wardsData]);
 
+  // Track if this is the initial load to avoid resetting pagination on mount
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   useEffect(() => {
     // Filter users based on search term
     if (searchTerm) {
@@ -107,8 +111,17 @@ export default function CoordinatorUsers() {
     } else {
       setFilteredUsers(users);
     }
-    resetPagination(); // Reset to first page when search changes
-  }, [users, searchTerm, resetPagination]);
+    
+    // Only reset to page 1 if this is not the initial load (search term actually changed)
+    if (!isInitialLoad && users.length > 0) {
+      console.log('[CoordinatorUsers] Search term changed, resetting pagination');
+      conditionalReset(true);
+    }
+    
+    if (isInitialLoad && users.length > 0) {
+      setIsInitialLoad(false);
+    }
+  }, [users, searchTerm, conditionalReset, isInitialLoad]);
 
   useEffect(() => {
     if (usersError) {

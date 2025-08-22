@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -16,6 +16,7 @@ import Pagination from '../../../components/Pagination';
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
+import { usePersistentPaginationState, usePersistentFilterState } from '../../../hooks/usePersistentState';
 
 export default function AdminWards() {
   const { data: session, status } = useSession();
@@ -29,7 +30,6 @@ export default function AdminWards() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingWard, setEditingWard] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     wardNumber: '',
@@ -42,14 +42,40 @@ export default function AdminWards() {
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
   
-  // Filters
-  const [filterDistrict, setFilterDistrict] = useState('');
-  const [filterPanchayath, setFilterPanchayath] = useState('');
-  const [filterCoordinator, setFilterCoordinator] = useState('');
+  // Persistent pagination state - survives tab switches and page reloads
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'adminWardsPage',
+    itemsPerPageKey: 'adminWardsItemsPerPage'
+  });
+
+  // Persistent filter state
+  const {
+    filters,
+    updateFilter,
+    clearFilters
+  } = usePersistentFilterState({
+    searchTerm: '',
+    filterDistrict: '',
+    filterPanchayath: '',
+    filterCoordinator: ''
+  }, {
+    filterKey: 'adminWardsFilters'
+  });
+
+  const searchTerm = filters.searchTerm || '';
+  const filterDistrict = filters.filterDistrict || '';
+  const filterPanchayath = filters.filterPanchayath || '';
+  const filterCoordinator = filters.filterCoordinator || '';
   
-  // Simple pagination state (like users page)
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const setSearchTerm = (value) => updateFilter('searchTerm', value);
+  const setFilterDistrict = (value) => updateFilter('filterDistrict', value);
+  const setFilterPanchayath = (value) => updateFilter('filterPanchayath', value);
+  const setFilterCoordinator = (value) => updateFilter('filterCoordinator', value);
   
   // Calculate pagination values
   const totalItems = filteredWards.length;
@@ -58,14 +84,12 @@ export default function AdminWards() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedWards = filteredWards.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page
-  };
+  // Auto-adjust page if current page exceeds total pages
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      handlePageChange(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage, handlePageChange]);
 
   // Debug pagination in development
   useEffect(() => {
@@ -102,6 +126,14 @@ export default function AdminWards() {
     }
   }, [status, session, router]);
 
+  // Track previous filter values to detect actual changes
+  const prevFiltersRef = useRef({
+    searchTerm: '',
+    filterDistrict: '',
+    filterPanchayath: '',
+    filterCoordinator: ''
+  });
+  
   useEffect(() => {
     // Filter wards based on search term and filters
     let filtered = wards;
@@ -134,8 +166,27 @@ export default function AdminWards() {
     }
 
     setFilteredWards(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator]);
+    
+    // Check if any filter actually changed (not just component mounting or data loading)
+    const currentFilters = { searchTerm, filterDistrict, filterPanchayath, filterCoordinator };
+    const prevFilters = prevFiltersRef.current;
+    
+    const filtersChanged = Object.keys(currentFilters).some(key => 
+      currentFilters[key] !== prevFilters[key]
+    );
+    
+    // Only reset to page 1 if filters actually changed and we have data
+    if (filtersChanged && wards.length > 0 && (prevFilters.searchTerm !== '' || prevFilters.filterDistrict !== '' || prevFilters.filterPanchayath !== '' || prevFilters.filterCoordinator !== '')) {
+      console.log('[AdminWards] Filters actually changed, resetting pagination', { 
+        from: prevFilters, 
+        to: currentFilters 
+      });
+      handlePageChange(1);
+    }
+    
+    // Update previous filters reference
+    prevFiltersRef.current = currentFilters;
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, handlePageChange]);
 
   // Get unique districts, panchayaths, and coordinators for filters
   const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();

@@ -10,6 +10,7 @@ import Modal from '../../components/Modal';
 import DynamicFormBuilder from '../../components/DynamicFormBuilder';
 import DynamicFormRenderer from '../../components/DynamicFormRenderer';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { usePersistentPaginationState } from '../../hooks/usePersistentState';
 import { useApiData } from '../../hooks/useApiData';
 
 export default function WardBasicForms() {
@@ -21,9 +22,16 @@ export default function WardBasicForms() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewForm, setPreviewForm] = useState(null);
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Persistent pagination state - survives tab switches and page reloads
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'adminWardBasicFormsPage',
+    itemsPerPageKey: 'adminWardBasicFormsItemsPerPage'
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -60,9 +68,7 @@ export default function WardBasicForms() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedForms = forms.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  // handlePageChange is now provided by usePersistentPaginationState
 
   if (status === 'loading' || isLoading) {
     return (

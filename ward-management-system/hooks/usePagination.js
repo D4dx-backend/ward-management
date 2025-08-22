@@ -1,6 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
+import { usePersistentPagination } from './usePersistentPagination';
 
-const usePagination = (data, defaultItemsPerPage = 10) => {
+const usePagination = (data, defaultItemsPerPage = 10, options = {}) => {
+  const { persistent = true, ...otherOptions } = options;
+  
+  // Use persistent pagination by default, fall back to regular state if disabled
+  if (persistent) {
+    console.log('[usePagination] Using persistent pagination mode');
+    return usePersistentPagination(data, defaultItemsPerPage, otherOptions);
+  }
+  
+  console.log('[usePagination] Using non-persistent pagination mode');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultItemsPerPage);
 
@@ -44,6 +54,13 @@ const usePagination = (data, defaultItemsPerPage = 10) => {
     }
   };
 
+  // Conditional reset for non-persistent mode
+  const conditionalReset = useCallback((force = false) => {
+    if (force) {
+      setCurrentPage(1);
+    }
+  }, []);
+
   return {
     currentPage,
     itemsPerPage,
@@ -54,6 +71,7 @@ const usePagination = (data, defaultItemsPerPage = 10) => {
     handleItemsPerPageChange,
     resetPagination,
     smartReset,
+    conditionalReset,
   };
 };
 

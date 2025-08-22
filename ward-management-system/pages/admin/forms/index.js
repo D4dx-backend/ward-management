@@ -11,6 +11,7 @@ import DeleteModal from '../../../components/DeleteModal';
 import { getWeekOptions } from '../../../lib/weekUtils';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
+import { usePersistentPaginationState } from '../../../hooks/usePersistentState';
 
 
 
@@ -33,9 +34,16 @@ export default function Forms() {
     isDeleting: false
   });
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Persistent pagination state
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'adminFormsPage',
+    itemsPerPageKey: 'adminFormsItemsPerPage'
+  });
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -136,9 +144,12 @@ export default function Forms() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedForms = forms.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  // Auto-adjust page if current page exceeds total pages
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      handlePageChange(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage, handlePageChange]);
 
   const getFormAvailabilityStatus = (form) => {
     const now = new Date();

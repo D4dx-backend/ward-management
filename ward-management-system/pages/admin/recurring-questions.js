@@ -10,6 +10,7 @@ import Modal from '../../components/Modal';
 import DeleteModal from '../../components/DeleteModal';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData } from '../../hooks/useApiData';
+import { usePersistentPaginationState } from '../../hooks/usePersistentState';
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Text Input' },
@@ -68,9 +69,16 @@ export default function RecurringQuestions() {
     isDeleting: false
   });
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Persistent pagination state - survives tab switches and page reloads
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'adminRecurringQuestionsPage',
+    itemsPerPageKey: 'adminRecurringQuestionsItemsPerPage'
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -301,9 +309,7 @@ export default function RecurringQuestions() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedQuestions = questions.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  // handlePageChange is now provided by usePersistentPaginationState
 
   if (status === 'loading' || isLoading) {
     return (

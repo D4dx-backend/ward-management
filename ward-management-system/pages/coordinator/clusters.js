@@ -10,6 +10,7 @@ import Modal from '../../components/Modal';
 import SearchInput from '../../components/SearchInput';
 import DeleteModal from '../../components/DeleteModal';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
+import { usePersistentPaginationState } from '../../hooks/usePersistentState';
 
 export default function CoordinatorClusters() {
   const { data: session, status } = useSession();
@@ -46,8 +47,16 @@ export default function CoordinatorClusters() {
   });
   
   // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
+  // Persistent pagination state - survives tab switches and page reloads
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'coordinatorClustersPage',
+    itemsPerPageKey: 'coordinatorClustersItemsPerPage'
+  });
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -83,8 +92,21 @@ export default function CoordinatorClusters() {
     }
     
     setFilteredClusters(filtered);
-    setCurrentPage(1);
   }, [clusters, searchTerm, selectedWard]);
+  
+  // Track if this is initial load to prevent unnecessary pagination reset
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  useEffect(() => {
+    if (!isInitialLoad && clusters.length > 0) {
+      console.log('[CoordinatorClusters] Filters changed, resetting pagination');
+      handlePageChange(1);
+    }
+    
+    if (isInitialLoad && clusters.length > 0) {
+      setIsInitialLoad(false);
+    }
+  }, [searchTerm, selectedWard, handlePageChange, isInitialLoad, clusters.length]);
 
   // Filter wards based on district and panchayath selection
   useEffect(() => {
@@ -252,9 +274,7 @@ export default function CoordinatorClusters() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedClusters = filteredClusters.slice(startIndex, endIndex);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
+  // handlePageChange is now provided by usePersistentPaginationState
 
   // Get unique districts
   const getUniqueDistricts = () => {

@@ -42,6 +42,7 @@ export default function AdminDockerSurveys() {
     handlePageChange,
     handleItemsPerPageChange,
     resetPagination,
+    conditionalReset,
   } = usePagination(filteredSurveys, 10);
 
   useEffect(() => {
@@ -50,6 +51,9 @@ export default function AdminDockerSurveys() {
     }
   }, [session]);
 
+  // Track if this is the initial load to avoid resetting pagination on mount
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
   useEffect(() => {
     // Filter surveys based on search term and status
     let filtered = data.surveys || [];
@@ -74,8 +78,17 @@ export default function AdminDockerSurveys() {
     }
 
     setFilteredSurveys(filtered);
-    resetPagination(); // Reset to first page when filters change
-  }, [data.surveys, searchTerm, filterStatus, resetPagination]);
+    
+    // Only reset to page 1 if this is not the initial load (filters actually changed)
+    if (!isInitialLoad && data.surveys && data.surveys.length > 0) {
+      console.log('[DockerSurveys] Filters changed, resetting pagination');
+      conditionalReset(true);
+    }
+    
+    if (isInitialLoad && data.surveys && data.surveys.length > 0) {
+      setIsInitialLoad(false);
+    }
+  }, [data.surveys, searchTerm, filterStatus, conditionalReset, isInitialLoad]);
 
   const fetchSurveys = async () => {
     try {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -37,6 +37,7 @@ export default function CoordinatorInstructionManagement() {
     handlePageChange,
     handleItemsPerPageChange,
     resetPagination,
+    conditionalReset,
   } = usePagination(filteredInstructions, 10);
 
   useEffect(() => {
@@ -82,8 +83,21 @@ export default function CoordinatorInstructionManagement() {
     }
 
     setFilteredInstructions(filtered);
-    resetPagination();
-  }, [instructions, searchTerm, statusFilter, priorityFilter, resetPagination]);
+  }, [instructions, searchTerm, statusFilter, priorityFilter]);
+  
+  // Track if this is initial load to prevent unnecessary pagination reset
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  
+  useEffect(() => {
+    if (!isInitialLoad && instructions.length > 0) {
+      console.log('[InstructionManagement] Filters changed, resetting pagination');
+      conditionalReset(true);
+    }
+    
+    if (isInitialLoad && instructions.length > 0) {
+      setIsInitialLoad(false);
+    }
+  }, [searchTerm, statusFilter, priorityFilter, conditionalReset, isInitialLoad, instructions.length]);
 
   const fetchData = async () => {
     setLoading(true);

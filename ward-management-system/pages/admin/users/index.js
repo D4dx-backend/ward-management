@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -13,6 +13,7 @@ import UserWardsModal from '../../../components/UserWardsModal';
 import Pagination from '../../../components/Pagination';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
+import { usePersistentPaginationState, usePersistentFilterState } from '../../../hooks/usePersistentState';
 
 
 export default function Users() {
@@ -22,11 +23,31 @@ export default function Users() {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   
-  // Simple pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  // Persistent pagination state - survives tab switches and page reloads
+  const {
+    currentPage,
+    itemsPerPage,
+    handlePageChange,
+    handleItemsPerPageChange
+  } = usePersistentPaginationState(1, 10, {
+    pageKey: 'adminUsersPage',
+    itemsPerPageKey: 'adminUsersItemsPerPage'
+  });
+
+  // Persistent search/filter state
+  const {
+    filters,
+    updateFilter,
+    clearFilters
+  } = usePersistentFilterState({
+    searchTerm: ''
+  }, {
+    filterKey: 'adminUsersFilters'
+  });
+
+  const searchTerm = filters.searchTerm || '';
+  const setSearchTerm = (value) => updateFilter('searchTerm', value);
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,23 +80,19 @@ export default function Users() {
   });
 
 
-  // Calculate pagination values
+  // Calculate pagination values - now using persistent state
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-
-
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  const handleItemsPerPageChange = (newItemsPerPage) => {
-    setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page
-  };
+  // Auto-adjust page if current page exceeds total pages
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      handlePageChange(Math.max(1, totalPages));
+    }
+  }, [totalPages, currentPage, handlePageChange]);
 
   useEffect(() => {
     // Check if user is authenticated and is state admin
@@ -136,6 +153,9 @@ export default function Users() {
     }
   };
 
+  // Track previous search term to detect actual changes
+  const prevSearchTermRef = useRef('');
+  
   useEffect(() => {
     // Filter users based on search term
     if (searchTerm.trim()) {
@@ -150,8 +170,19 @@ export default function Users() {
     } else {
       setFilteredUsers(users);
     }
-    setCurrentPage(1); // Reset to first page when search changes
-  }, [users, searchTerm]);
+    
+    // Only reset to page 1 if search term actually changed (not just component mounting or data loading)
+    if (searchTerm !== prevSearchTermRef.current && users.length > 0 && prevSearchTermRef.current !== '') {
+      console.log('[AdminUsers] Search term actually changed, resetting pagination', { 
+        from: prevSearchTermRef.current, 
+        to: searchTerm 
+      });
+      handlePageChange(1);
+    }
+    
+    // Update previous search term reference
+    prevSearchTermRef.current = searchTerm;
+  }, [users, searchTerm, handlePageChange]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

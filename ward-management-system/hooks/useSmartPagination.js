@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { usePersistentPagination, usePersistentFilteredPagination } from './usePersistentPagination';
 
 /**
  * Smart pagination hook that preserves current page when possible
@@ -9,8 +10,22 @@ export function useSmartPagination(data, defaultItemsPerPage = 10, options = {})
     preservePageOnFilter = true,
     resetOnDataChange = false,
     minPageSize = 5,
-    maxPageSize = 100
+    maxPageSize = 100,
+    persistent = true
   } = options;
+
+  // Use persistent pagination by default for better user experience
+  if (persistent) {
+    console.log('[useSmartPagination] Using persistent pagination mode');
+    return usePersistentPagination(data, defaultItemsPerPage, {
+      preservePageOnFilter,
+      minPageSize,
+      maxPageSize,
+      resetOnRouteChange: resetOnDataChange
+    });
+  }
+
+  console.log('[useSmartPagination] Using non-persistent pagination mode');
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultItemsPerPage);
@@ -143,7 +158,16 @@ export function useSmartPagination(data, defaultItemsPerPage = 10, options = {})
 }
 
 // Specialized hook for filtered data that preserves pagination state
-export function useFilteredPagination(allData, filterFn, defaultItemsPerPage = 10) {
+export function useFilteredPagination(allData, filterFn, defaultItemsPerPage = 10, options = {}) {
+  const { persistent = true, ...otherOptions } = options;
+
+  // Use persistent filtered pagination by default for better user experience
+  if (persistent) {
+    console.log('[useFilteredPagination] Using persistent filtered pagination mode');
+    return usePersistentFilteredPagination(allData, filterFn, defaultItemsPerPage, otherOptions);
+  }
+
+  console.log('[useFilteredPagination] Using non-persistent filtered pagination mode');
   const [filters, setFilters] = useState({});
   
   const filteredData = useMemo(() => {
@@ -153,7 +177,8 @@ export function useFilteredPagination(allData, filterFn, defaultItemsPerPage = 1
 
   const pagination = useSmartPagination(filteredData, defaultItemsPerPage, {
     preservePageOnFilter: true,
-    resetOnDataChange: false
+    resetOnDataChange: false,
+    persistent: false // Disable persistence for the inner hook when outer hook is non-persistent
   });
 
   const updateFilter = useCallback((key, value) => {
