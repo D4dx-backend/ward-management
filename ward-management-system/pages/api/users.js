@@ -32,10 +32,10 @@ export default async function handler(req, res) {
   // Handle GET: list users (with minimal assigned wards info)
   if (req.method === 'GET') {
     try {
-      const { role, page = 1, limit = 50 } = req.query;
+      const { role, page = 1 } = req.query;
 
       if (process.env.NODE_ENV === 'development') {
-        console.log('Users API called with:', { role, page, limit, userRole: session.user.role });
+        console.log('Users API called with:', { role, page, userRole: session.user.role });
       }
 
       // Build query
@@ -49,14 +49,13 @@ export default async function handler(req, res) {
       }
 
       // Calculate pagination
-      const skip = (parseInt(page) - 1) * parseInt(limit);
+      const skip = (parseInt(page) - 1);
 
       // Fetch users
       const users = await User.find(query)
         .select('name email role district mobileNumber createdAt')
         .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit));
+        .skip(skip);
 
       // Add assigned wards for each user based on their role
       const usersWithWards = await Promise.all(users.map(async (user) => {
