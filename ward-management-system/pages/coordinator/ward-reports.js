@@ -10,9 +10,8 @@ import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
 import Modal from '../../components/Modal';
 import { ShimmerDashboard } from '../../components/Shimmer';
-import { usePersistentData } from '../../hooks/usePersistentData';
-import { CACHE_KEYS, getCacheConfig } from '../../config/cache';
-import { useSmartPagination } from '../../hooks/useSmartPagination';
+import { usePersistedData } from '../../lib/simpleCache';
+
 
 export default function CoordinatorWardReports() {
   const { data: session, status } = useSession();
@@ -33,47 +32,54 @@ export default function CoordinatorWardReports() {
     data: wardReports = [], 
     loading: isLoading, 
     error: dataError, 
-    refresh: refreshReports,
-    isStale
-  } = usePersistentData(
-    CACHE_KEYS.COORDINATOR_WARD_REPORTS,
-    async ({ signal }) => {
-      const response = await axios.get('/api/responses', {
-        params: {
-          formType: 'wardReport',
-          coordinatorOnly: 'true'
-        },
-        signal // Support for request cancellation
-      });
+    refresh: refreshReports
+  } = usePersistedData(
+    'coordinator_ward_reports',
+    async () => {
+      try {
+        const response = await axios.get('/api/responses', {
+          params: {
+            formType: 'wardReport',
+            coordinatorOnly: 'true'
+          }
+        });
 
-      // Transform the response data to match the expected format
-      return response.data.map(report => ({
-        _id: report._id,
-        title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
-        type: report.formType,
-        weekNumber: report.weekNumber,
-        year: report.year,
-        status: 'submitted', // All fetched reports are submitted
-        submittedBy: report.respondent,
-        ward: report.ward,
-        submittedAt: report.submittedAt,
-        responses: report.responses,
-        formTemplate: report.formTemplate
-      }));
+        // Transform the response data to match the expected format
+        return response.data.map(report => ({
+          _id: report._id,
+          title: report.formTemplate?.title || `Ward Report - Week ${report.weekNumber}`,
+          type: report.formType,
+          weekNumber: report.weekNumber,
+          year: report.year,
+          status: 'submitted', // All fetched reports are submitted
+          submittedBy: report.respondent,
+          ward: report.ward,
+          submittedAt: report.submittedAt,
+          responses: report.responses,
+          formTemplate: report.formTemplate
+        }));
+      } catch (error) {
+        console.error('Error fetching ward reports:', error);
+        return [];
+      }
     },
     {
-      ...getCacheConfig(CACHE_KEYS.COORDINATOR_WARD_REPORTS),
-      dependencies: [status, session?.user?.role],
-      onSuccess: (data) => {
-        console.log(`Loaded ${data.length} ward reports from ${isLoading ? 'server' : 'cache'}`);
-      },
-      onError: (error) => {
-        console.error('Failed to load ward reports:', error);
-      }
+      ttl: 60 * 60 * 1000, // Cache for 1 hour
+      dependencies: [status, session?.user?.role]
     }
   );
 
   const [error, setError] = useState('');
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Ward Reports Debug:');
+    console.log('- Status:', status);
+    console.log('- Session:', session);
+    console.log('- Ward Reports Data:', wardReports);
+    console.log('- Is Loading:', isLoading);
+    console.log('- Data Error:', dataError);
+  }, [status, session, wardReports, isLoading, dataError]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -93,7 +99,7 @@ export default function CoordinatorWardReports() {
   
   // Filter reports based on search and filters
   const filteredReports = useMemo(() => {
-    let filtered = wardReports;
+    let filtered = wardReports || [];
 
     if (searchTerm) {
       filtered = filtered.filter(report =>
@@ -125,19 +131,37 @@ export default function CoordinatorWardReports() {
     return filtered;
   }, [wardReports, searchTerm, filter]);
 
-  // Smart pagination that preserves current page when possible
-  const {
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filter]);
+
+  // Simple pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  
+  const totalItems = filteredReports.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedReports = filteredReports.slice(startIndex, startIndex + itemsPerPage);
+  
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+  
+  const handleItemsPerPageChange = (newItemsPerPage) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1);
+  };
+  
+  const paginationInfo = {
     currentPage,
-    itemsPerPage,
-    paginatedData: paginatedReports,
+    totalPages,
     totalItems,
-    handlePageChange,
-    handleItemsPerPageChange,
-    paginationInfo
-  } = useSmartPagination(filteredReports, 10, {
-    preservePageOnFilter: true,
-    resetOnDataChange: false
-  });
+    itemsPerPage,
+    startIndex: startIndex + 1,
+    endIndex: Math.min(startIndex + itemsPerPage, totalItems)
+  };
 
 
 
@@ -170,7 +194,7 @@ export default function CoordinatorWardReports() {
     setShowReportModal(true);
   };
 
-  const uniqueWards = wardReports
+  const uniqueWards = (wardReports || [])
     .filter(report => report.ward)
     .reduce((acc, report) => {
       if (!acc.find(ward => ward._id === report.ward._id)) {
@@ -179,7 +203,7 @@ export default function CoordinatorWardReports() {
       return acc;
     }, []);
 
-  if (isLoading) {
+  if (status === 'loading' || isLoading) {
     return (
       <Layout>
         <ShimmerDashboard />
@@ -202,35 +226,19 @@ export default function CoordinatorWardReports() {
           <Button
             onClick={refreshReports}
             disabled={isLoading}
-            className={`flex items-center gap-2 ${isStale ? 'bg-yellow-500 hover:bg-yellow-600' : ''}`}
-            title={isStale ? 'Data may be outdated - click to refresh' : 'Refresh data'}
+            className="flex items-center gap-2"
+            title="Refresh data"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            {isLoading ? 'Refreshing...' : isStale ? 'Update Available' : 'Refresh'}
+            {isLoading ? 'Refreshing...' : 'Refresh'}
           </Button>
         </div>
 
-        {/* Data freshness indicator */}
-        {isStale && !isLoading && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm">
-                  You're viewing cached data. Fresh data is being loaded in the background.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {error && (
+
+        {(error || dataError) && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -239,7 +247,7 @@ export default function CoordinatorWardReports() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm">{error}</p>
+                <p className="text-sm">{error || dataError?.message || 'Failed to load ward reports'}</p>
               </div>
             </div>
           </div>

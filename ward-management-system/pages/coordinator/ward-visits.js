@@ -99,7 +99,7 @@ export default function WardVisits() {
 
   useEffect(() => {
     // Filter visits based on search term and filters
-    let filtered = visits;
+    let filtered = visits || [];
 
     if (searchTerm) {
       filtered = filtered.filter(visit =>
@@ -169,8 +169,8 @@ export default function WardVisits() {
       if (editingVisit) {
         // Update existing visit
         const response = await axios.put(`/api/ward-visits?visitId=${editingVisit._id}`, formData);
-        // Update the visit in the list
-        setVisits(visits.map(v => v._id === editingVisit._id ? response.data : v));
+        // Refresh the visits data to get the updated visit
+        await refreshVisits();
         setError('');
         setSuccess('Visit updated successfully!');
         
@@ -921,7 +921,7 @@ export default function WardVisits() {
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Showing {filteredVisits.length} of {visits.length} visits
+                  Showing {filteredVisits.length} of {visits?.length || 0} visits
                 </div>
               </div>
             </div>

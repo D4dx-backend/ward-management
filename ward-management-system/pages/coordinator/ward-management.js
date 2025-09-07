@@ -44,7 +44,7 @@ export default function WardManagement() {
   }, [status, session, router]);
 
   useEffect(() => {
-    let filtered = wards;
+    let filtered = wards || [];
 
     if (searchTerm) {
       filtered = filtered.filter(ward =>

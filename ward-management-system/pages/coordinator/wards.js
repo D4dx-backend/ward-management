@@ -20,7 +20,7 @@ export default function CoordinatorWards() {
 
   // Use persistent data hook to prevent unnecessary reloading
   const { 
-    data: wards = [], 
+    data: wardsData, 
     loading: isLoading, 
     error: dataError, 
     refresh: refreshWards 
@@ -43,15 +43,27 @@ export default function CoordinatorWards() {
     }
   );
 
+  // Ensure wards is always an array
+  const wards = wardsData || [];
+
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'coordinator') {
+    } else if (status === 'authenticated' && session?.user?.role !== 'coordinator') {
       router.push('/');
     }
   }, [status, session, router]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Debug - Session status:', status);
+    console.log('Debug - Session data:', session);
+    console.log('Debug - Wards data:', wardsData);
+    console.log('Debug - Is loading:', isLoading);
+    console.log('Debug - Data error:', dataError);
+  }, [status, session, wardsData, isLoading, dataError]);
 
   useEffect(() => {
     if (dataError) {
@@ -63,7 +75,7 @@ export default function CoordinatorWards() {
 
   useEffect(() => {
     // Filter wards based on search term
-    let filtered = wards;
+    let filtered = wards || [];
 
     if (searchTerm) {
       filtered = filtered.filter(ward =>
@@ -161,7 +173,7 @@ export default function CoordinatorWards() {
                 className="md:w-96"
               />
               <div className="text-sm text-gray-600">
-                {filteredWards.length} of {wards.length} wards
+                {filteredWards.length} of {wards?.length || 0} wards
               </div>
             </div>
           </div>

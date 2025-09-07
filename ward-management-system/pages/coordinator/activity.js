@@ -35,7 +35,7 @@ export default function CoordinatorActivity() {
 
   useEffect(() => {
     // Filter activities based on search term and filters
-    let filtered = activities;
+    let filtered = activities || [];
 
     if (searchTerm) {
       filtered = filtered.filter(activity =>

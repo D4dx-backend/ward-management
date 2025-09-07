@@ -53,7 +53,7 @@ export default function CoordinatorInstructionManagement() {
 
   useEffect(() => {
     // Filter instructions based on search term, status, and priority
-    let filtered = instructions;
+    let filtered = instructions || [];
 
     if (searchTerm) {
       filtered = filtered.filter(instruction =>

@@ -131,7 +131,7 @@ export default function CoordinatorBasicSurvey() {
     return 'text-red-600';
   };
 
-  const filteredSurveys = data.surveys.filter(survey => {
+  const filteredSurveys = (data.surveys || []).filter(survey => {
     if (filters.ward !== 'all' && survey.ward.name !== filters.ward) return false;
     if (filters.status !== 'all' && survey.status !== filters.status) return false;
     if (filters.dateRange !== 'all') {

@@ -35,7 +35,7 @@ export default function CoordinatorLoginHistory() {
 
   useEffect(() => {
     // Filter login history based on search term and filters
-    let filtered = loginHistory;
+    let filtered = loginHistory || [];
 
     if (searchTerm) {
       filtered = filtered.filter(login =>

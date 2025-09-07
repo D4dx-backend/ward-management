@@ -23,6 +23,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Fetching wards for coordinator:', session.user.id);
+    
     // Get wards where this user is the coordinator with detailed information
     const wards = await Ward.find({
       coordinator: session.user.id,
@@ -32,6 +34,8 @@ export default async function handler(req, res) {
     .populate('coordinator', 'name email')
     .select('name district wardNumber panchayath population totalHouseholds totalClusters status wardAdmin coordinator createdAt updatedAt')
     .sort({ name: 1 });
+
+    console.log(`Found ${wards.length} wards for coordinator ${session.user.id}`);
 
     // Get visit statistics for each ward
     const wardsWithStats = await Promise.all(
@@ -74,9 +78,13 @@ export default async function handler(req, res) {
       })
     );
 
+    console.log('Returning wards with stats:', wardsWithStats.length);
     res.status(200).json(wardsWithStats);
   } catch (error) {
     console.error('Error fetching coordinator wards detailed:', error);
-    res.status(500).json({ message: 'Failed to fetch wards' });
+    res.status(500).json({ 
+      message: 'Failed to fetch wards',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 }

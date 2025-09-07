@@ -32,6 +32,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Basic wards API - Fetching wards for coordinator:', session.user.id);
+    
     // Get wards where this user is the coordinator
     const wards = await Ward.find({
       coordinator: session.user.id,
@@ -40,9 +42,13 @@ export default async function handler(req, res) {
     .select('name district wardNumber _id')
     .sort({ name: 1 });
 
+    console.log(`Basic wards API - Found ${wards.length} wards for coordinator ${session.user.id}`);
     res.status(200).json(wards);
   } catch (error) {
     console.error('Error fetching coordinator wards:', error);
-    res.status(500).json({ message: 'Failed to fetch wards' });
+    res.status(500).json({ 
+      message: 'Failed to fetch wards',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 }
