@@ -258,7 +258,7 @@ export default function SignIn() {
             </form>
           )}
           
-          <div className="mt-6 text-center space-y-2">
+          {/* <div className="mt-6 text-center space-y-2">
             {isMobile && (
               <button 
                 onClick={() => router.push('/auth/admin')}
@@ -270,7 +270,7 @@ export default function SignIn() {
             <p className="text-sm text-gray-600">
               Demo: admin@d4media.com / admin123
             </p>
-          </div>
+          </div> */}
         </Card>
       </div>
     </div>
