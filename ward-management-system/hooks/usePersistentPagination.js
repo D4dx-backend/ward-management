@@ -72,7 +72,7 @@ export function usePersistentPagination(data, defaultItemsPerPage = 10, options 
   const { currentPage, itemsPerPage } = paginationState;
 
   // Calculate pagination values
-  const totalItems = data.length;
+  const totalItems = data?.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Auto-adjust current page if it exceeds total pages
@@ -104,7 +104,7 @@ export function usePersistentPagination(data, defaultItemsPerPage = 10, options 
 
   // Calculate paginated data
   const paginatedData = useMemo(() => {
-    if (totalItems === 0) return [];
+    if (!data || totalItems === 0) return [];
     
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -297,6 +297,7 @@ export function usePersistentFilteredPagination(allData, filterFn, defaultItemsP
   const [filters, setFilters] = useState(() => loadPersistedFilters());
   
   const filteredData = useMemo(() => {
+    if (!allData) return [];
     if (!filterFn) return allData;
     return allData.filter(item => filterFn(item, filters));
   }, [allData, filterFn, filters]);
