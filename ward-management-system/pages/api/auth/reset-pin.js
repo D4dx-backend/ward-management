@@ -20,11 +20,11 @@ async function sendWhatsAppMessage(phoneNumber, message) {
     });
 
     const result = await response.json();
-    
+
     if (!response.ok) {
       throw new Error(`WhatsApp API error: ${result.message || 'Unknown error'}`);
     }
-    
+
     return result;
   } catch (error) {
     console.error('WhatsApp sending error:', error);
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     }
 
     // Find user by mobile number
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       mobileNumber: mobileNumber,
       role: { $in: ['coordinator', 'wardAdmin'] }
     });
@@ -63,38 +63,29 @@ export default async function handler(req, res) {
 
     // Generate new PIN
     const newPIN = generatePIN();
-    
+
     // Update user's PIN in database
     user.pinCode = newPIN;
     await user.save();
 
     // Prepare WhatsApp message
-    const whatsappMessage = `🎉 Welcome to Model Ward Management System!
+    const whatsappMessage = `🔐 PIN Reset - Ward Management System
 
-🔐 PIN Reset Successful
+Hi ${user.name},
 
-Your Updated Login Details:
-☎️ Phone Number: ${mobileNumber}
+Your pin has been reset successfully.
+
+New Login Details:
+�  Mobile Number: ${mobileNumber}
 🔐 New PIN: ${newPIN}
-👥 Role: ${user.role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
-🌐 Login URL: https://model.myward.in
+🌐 Login URL: http://model.myward.in
 
-⚠️ Important Security Notes:
-• Keep your PIN secure
-• Do not share your PIN with anyone
-• Use this 4-digit PIN to login
-
-Need help? Contact the State Admin
-Ph: 8606016678
-
-Best regards,
-State Election Committee
-Welfare Party Kerala`;
+If you didn't request this reset, contact your administrator immediately.`;
 
     // Send WhatsApp message
     try {
       await sendWhatsAppMessage(mobileNumber, whatsappMessage);
-      
+
       // Log the PIN reset activity
       await logActivity({
         userId: user._id,
@@ -113,18 +104,18 @@ Welfare Party Kerala`;
         userAgent: req.headers['user-agent']
       });
 
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: 'PIN reset successful. New PIN sent to your WhatsApp.',
         success: true
       });
-      
+
     } catch (whatsappError) {
       // If WhatsApp fails, revert the PIN change
       user.pinCode = user.pinCode; // Keep old PIN
       await user.save();
-      
+
       console.error('WhatsApp sending failed:', whatsappError);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Failed to send PIN via WhatsApp. Please try again later.',
         error: whatsappError.message
       });
@@ -132,7 +123,7 @@ Welfare Party Kerala`;
 
   } catch (error) {
     console.error('PIN reset error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Internal server error during PIN reset',
       error: error.message
     });
