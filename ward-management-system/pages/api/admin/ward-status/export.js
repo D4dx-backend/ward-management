@@ -120,9 +120,12 @@ async function exportWardStatus(res) {
   // Convert to CSV
   const csv = convertToCSV(wardStatusData);
   
-  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename=ward-status-${new Date().toISOString().split('T')[0]}.csv`);
-  res.status(200).send(csv);
+  
+  // Add UTF-8 BOM for better Excel compatibility
+  const csvWithBOM = '\uFEFF' + csv;
+  res.status(200).send(csvWithBOM);
 }
 
 async function exportRelationships(res) {
@@ -182,9 +185,12 @@ async function exportRelationships(res) {
   const flattenedData = relationshipData.flat();
   const csv = convertToCSV(flattenedData);
   
-  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename=ward-relationships-${new Date().toISOString().split('T')[0]}.csv`);
-  res.status(200).send(csv);
+  
+  // Add UTF-8 BOM for better Excel compatibility
+  const csvWithBOM = '\uFEFF' + csv;
+  res.status(200).send(csvWithBOM);
 }
 
 async function exportForms(res) {
@@ -219,9 +225,12 @@ async function exportForms(res) {
 
   const csv = convertToCSV(formData);
   
-  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename=form-responses-${new Date().toISOString().split('T')[0]}.csv`);
-  res.status(200).send(csv);
+  
+  // Add UTF-8 BOM for better Excel compatibility
+  const csvWithBOM = '\uFEFF' + csv;
+  res.status(200).send(csvWithBOM);
 }
 
 function convertToCSV(data) {

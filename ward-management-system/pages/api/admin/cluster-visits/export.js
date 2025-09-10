@@ -216,9 +216,12 @@ export default async function handler(req, res) {
       .map((row) => row.map((v) => csvEscape(String(v))).join(','))
       .join('\n');
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="cluster-visits-${new Date().toISOString().split('T')[0]}.csv"`);
-    return res.status(200).send(csv);
+    
+    // Add UTF-8 BOM for better Excel compatibility
+    const csvWithBOM = '\uFEFF' + csv;
+    return res.status(200).send(csvWithBOM);
   } catch (error) {
     console.error('Error exporting cluster visits:', error);
     return res.status(500).json({ error: 'Failed to export cluster visits' });

@@ -148,21 +148,22 @@ async function handleGetWards(req, res, session) {
     try {
       console.log('Executing ward query with timeout...');
       
-      // Use Promise.race for timeout handling
+      // Use Promise.race for timeout handling with longer timeout for production
       let wardQuery = Ward.find(query)
         .populate('coordinator', 'name email district')
         .populate('wardAdmin', 'name email district')
         .sort({ district: 1, name: 1 });
       
-      // Only apply pagination if limit is specified
-      if (limitNum) {
-        wardQuery = wardQuery.skip(skip).limit(limitNum);
-      }
+      // Apply default pagination for production performance
+      const defaultLimit = 1000; // Reasonable default limit
+      const actualLimit = limitNum || defaultLimit;
+      wardQuery = wardQuery.skip(skip).limit(actualLimit);
       
       const queryPromise = wardQuery.lean().exec();
 
+      // Increased timeout for production
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Query timeout')), 15000)
+        setTimeout(() => reject(new Error('Query timeout')), 30000)
       );
 
       wards = await Promise.race([queryPromise, timeoutPromise]);
@@ -205,18 +206,21 @@ async function handleGetWards(req, res, session) {
       });
     }
 
-    // Get total count with timeout
+    // Get total count with timeout - skip if not needed for performance
     let totalCount = wards.length;
-    try {
-      const countPromise = Ward.countDocuments(query).exec();
-      const countTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Count timeout')), 5000)
-      );
-      
-      totalCount = await Promise.race([countPromise, countTimeoutPromise]);
-    } catch (countError) {
-      console.warn('Count query failed, using result length:', countError.message);
-      // Use wards.length as fallback
+    if (limitNum) {
+      try {
+        const countPromise = Ward.countDocuments(query).exec();
+        const countTimeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Count timeout')), 10000)
+        );
+        
+        totalCount = await Promise.race([countPromise, countTimeoutPromise]);
+      } catch (countError) {
+        console.warn('Count query failed, using result length:', countError.message);
+        // Use wards.length as fallback for pagination
+        totalCount = wards.length;
+      }
     }
 
     console.log('Total count:', totalCount);

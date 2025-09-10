@@ -71,16 +71,27 @@ export default function Clusters() {
 
   const { 
     data: wards = [], 
-    loading: wardsLoading 
+    loading: wardsLoading,
+    error: wardsError
   } = usePersistedData(
     'admin_wards_for_clusters',
     async () => {
-      const response = await axios.get('/api/wards');
-      return response.data || [];
+      try {
+        const response = await axios.get('/api/wards', {
+          timeout: 30000 // 30 second timeout
+        });
+        return response.data || [];
+      } catch (error) {
+        console.error('Failed to fetch wards:', error);
+        // Return empty array on error to prevent null data issues
+        return [];
+      }
     },
     {
       ttl: 60 * 60 * 1000,
-      dependencies: [status, session?.user?.role]
+      dependencies: [status, session?.user?.role],
+      retryOnError: true,
+      maxRetries: 2
     }
   );
 
@@ -99,10 +110,13 @@ export default function Clusters() {
     if (clustersError) {
       const errorMessage = clustersError.response?.data?.message || 'Failed to fetch clusters';
       setError(errorMessage);
+    } else if (wardsError) {
+      const errorMessage = wardsError.response?.data?.message || 'Failed to fetch wards data';
+      setError(`Ward data loading failed: ${errorMessage}`);
     } else {
       setError('');
     }
-  }, [clustersError]);
+  }, [clustersError, wardsError]);
 
   useEffect(() => {
     // Set selected ward from query parameter or for Ward Incharge
@@ -158,7 +172,9 @@ export default function Clusters() {
 
   // Filter wards based on district and panchayath selection
   useEffect(() => {
-    let filtered = wards;
+    // Ensure wards is an array before filtering
+    const wardsArray = Array.isArray(wards) ? wards : [];
+    let filtered = wardsArray;
     
     if (selectedDistrict) {
       filtered = filtered.filter(ward => ward.district === selectedDistrict);
@@ -200,25 +216,28 @@ export default function Clusters() {
 
   // Get unique districts from wards (not clusters) so all wards are discoverable
   const getUniqueDistricts = () => {
-    const districts = [...new Set(wards.map(ward => ward.district))];
+    if (!Array.isArray(wards) || wards.length === 0) return [];
+    const districts = [...new Set(wards.map(ward => ward?.district).filter(Boolean))];
     return districts.sort();
   };
 
   // Get unique panchayaths from wards filtered by selected district
   const getUniquePanchayaths = () => {
+    if (!Array.isArray(wards) || wards.length === 0) return [];
     const source = selectedDistrict
-      ? wards.filter(ward => ward.district === selectedDistrict)
+      ? wards.filter(ward => ward?.district === selectedDistrict)
       : wards;
-    const panchayaths = [...new Set(source.map(ward => ward.panchayath))];
+    const panchayaths = [...new Set(source.map(ward => ward?.panchayath).filter(Boolean))];
     return panchayaths.sort();
   };
 
   // Bulk modal: panchayaths based on bulk district
   const getBulkPanchayaths = () => {
+    if (!Array.isArray(wards) || wards.length === 0) return [];
     const source = bulkFilters.district
-      ? wards.filter(ward => ward.district === bulkFilters.district)
+      ? wards.filter(ward => ward?.district === bulkFilters.district)
       : wards;
-    return [...new Set(source.map(ward => ward.panchayath))].sort();
+    return [...new Set(source.map(ward => ward?.panchayath).filter(Boolean))].sort();
   };
 
   // Get unique wards for filters
@@ -700,6 +719,24 @@ export default function Clusters() {
               </div>
               <div className="ml-3">
                 <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {wardsError && !error && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">
+                  Ward data is temporarily unavailable. Some filtering options may be limited. 
+                  {wardsError?.response?.status === 504 && " This appears to be a temporary server timeout."}
+                </p>
               </div>
             </div>
           </div>

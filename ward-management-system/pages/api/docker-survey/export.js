@@ -88,11 +88,13 @@ export default async function handler(req, res) {
       )
     ].join('\n');
 
-    // Set headers for file download
-    res.setHeader('Content-Type', 'text/csv');
+    // Set headers for file download with UTF-8 encoding
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=docker-surveys-${new Date().toISOString().split('T')[0]}.csv`);
     
-    res.status(200).send(csvContent);
+    // Add UTF-8 BOM for better Excel compatibility
+    const csvWithBOM = '\uFEFF' + csvContent;
+    res.status(200).send(csvWithBOM);
   } catch (error) {
     console.error('Error exporting Docket Surveys:', error);
     res.status(500).json({ message: 'Error exporting Docket Surveys' });

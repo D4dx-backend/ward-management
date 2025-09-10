@@ -298,11 +298,13 @@ export default async function handler(req, res) {
         // Default CSV export
         const csvContent = csvRows.join('\n');
         
-        // Set headers for CSV download
-        res.setHeader('Content-Type', 'text/csv');
+        // Set headers for CSV download with UTF-8 encoding
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${formTemplate.title}_detailed_responses.csv"`);
         
-        return res.status(200).send(csvContent);
+        // Add UTF-8 BOM for better Excel compatibility
+        const csvWithBOM = '\uFEFF' + csvContent;
+        return res.status(200).send(csvWithBOM);
       }
     } catch (error) {
       return res.status(500).json({ message: 'Error exporting form responses', error: error.message });

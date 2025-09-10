@@ -75,9 +75,12 @@ export default async function handler(req, res) {
           csvContent += convertToCSV(exportData.data.forms);
         }
 
-        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=recurring-export-${new Date().toISOString().split('T')[0]}.csv`);
-        res.status(200).send(csvContent);
+        
+        // Add UTF-8 BOM for better Excel compatibility
+        const csvWithBOM = '\uFEFF' + csvContent;
+        res.status(200).send(csvWithBOM);
       } else {
         res.status(200).json(exportData);
       }

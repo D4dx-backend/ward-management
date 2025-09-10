@@ -124,11 +124,13 @@ export default async function handler(req, res) {
         csvContent += `"${form.title}","${form.type || 'one-time'}",${totalWards},${submittedCount},${pendingCount},${completionRate}%\n`;
       }
 
-      // Set headers for CSV download
-      res.setHeader('Content-Type', 'text/csv');
+      // Set headers for CSV download with UTF-8 encoding
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="form-statistics-${timeframe}-${new Date().toISOString().split('T')[0]}.csv"`);
       
-      res.status(200).send(csvContent);
+      // Add UTF-8 BOM for better Excel compatibility
+      const csvWithBOM = '\uFEFF' + csvContent;
+      res.status(200).send(csvWithBOM);
     } else {
       res.status(400).json({ message: 'Unsupported format. Only CSV is supported.' });
     }
