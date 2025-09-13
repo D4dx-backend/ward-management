@@ -9,14 +9,19 @@ import Button from '../../components/Button';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
+import { useInstantDashboard } from '../../hooks/useInstantLoad';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [error, setError] = useState('');
+  const [dashboardError, setDashboardError] = useState('');
 
   // Use the dashboard data hook with caching
-  const { stats, loading, error: dataError, refetch } = useDashboardData('stateAdmin');
+  const { data: dashboardData, loading, error: dataError, refresh } = useInstantDashboard('stateAdmin');
+  const stats = dashboardData?.stats || {};
+  const recentReports = dashboardData?.recentReports || [];
+  const recentActivity = dashboardData?.recentActivity || [];
+  const recentLogins = dashboardData?.recentLogins || [];
 
   useEffect(() => {
     // Check if user is authenticated and is admin
@@ -29,19 +34,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (dataError) {
-      setError('Failed to load dashboard data');
+      setDashboardError('Failed to load dashboard data');
     }
   }, [dataError]);
 
-  if (status === 'loading') {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
-
-  if (loading) {
+  // ZERO-RELOAD: Only show loading on absolute first visit with no cache
+  if (loading && !dashboardData && typeof window !== 'undefined' && !localStorage.getItem('instant_dashboard_stateAdmin')) {
     return (
       <Layout>
         <ShimmerDashboard />
@@ -145,7 +143,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {error && (
+        {dashboardError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -154,11 +152,11 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm">{error}</p>
+                <p className="text-sm">{dashboardError}</p>
                 <button 
                   onClick={() => {
-                    setError('');
-                    refetch();
+                    setDashboardError('');
+                    refresh();
                   }}
                   className="mt-2 text-sm text-red-600 hover:text-red-500 underline"
                 >

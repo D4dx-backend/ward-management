@@ -31,14 +31,19 @@ const Layout = memo(({ children }) => {
 
   // Don't render anything until mounted (prevents SSR issues)
   if (!mounted) {
-    return null;
-  }
-
-  // Show loading state while session is loading
-  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  // AGGRESSIVE NO-RELOAD: Minimize session loading time
+  if (status === 'loading') {
+    // Show minimal loading only for session check
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
       </div>
     );
   }

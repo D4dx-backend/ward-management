@@ -210,7 +210,7 @@ export const usePersistedData = (key, fetcher, options = {}) => {
   return { data, loading, error, refresh };
 };
 
-// Auto cleanup expired entries every 10 minutes (increased interval)
+// Auto cleanup expired entries every 15 minutes (increased interval for better performance)
 if (typeof window !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
@@ -220,5 +220,20 @@ if (typeof window !== 'undefined') {
         timestamps.delete(key);
       }
     }
-  }, 10 * 60 * 1000);
+  }, 15 * 60 * 1000);
+
+  // Add cache size monitoring
+  setInterval(() => {
+    if (cache.size > 100) { // If cache gets too large
+      console.warn('Cache size is large:', cache.size, 'entries');
+      // Clear oldest 20% of entries
+      const entries = Array.from(timestamps.entries());
+      entries.sort((a, b) => a[1] - b[1]);
+      const toClear = entries.slice(0, Math.floor(entries.length * 0.2));
+      toClear.forEach(([key]) => {
+        cache.delete(key);
+        timestamps.delete(key);
+      });
+    }
+  }, 5 * 60 * 1000); // Check every 5 minutes
 }

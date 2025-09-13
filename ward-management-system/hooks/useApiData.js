@@ -144,7 +144,7 @@ export const useApiMutation = (url, options = {}) => {
   };
 };
 
-// Hook for dashboard data with multiple endpoints
+// Enhanced hook for dashboard data with smart caching and loading management
 export const useDashboardData = (userRole) => {
   const [stats, setStats] = useState({});
   const [recentReports, setRecentReports] = useState([]);
@@ -152,15 +152,18 @@ export const useDashboardData = (userRole) => {
   const [recentLogins, setRecentLogins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isStale, setIsStale] = useState(false);
 
-  const fetchDashboardData = useCallback(async (forceRefresh = false) => {
+  const fetchDashboardData = useCallback(async (forceRefresh = false, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
       setError(null);
 
       const cacheKey = `dashboard-${userRole}`;
       
-      // Skip cache if force refresh is requested
+      // Check cache first unless force refresh is requested
       if (!forceRefresh) {
         const cachedData = getCache(cacheKey);
         
@@ -169,19 +172,24 @@ export const useDashboardData = (userRole) => {
           setRecentReports(cachedData.recentReports || []);
           setRecentActivity(cachedData.recentActivity || []);
           setRecentLogins(cachedData.recentLogins || []);
-          setLoading(false);
-          return;
+          setIsStale(false);
+          
+          if (!silent) {
+            setLoading(false);
+          }
+          return cachedData;
         }
       }
 
-      // Fetch dashboard data based on role (prefer optimized single endpoint)
-      // For ward admins, add refresh parameter to bypass cache
-      const refreshParam = userRole === 'wardAdmin' || forceRefresh ? '?refresh=true' : '';
-      
+      // Determine cache time based on role and refresh type
+      const cacheTime = userRole === 'wardAdmin' ? 
+        (forceRefresh ? 10 * 1000 : 30 * 1000) : // Ward admin: 10s for force refresh, 30s normal
+        (forceRefresh ? 30 * 1000 : 2 * 60 * 1000); // Others: 30s for force refresh, 2min normal
+
+      // Build endpoint URLs
+      const refreshParam = forceRefresh ? '?refresh=true' : '';
       const endpoints = {
-        stateAdmin: [
-          `/api/dashboard/stats${refreshParam}`
-        ],
+        stateAdmin: [`/api/dashboard/stats${refreshParam}`],
         coordinator: [
           `/api/dashboard/stats${refreshParam}`,
           '/api/responses?limit=5'
@@ -197,24 +205,15 @@ export const useDashboardData = (userRole) => {
       
       if (requests.length === 0) {
         console.warn(`No endpoints defined for user role: ${userRole}`);
-        setLoading(false);
+        if (!silent) setLoading(false);
         return;
       }
       
+      // Fetch data with error handling
       const responses = await Promise.allSettled(
-        requests.map(url => {
-          console.log(`Fetching dashboard data from: ${url}`);
-          return axios.get(url);
-        })
+        requests.map(url => axios.get(url))
       );
       
-      // Log any failed requests
-      responses.forEach((response, index) => {
-        if (response.status === 'rejected') {
-          console.error(`Failed to fetch from ${requests[index]}:`, response.reason);
-        }
-      });
-
       // Process responses based on role
       let dashboardData = {};
       
@@ -230,17 +229,12 @@ export const useDashboardData = (userRole) => {
       } else {
         const [statsRes, reportsRes] = responses;
         const statsData = statsRes.status === 'fulfilled' ? statsRes.value.data : {};
-        const reportsData = reportsRes.status === 'fulfilled' ? reportsRes.value.data : [];
+        const reportsData = reportsRes?.status === 'fulfilled' ? reportsRes.value.data : [];
         
-        // For ward admin, prioritize the dashboard stats API recent reports
-        // For coordinator, use the separate responses API as fallback
         let recentReportsData = [];
         if (userRole === 'wardAdmin') {
-          // Ward admin: use dashboard stats API recent reports (properly formatted)
           recentReportsData = statsData.recentReports || [];
-          console.log(`Ward admin recent reports from dashboard stats: ${recentReportsData.length}`);
         } else {
-          // Coordinator: use separate responses API or dashboard stats as fallback
           recentReportsData = statsData.recentReports || reportsData;
         }
         
@@ -252,29 +246,52 @@ export const useDashboardData = (userRole) => {
         };
       }
 
-      // Cache the result for a shorter time to ensure fresh data
-      // Use very short cache time for ward admin to ensure fresh data after form submissions
-      const cacheTime = userRole === 'wardAdmin' ? 5 * 1000 : 30 * 1000; // 5 seconds for ward admin, 30 for others
-      
-      // For ward admin, don't cache if we just fetched fresh data
-      if (userRole === 'wardAdmin' && forceRefresh) {
-        console.log('Skipping cache for ward admin force refresh');
-      } else {
-        setCache(cacheKey, dashboardData, cacheTime);
-      }
+      // Cache the result
+      setCache(cacheKey, dashboardData, cacheTime);
 
+      // Update state
       setStats(dashboardData.stats);
       setRecentReports(dashboardData.recentReports);
       setRecentActivity(dashboardData.recentActivity);
       setRecentLogins(dashboardData.recentLogins);
+      setIsStale(false);
+
+      return dashboardData;
 
     } catch (err) {
       console.error('Dashboard data fetch error:', err);
       setError(err);
+      
+      // If we have cached data, mark it as stale but keep showing it
+      const cachedData = getCache(`dashboard-${userRole}`);
+      if (cachedData) {
+        setIsStale(true);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   }, [userRole]);
+
+  // Handle page visibility changes for smart refresh
+  useEffect(() => {
+    const handlePageVisible = (event) => {
+      const { timestamp } = event.detail;
+      const lastHidden = sessionStorage.getItem('lastHidden');
+      
+      if (lastHidden) {
+        const hiddenDuration = timestamp - parseInt(lastHidden);
+        // Refresh if page was hidden for more than 2 minutes
+        if (hiddenDuration > 2 * 60 * 1000) {
+          fetchDashboardData(false, true); // Silent refresh
+        }
+      }
+    };
+
+    window.addEventListener('pageVisible', handlePageVisible);
+    return () => window.removeEventListener('pageVisible', handlePageVisible);
+  }, [fetchDashboardData]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -287,6 +304,8 @@ export const useDashboardData = (userRole) => {
     recentLogins,
     loading,
     error,
-    refetch: () => fetchDashboardData(true) // Always force refresh when manually called
+    isStale,
+    refetch: () => fetchDashboardData(true), // Force refresh
+    silentRefresh: () => fetchDashboardData(false, true) // Silent refresh
   };
 };
