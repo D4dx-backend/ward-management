@@ -163,7 +163,7 @@ export default function AdminDashboard() {
               <div className="ml-3">
                 <p className="text-sm">{dashboardError}</p>
                 <div className="mt-2 space-x-2">
-                  <button 
+                  <button
                     onClick={() => {
                       setDashboardError('');
                       refresh();
@@ -297,12 +297,11 @@ export default function AdminDashboard() {
                 {stats?.recentActivities?.length > 0 ? (
                   stats.recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-center space-x-3">
-                      <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
-                        activity.type === 'ward' ? 'bg-blue-500' :
+                      <div className={`flex-shrink-0 w-2 h-2 rounded-full ${activity.type === 'ward' ? 'bg-blue-500' :
                         activity.type === 'cluster' ? 'bg-green-500' :
-                        activity.type === 'user' ? 'bg-purple-500' :
-                        'bg-orange-500'
-                      }`}></div>
+                          activity.type === 'user' ? 'bg-purple-500' :
+                            'bg-orange-500'
+                        }`}></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-900">{activity.action}</p>
                         <p className="text-xs text-gray-500">{activity.time}</p>
