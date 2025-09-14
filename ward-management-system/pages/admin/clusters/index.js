@@ -14,6 +14,8 @@ import ClusterTableManager from '../../../components/ClusterTableManager';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { usePersistedData } from '../../../lib/simpleCache';
 import { useSmartPagination } from '../../../hooks/useSmartPagination';
+import { ensureArray, safeFilter, safeGet, createSafeFilters } from '../../../utils/safeArrayOperations';
+import { safeArray, safeFind, hasItems } from '../../../utils/safeDataAccess';
 
 export default function Clusters() {
   const { data: session, status } = useSession();
@@ -70,7 +72,7 @@ export default function Clusters() {
   );
 
   const { 
-    data: wards = [], 
+    data: wardsData = [], 
     loading: wardsLoading,
     error: wardsError
   } = usePersistedData(
@@ -94,6 +96,9 @@ export default function Clusters() {
       maxRetries: 2
     }
   );
+
+  // Ensure wards is always an array to prevent null reference errors
+  const wards = safeArray(wardsData);
 
   const isLoading = clustersLoading || wardsLoading;
 
@@ -129,41 +134,50 @@ export default function Clusters() {
     }
   }, [router.query.wardId]);
 
-  // Filter clusters based on search term and all filters
+  // Filter clusters based on search term and all filters - SAFE VERSION
   const filteredClusters = useMemo(() => {
-    let filtered = clusters;
+    let filtered = ensureArray(clusters);
     
+    // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(cluster =>
-        cluster.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cluster.clusterNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cluster.coordinator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        cluster.ward.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      filtered = safeFilter(filtered, createSafeFilters.bySearch([
+        'name', 'clusterNumber', 'coordinator.name', 'ward.name'
+      ], searchTerm));
     }
     
+    // Apply ward filter
     if (selectedWard) {
-      filtered = filtered.filter(cluster => cluster.ward._id === selectedWard);
+      filtered = safeFilter(filtered, createSafeFilters.byProperty('ward._id', selectedWard));
     }
     
+    // Apply district filter
     if (selectedDistrict) {
-      filtered = filtered.filter(cluster => cluster.ward.district === selectedDistrict);
+      filtered = safeFilter(filtered, createSafeFilters.byProperty('ward.district', selectedDistrict));
     }
     
+    // Apply panchayath filter
     if (selectedPanchayath) {
-      filtered = filtered.filter(cluster => cluster.ward.panchayath === selectedPanchayath);
+      filtered = safeFilter(filtered, createSafeFilters.byProperty('ward.panchayath', selectedPanchayath));
     }
     
+    // Apply status filter
     if (selectedStatus) {
       const isActive = selectedStatus === 'active';
-      filtered = filtered.filter(cluster => cluster.isActive === isActive);
+      filtered = safeFilter(filtered, createSafeFilters.byActive(isActive));
     }
     
+    // Apply coordinator filter
     if (selectedCoordinator) {
       if (selectedCoordinator === 'assigned') {
-        filtered = filtered.filter(cluster => cluster.coordinator.name && cluster.coordinator.name.trim() !== '');
+        filtered = safeFilter(filtered, (cluster) => {
+          const name = safeGet(cluster, 'coordinator.name', '');
+          return name && name.trim() !== '';
+        });
       } else if (selectedCoordinator === 'unassigned') {
-        filtered = filtered.filter(cluster => !cluster.coordinator.name || cluster.coordinator.name.trim() === '');
+        filtered = safeFilter(filtered, (cluster) => {
+          const name = safeGet(cluster, 'coordinator.name', '');
+          return !name || name.trim() === '';
+        });
       }
     }
     
@@ -189,12 +203,12 @@ export default function Clusters() {
 
   // Bulk modal: wards filtered by bulk district/panchayath
   const bulkFilteredWards = (() => {
-    let result = wards;
-    if (bulkFilters.district) {
-      result = result.filter(ward => ward.district === bulkFilters.district);
+    let result = Array.isArray(wards) ? wards : [];
+    if (bulkFilters.district && result.length > 0) {
+      result = result.filter(ward => ward?.district === bulkFilters.district);
     }
-    if (bulkFilters.panchayath) {
-      result = result.filter(ward => ward.panchayath === bulkFilters.panchayath);
+    if (bulkFilters.panchayath && result.length > 0) {
+      result = result.filter(ward => ward?.panchayath === bulkFilters.panchayath);
     }
     return result;
   })();
@@ -242,15 +256,15 @@ export default function Clusters() {
 
   // Get unique wards for filters
   const getUniqueWards = () => {
-    let filteredClusters = clusters;
-    if (selectedDistrict) {
-      filteredClusters = clusters.filter(cluster => cluster.ward.district === selectedDistrict);
+    let filteredClusters = Array.isArray(clusters) ? clusters : [];
+    if (selectedDistrict && filteredClusters.length > 0) {
+      filteredClusters = filteredClusters.filter(cluster => cluster?.ward?.district === selectedDistrict);
     }
-    if (selectedPanchayath) {
-      filteredClusters = filteredClusters.filter(cluster => cluster.ward.panchayath === selectedPanchayath);
+    if (selectedPanchayath && filteredClusters.length > 0) {
+      filteredClusters = filteredClusters.filter(cluster => cluster?.ward?.panchayath === selectedPanchayath);
     }
-    const uniqueWards = [...new Map(filteredClusters.map(cluster => [cluster.ward._id, cluster.ward])).values()];
-    return uniqueWards.sort((a, b) => a.name.localeCompare(b.name));
+    const uniqueWards = [...new Map(filteredClusters.map(cluster => [cluster?.ward?._id, cluster?.ward]).filter(([id, ward]) => id && ward)).values()];
+    return uniqueWards.sort((a, b) => a?.name?.localeCompare(b?.name) || 0);
   };
 
   // Clear all filters
@@ -667,10 +681,13 @@ export default function Clusters() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Clusters</h1>
-            {router.query.wardId && wards.length > 0 && (
+            {router.query.wardId && hasItems(wards) && (
               <p className="mt-1 text-sm text-gray-600">
                 Clusters for: <span className="font-medium text-gray-900">
-                  {wards.find(w => w._id === router.query.wardId)?.name} - {wards.find(w => w._id === router.query.wardId)?.district}
+                  {(() => {
+                    const selectedWardData = safeFind(wards, w => w && w._id === router.query.wardId);
+                    return selectedWardData ? `${selectedWardData.name || 'Unknown'} - ${selectedWardData.district || 'Unknown'}` : 'Unknown Ward';
+                  })()}
                 </span>
               </p>
             )}

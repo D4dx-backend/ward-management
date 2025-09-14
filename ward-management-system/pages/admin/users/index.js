@@ -398,13 +398,7 @@ export default function Users() {
 
 
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // ELIMINATED: No loading states on revisit
 
   const renderUserForm = (isEdit = false) => (
     <form onSubmit={isEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-6">

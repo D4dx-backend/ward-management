@@ -99,9 +99,9 @@ export default async function handler(req, res) {
         .limit(10)
         .lean();
 
-      // Transform the reports to match the expected format
+      // Transform the reports to match the expected format (reports are already lean objects)
       const transformedReports = reports.map(report => ({
-        ...report.toObject(),
+        ...report,
         form: report.formTemplate, // Map formTemplate to form for compatibility
         user: report.respondent     // Map respondent to user for compatibility
       }));

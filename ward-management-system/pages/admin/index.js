@@ -10,13 +10,15 @@ import ClusterVisitStatus from '../../components/ClusterVisitStatus';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
 
+
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [error, setError] = useState('');
+  const [dashboardError, setDashboardError] = useState('');
 
-  // Use the dashboard data hook with caching
-  const { stats, loading, error: dataError, refetch } = useDashboardData('stateAdmin');
+  // Use the original working dashboard data hook
+  const { stats, recentReports, recentActivity, recentLogins, loading, error: dataError, refetch } = useDashboardData('stateAdmin');
+  const refresh = refetch;
 
   useEffect(() => {
     // Check if user is authenticated and is admin
@@ -29,19 +31,26 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (dataError) {
-      setError('Failed to load dashboard data');
+      console.error('Dashboard error:', dataError);
+      setDashboardError(`Failed to load dashboard data: ${dataError.message || 'Unknown error'}`);
+    } else {
+      setDashboardError('');
     }
   }, [dataError]);
 
-  if (status === 'loading') {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // Debug logging
+  useEffect(() => {
+    console.log('Admin dashboard state:', {
+      loading,
+      error: dataError,
+      hasStats: !!stats,
+      statsKeys: Object.keys(stats || {}),
+      session: session?.user?.role
+    });
+  }, [loading, dataError, stats, session]);
 
-  if (loading) {
+  // Show loading only on initial load
+  if (loading && !stats) {
     return (
       <Layout>
         <ShimmerDashboard />
@@ -145,7 +154,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {error && (
+        {dashboardError && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
               <div className="flex-shrink-0">
@@ -154,16 +163,19 @@ export default function AdminDashboard() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm">{error}</p>
-                <button 
-                  onClick={() => {
-                    setError('');
-                    refetch();
-                  }}
-                  className="mt-2 text-sm text-red-600 hover:text-red-500 underline"
-                >
-                  Try again
-                </button>
+                <p className="text-sm">{dashboardError}</p>
+                <div className="mt-2 space-x-2">
+                  <button 
+                    onClick={() => {
+                      setDashboardError('');
+                      refresh();
+                    }}
+                    className="text-sm text-red-600 hover:text-red-500 underline"
+                  >
+                    Try again
+                  </button>
+
+                </div>
               </div>
             </div>
           </div>

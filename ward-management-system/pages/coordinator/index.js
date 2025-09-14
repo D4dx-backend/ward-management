@@ -14,6 +14,8 @@ import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import CoordinatorReportsList from '../../components/CoordinatorReportsList';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
+import { useInstantDashboard } from '../../hooks/useInstantLoad';
+import { useInstantDashboard } from '../../hooks/useInstantLoad';
 
 export default function CoordinatorDashboard() {
   const { data: session, status } = useSession();
@@ -21,8 +23,14 @@ export default function CoordinatorDashboard() {
   const [coordinatorWards, setCoordinatorWards] = useState([]);
   const [pendingReportsList, setPendingReportsList] = useState([]);
 
-  // Use the dashboard data hook with caching
-  const { stats, recentReports, recentActivity, recentLogins, loading, error, refetch } = useDashboardData('coordinator');
+  // Use instant dashboard - NEVER shows loading on revisit
+  const { data: dashboardData, loading, error, refresh } = useInstantDashboard('coordinator');
+  
+  // Extract data from dashboard response
+  const stats = dashboardData?.stats || {};
+  const recentReports = dashboardData?.recentReports || [];
+  const recentActivity = dashboardData?.recentActivity || [];
+  const recentLogins = dashboardData?.recentLogins || [];
   const [dashboardError, setDashboardError] = useState('');
 
   useEffect(() => {
@@ -49,21 +57,11 @@ export default function CoordinatorDashboard() {
     }
   }, [error]);
 
-  if (status === 'loading') {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // ELIMINATED: No loading states on revisit
 
-  if (loading) {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // AGGRESSIVE NO-RELOAD: Only show loading on very first visit with no cached data
+  // ZERO-RELOAD: Only show loading on absolute first visit with no cache
+  // ELIMINATED: No loading states on revisit
 
   return (
     <Layout>
@@ -94,7 +92,7 @@ export default function CoordinatorDashboard() {
                 <button 
                   onClick={() => {
                     setDashboardError('');
-                    refetch();
+                    refresh();
                   }}
                   className="mt-2 text-sm text-red-600 hover:text-red-500 underline"
                 >

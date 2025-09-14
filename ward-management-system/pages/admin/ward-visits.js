@@ -109,65 +109,74 @@ export default function AdminWardVisits() {
   }, [visitsError]);
 
   useEffect(() => {
-    // Filter visits based on search term and filters
-    let filtered = visits;
+    // Early return if essential data is not ready
+    if (isLoading || !filter) {
+      return;
+    }
 
-    if (searchTerm) {
+    // Filter visits based on search term and filters
+    // Ensure visits is an array to prevent null reference errors
+    let filtered = Array.isArray(visits) ? visits : [];
+
+    if (searchTerm && filtered.length > 0) {
       filtered = filtered.filter(visit =>
-        visit.ward?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.coordinator?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.purpose?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        visit.findings?.toLowerCase().includes(searchTerm.toLowerCase())
+        visit?.ward?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit?.coordinator?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit?.purpose?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        visit?.findings?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    if (filter.coordinator) {
-      filtered = filtered.filter(visit => visit.coordinator?._id === filter.coordinator);
+    // Add null check for filter object
+    if (filter.coordinator && filtered.length > 0) {
+      filtered = filtered.filter(visit => visit?.coordinator?._id === filter.coordinator);
     }
 
-    if (filter.ward) {
-      filtered = filtered.filter(visit => visit.ward?._id === filter.ward);
+    if (filter.ward && filtered.length > 0) {
+      filtered = filtered.filter(visit => visit?.ward?._id === filter.ward);
     }
 
-    if (filter.month) {
+    if (filter.month && filtered.length > 0) {
       filtered = filtered.filter(visit => {
+        if (!visit?.visitDate) return false;
         const visitDate = new Date(visit.visitDate);
         return visitDate.getMonth() + 1 === parseInt(filter.month);
       });
     }
 
-    if (filter.year) {
+    if (filter.year && filtered.length > 0) {
       filtered = filtered.filter(visit => {
+        if (!visit?.visitDate) return false;
         const visitDate = new Date(visit.visitDate);
         return visitDate.getFullYear() === parseInt(filter.year);
       });
     }
 
-    if (filter.followUpStatus) {
+    if (filter.followUpStatus && filtered.length > 0) {
       if (filter.followUpStatus === 'required') {
-        filtered = filtered.filter(visit => visit.followUpRequired);
+        filtered = filtered.filter(visit => visit?.followUpRequired);
       } else if (filter.followUpStatus === 'completed') {
-        filtered = filtered.filter(visit => visit.followUpRequired && visit.followUpCompleted);
+        filtered = filtered.filter(visit => visit?.followUpRequired && visit?.followUpCompleted);
       } else if (filter.followUpStatus === 'pending') {
-        filtered = filtered.filter(visit => visit.followUpRequired && !visit.followUpCompleted);
+        filtered = filtered.filter(visit => visit?.followUpRequired && !visit?.followUpCompleted);
       } else if (filter.followUpStatus === 'overdue') {
         filtered = filtered.filter(visit => 
-          visit.followUpRequired && 
-          !visit.followUpCompleted && 
-          visit.followUpDate && 
+          visit?.followUpRequired && 
+          !visit?.followUpCompleted && 
+          visit?.followUpDate && 
           new Date(visit.followUpDate) < new Date()
         );
       }
     }
 
     setFilteredVisits(filtered);
-  }, [visits, searchTerm, filter]);
+  }, [visits, searchTerm, filter, isLoading]);
 
 
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
-    setFilter({ ...filter, [name]: value });
+    setFilter(prevFilter => ({ ...(prevFilter || {}), [name]: value }));
   };
 
   const handleViewDetails = (visit) => {
@@ -261,7 +270,7 @@ export default function AdminWardVisits() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Visits</dt>
-                    <dd className="text-lg font-medium text-gray-900">{statistics.totalVisits || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{statistics?.totalVisits || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -281,7 +290,7 @@ export default function AdminWardVisits() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">This Month</dt>
-                    <dd className="text-lg font-medium text-gray-900">{statistics.visitsThisMonth || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{statistics?.visitsThisMonth || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -301,7 +310,7 @@ export default function AdminWardVisits() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Follow-up Pending</dt>
-                    <dd className="text-lg font-medium text-gray-900">{statistics.followUpPending || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{statistics?.followUpPending || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -321,7 +330,7 @@ export default function AdminWardVisits() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Overdue Follow-ups</dt>
-                    <dd className="text-lg font-medium text-gray-900">{statistics.followUpOverdue || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{statistics?.followUpOverdue || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -343,12 +352,12 @@ export default function AdminWardVisits() {
               <div>
                 <select
                   name="coordinator"
-                  value={filter.coordinator}
+                  value={filter?.coordinator || ''}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All State Incharge (SIC)</option>
-                  {coordinators.map((coordinator) => (
+                  {coordinators && coordinators.map((coordinator) => (
                     <option key={coordinator._id} value={coordinator._id}>{coordinator.name}</option>
                   ))}
                 </select>
@@ -357,12 +366,12 @@ export default function AdminWardVisits() {
               <div>
                 <select
                   name="ward"
-                  value={filter.ward}
+                  value={filter?.ward || ''}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">All Wards</option>
-                  {wards.map((ward) => (
+                  {wards && wards.map((ward) => (
                     <option key={ward._id} value={ward._id}>{ward.name}</option>
                   ))}
                 </select>
@@ -371,7 +380,7 @@ export default function AdminWardVisits() {
               <div>
                 <select
                   name="month"
-                  value={filter.month}
+                  value={filter?.month || ''}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -387,7 +396,7 @@ export default function AdminWardVisits() {
               <div>
                 <select
                   name="followUpStatus"
-                  value={filter.followUpStatus}
+                  value={filter?.followUpStatus || ''}
                   onChange={handleFilterChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
@@ -467,7 +476,7 @@ export default function AdminWardVisits() {
 
                 {/* Enhanced Table Body */}
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredVisits.map((visit, index) => (
+                  {filteredVisits && filteredVisits.map((visit, index) => (
                     <tr key={visit._id} className={`hover:bg-blue-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                       {/* Visit Details */}
                       <td className="px-6 py-4 border-r border-gray-200">
@@ -604,7 +613,7 @@ export default function AdminWardVisits() {
                   ))}
 
                   {/* Empty State */}
-                  {filteredVisits.length === 0 && (
+                  {(!filteredVisits || filteredVisits.length === 0) && (
                     <tr>
                       <td colSpan="7" className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-gray-500">
@@ -615,7 +624,7 @@ export default function AdminWardVisits() {
                           </div>
                           <h3 className="text-sm font-medium text-gray-900 mb-1">No ward visits found</h3>
                           <p className="text-sm text-gray-500">
-                            {searchTerm || filter.coordinator || filter.ward || filter.month || filter.followUpStatus 
+                            {searchTerm || filter?.coordinator || filter?.ward || filter?.month || filter?.followUpStatus 
                               ? 'No visits match your current filters' 
                               : 'No ward visits have been recorded yet'}
                           </p>

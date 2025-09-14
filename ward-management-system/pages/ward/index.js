@@ -15,6 +15,8 @@ import ReportModal from '../../components/ReportModal';
 import PendingFormModal from '../../components/PendingFormModal';
 import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
+import { useInstantDashboard } from '../../hooks/useInstantLoad';
+import { useInstantDashboard } from '../../hooks/useInstantLoad';
 import { useDashboardRefresh } from '../../hooks/useDashboardRefresh';
 import { getCurrentWeek, formatWeekPeriod } from '../../lib/weekUtils';
 
@@ -25,11 +27,15 @@ export default function WardAdminDashboard() {
   const [recentInstructions, setRecentInstructions] = useState([]);
   const [error, setError] = useState('');
   
-  // Use the dashboard data hook with caching
-  const { stats, recentReports, loading, error: dataError, refetch } = useDashboardData('wardAdmin');
+  // Use instant dashboard - NEVER shows loading on revisit
+  const { data: dashboardData, loading, error: dataError, refresh } = useInstantDashboard('wardAdmin');
+  
+  // Extract data from dashboard response
+  const stats = dashboardData?.stats || {};
+  const recentReports = dashboardData?.recentReports || [];
   
   // Use the dashboard refresh hook for automatic refresh after form submissions
-  const { forceRefresh } = useDashboardRefresh(refetch, session?.user?.role);
+  const { forceRefresh } = useDashboardRefresh(refresh, session?.user?.role);
   
   // Fetch user info with caching
   const { data: userInfo, loading: userLoading } = useApiData(
@@ -148,21 +154,10 @@ export default function WardAdminDashboard() {
     }
   }, [stats, instructionsData, session?.user?.id]);
 
-  if (status === 'loading') {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // ELIMINATED: No loading states on revisit
 
-  if (loading || userLoading || instructionsLoading) {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // AGGRESSIVE NO-RELOAD: Only show loading on very first visit with no cached data
+  // ELIMINATED: No loading states on revisit
 
   const currentWeekNumber = getCurrentWeek();
   const currentYear = new Date().getFullYear();
@@ -262,7 +257,7 @@ export default function WardAdminDashboard() {
                   </span>
                 )}
                 <button
-                  onClick={forceRefresh}
+                  onClick={() => refresh()}
                   className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   title="Refresh dashboard data"
                 >

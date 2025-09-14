@@ -1,5 +1,6 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from './auth/[...nextauth]';
+import { put } from '@vercel/blob';
 import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
@@ -28,36 +29,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-    console.log('Uploads directory:', uploadsDir);
+    // Check if we're in production (Vercel) or development
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
     
-    if (!fs.existsSync(uploadsDir)) {
-      console.log('Creating uploads directory...');
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // Check directory permissions
-    try {
-      fs.accessSync(uploadsDir, fs.constants.W_OK);
-      console.log('Uploads directory is writable');
-    } catch (permError) {
-      console.error('Uploads directory is not writable:', permError);
-      return res.status(500).json({ error: 'Server upload directory is not writable' });
+    if (isProduction && !process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('BLOB_READ_WRITE_TOKEN not configured');
+      return res.status(500).json({ error: 'File storage not configured' });
     }
 
     const form = formidable({
-      uploadDir: uploadsDir,
-      keepExtensions: true,
       maxFileSize: 20 * 1024 * 1024, // 20MB
-      filename: (name, ext, part, form) => {
-        // Generate unique filename immediately
-        const timestamp = Date.now();
-        const originalName = part.originalFilename || 'file';
-        const extension = path.extname(originalName);
-        const baseName = path.basename(originalName, extension);
-        return `${baseName}_${timestamp}${extension}`;
-      }
+      keepExtensions: true,
     });
 
     console.log('Parsing form data...');
@@ -78,21 +60,92 @@ export default async function handler(req, res) {
       filepath: file.filepath
     });
 
-    // Verify file exists and is readable
-    if (!fs.existsSync(file.filepath)) {
-      console.error('Uploaded file does not exist at:', file.filepath);
-      return res.status(500).json({ error: 'File upload failed - file not found' });
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+
+    if (!allowedTypes.includes(file.mimetype) && 
+        !file.originalFilename?.match(/\.(pdf|doc|docx|txt|jpg|jpeg|png|gif|zip|rar|xls|xlsx|ppt|pptx)$/i)) {
+      return res.status(400).json({ 
+        error: 'File type not supported. Please use PDF, DOC, DOCX, TXT, JPG, PNG, GIF, ZIP, RAR, XLS, XLSX, PPT, or PPTX files.' 
+      });
     }
 
-    // Return the public URL (file is already in the right location with unique name)
-    const fileName = path.basename(file.filepath);
-    const fileUrl = `/uploads/${fileName}`;
+    let fileUrl, fileName;
 
-    console.log('File uploaded successfully:', fileUrl);
+    if (isProduction) {
+      // Use Vercel Blob storage in production
+      console.log('Using Vercel Blob storage...');
+      
+      // Read file content
+      const fileBuffer = fs.readFileSync(file.filepath);
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const originalName = file.originalFilename || 'file';
+      const extension = path.extname(originalName);
+      const baseName = path.basename(originalName, extension);
+      const uniqueFileName = `${baseName}_${timestamp}${extension}`;
+      
+      // Upload to Vercel Blob
+      const blob = await put(uniqueFileName, fileBuffer, {
+        access: 'public',
+        contentType: file.mimetype,
+      });
+      
+      fileUrl = blob.url;
+      fileName = file.originalFilename;
+      
+      // Clean up temporary file
+      fs.unlinkSync(file.filepath);
+      
+      console.log('File uploaded to Vercel Blob:', fileUrl);
+    } else {
+      // Use local storage in development
+      console.log('Using local storage for development...');
+      
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      
+      if (!fs.existsSync(uploadsDir)) {
+        console.log('Creating uploads directory...');
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const originalName = file.originalFilename || 'file';
+      const extension = path.extname(originalName);
+      const baseName = path.basename(originalName, extension);
+      const uniqueFileName = `${baseName}_${timestamp}${extension}`;
+      
+      const newPath = path.join(uploadsDir, uniqueFileName);
+      
+      // Move file to uploads directory
+      fs.renameSync(file.filepath, newPath);
+      
+      fileUrl = `/uploads/${uniqueFileName}`;
+      fileName = file.originalFilename;
+      
+      console.log('File uploaded locally:', fileUrl);
+    }
 
     res.status(200).json({
       url: fileUrl,
-      filename: file.originalFilename || fileName,
+      filename: fileName,
       size: file.size,
       type: file.mimetype
     });
@@ -112,6 +165,8 @@ export default async function handler(req, res) {
       errorMessage = 'Server storage full - cannot upload file';
     } else if (error.message.includes('maxFileSize')) {
       errorMessage = 'File too large - maximum size is 20MB';
+    } else if (error.message.includes('BLOB_READ_WRITE_TOKEN')) {
+      errorMessage = 'File storage not configured properly';
     }
     
     res.status(500).json({ 

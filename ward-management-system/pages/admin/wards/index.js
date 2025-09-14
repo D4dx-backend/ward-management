@@ -586,13 +586,7 @@ export default function AdminWards() {
     </form>
   );
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <Layout>
-        <ShimmerDashboard />
-      </Layout>
-    );
-  }
+  // ELIMINATED: No loading states on revisit
 
   return (
     <Layout>
