@@ -658,7 +658,7 @@ export default function AdminWardVisits() {
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Showing {filteredVisits.length} of {visits.length} visits
+                  Showing {filteredVisits?.length || 0} of {visits?.length || 0} visits
                 </div>
               </div>
             </div>
