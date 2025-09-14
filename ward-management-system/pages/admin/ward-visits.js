@@ -95,7 +95,7 @@ export default function AdminWardVisits() {
     // Check if user is authenticated and is admin
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
+    } else if (status === 'authenticated' && session?.user?.role !== 'stateAdmin') {
       router.push('/');
     }
   }, [status, session, router]);
