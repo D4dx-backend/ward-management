@@ -14,6 +14,8 @@ import { usePersistedData } from '../../lib/simpleCache';
 export default function AdminWardVisits() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [componentError, setComponentError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [filteredVisits, setFilteredVisits] = useState([]);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,12 +37,24 @@ export default function AdminWardVisits() {
   } = usePersistedData(
     'admin_ward_visits',
     async () => {
-      const response = await axios.get('/api/admin/ward-visits');
-      return response.data || [];
+      try {
+        const response = await axios.get('/api/admin/ward-visits');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Ward visits API response:', response.data);
+        }
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching ward visits:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Full error details:', error.response?.data || error.message);
+        }
+        throw error;
+      }
     },
     {
       ttl: 60 * 60 * 1000, // Cache for 1 hour
-      dependencies: [status, session?.user?.role]
+      dependencies: [status, session?.user?.role],
+      enabled: status === 'authenticated' && session?.user?.role === 'stateAdmin'
     }
   );
 
@@ -50,12 +64,18 @@ export default function AdminWardVisits() {
   } = usePersistedData(
     'admin_coordinators',
     async () => {
-      const response = await axios.get('/api/users/?role=coordinator');
-      return response.data || [];
+      try {
+        const response = await axios.get('/api/users/?role=coordinator');
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching coordinators:', error);
+        return [];
+      }
     },
     {
       ttl: 60 * 60 * 1000,
-      dependencies: [status, session?.user?.role]
+      dependencies: [status, session?.user?.role],
+      enabled: status === 'authenticated' && session?.user?.role === 'stateAdmin'
     }
   );
 
@@ -65,12 +85,18 @@ export default function AdminWardVisits() {
   } = usePersistedData(
     'admin_wards',
     async () => {
-      const response = await axios.get('/api/wards/');
-      return response.data || [];
+      try {
+        const response = await axios.get('/api/wards/');
+        return response.data || [];
+      } catch (error) {
+        console.error('Error fetching wards:', error);
+        return [];
+      }
     },
     {
       ttl: 60 * 60 * 1000,
-      dependencies: [status, session?.user?.role]
+      dependencies: [status, session?.user?.role],
+      enabled: status === 'authenticated' && session?.user?.role === 'stateAdmin'
     }
   );
 
@@ -80,16 +106,26 @@ export default function AdminWardVisits() {
   } = usePersistedData(
     'admin_ward_visits_statistics',
     async () => {
-      const response = await axios.get('/api/admin/ward-visits/statistics');
-      return response.data || {};
+      try {
+        const response = await axios.get('/api/admin/ward-visits/statistics');
+        return response.data || {};
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+        return {};
+      }
     },
     {
       ttl: 30 * 60 * 1000, // Cache statistics for 30 minutes
-      dependencies: [status, session?.user?.role]
+      dependencies: [status, session?.user?.role],
+      enabled: status === 'authenticated' && session?.user?.role === 'stateAdmin'
     }
   );
 
   const isLoading = visitsLoading || coordinatorsLoading || wardsLoading || statisticsLoading;
+
+  // Development mode: Add extra safety checks for React Strict Mode
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isStrictMode = isDevelopment && typeof window !== 'undefined';
 
   useEffect(() => {
     // Check if user is authenticated and is admin
@@ -99,6 +135,19 @@ export default function AdminWardVisits() {
       router.push('/');
     }
   }, [status, session, router]);
+
+  // Error boundary effect for development
+  useEffect(() => {
+    const handleError = (error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Component error caught:', error);
+        setComponentError(error.message);
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   useEffect(() => {
     if (visitsError) {
@@ -112,6 +161,23 @@ export default function AdminWardVisits() {
     // Early return if essential data is not ready
     if (isLoading || !filter) {
       return;
+    }
+
+    // Extra safety check for development/strict mode
+    if (isDevelopment && (!visits || !Array.isArray(visits))) {
+      console.warn('Visits data not ready in development mode, skipping filter');
+      return;
+    }
+
+    // Development debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Ward visits filtering:', {
+        visits: visits?.length || 0,
+        filter,
+        searchTerm,
+        isLoading,
+        strictMode: isStrictMode
+      });
     }
 
     // Filter visits based on search term and filters
@@ -170,7 +236,12 @@ export default function AdminWardVisits() {
     }
 
     setFilteredVisits(filtered);
-  }, [visits, searchTerm, filter, isLoading]);
+    
+    // Mark as initialized after first successful filter
+    if (!isInitialized && filtered) {
+      setIsInitialized(true);
+    }
+  }, [visits, searchTerm, filter, isLoading, isInitialized]);
 
 
 
@@ -209,6 +280,32 @@ export default function AdminWardVisits() {
 
     return <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>;
   };
+
+  // Development-specific error display
+  if (process.env.NODE_ENV === 'development' && (visitsError || error || componentError)) {
+    return (
+      <Layout>
+        <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+          <h2 className="text-lg font-semibold text-red-800 mb-4">Development Error Debug</h2>
+          <div className="space-y-2 text-sm">
+            <p><strong>Status:</strong> {status}</p>
+            <p><strong>Session Role:</strong> {session?.user?.role || 'None'}</p>
+            <p><strong>Visits Error:</strong> {visitsError?.message || 'None'}</p>
+            <p><strong>General Error:</strong> {error || 'None'}</p>
+            <p><strong>Component Error:</strong> {componentError || 'None'}</p>
+            <p><strong>Loading States:</strong> visits={visitsLoading}, coordinators={coordinatorsLoading}, wards={wardsLoading}, stats={statisticsLoading}</p>
+            <p><strong>Data Counts:</strong> visits={visits?.length || 0}, coordinators={coordinators?.length || 0}, wards={wards?.length || 0}</p>
+          </div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   if (status === 'loading' || isLoading) {
     return (
