@@ -5,11 +5,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
-import Button from '../../components/Button';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
-import { useApiData, useDashboardData } from '../../hooks/useApiData';
-
+import { ShimmerDashboard } from '../../components/Shimmer';
+import { useDashboardData } from '../../hooks/useApiData';
 
 export default function AdminDashboard() {
   const { data: session, status } = useSession();
@@ -174,7 +172,6 @@ export default function AdminDashboard() {
                   >
                     Try again
                   </button>
-
                 </div>
               </div>
             </div>
@@ -196,7 +193,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Wards</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalWards || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats?.totalWards || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -216,7 +213,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Clusters</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalClusters || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats?.totalClusters || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -236,7 +233,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalUsers || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats?.totalUsers || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -256,7 +253,7 @@ export default function AdminDashboard() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Active Forms</dt>
-                    <dd className="text-lg font-medium text-gray-900">{stats.totalForms || 0}</dd>
+                    <dd className="text-lg font-medium text-gray-900">{stats?.totalForms || 0}</dd>
                   </dl>
                 </div>
               </div>
@@ -297,7 +294,7 @@ export default function AdminDashboard() {
             <div className="p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Activities</h3>
               <div className="space-y-3">
-                {stats.recentActivities?.length > 0 ? (
+                {stats?.recentActivities?.length > 0 ? (
                   stats.recentActivities.map((activity) => (
                     <div key={activity.id} className="flex items-center space-x-3">
                       <div className={`flex-shrink-0 w-2 h-2 rounded-full ${
