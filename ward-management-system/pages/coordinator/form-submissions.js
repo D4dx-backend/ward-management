@@ -4,8 +4,6 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Layout from '../../components/Layout';
 import FormSubmissionsList from '../../components/FormSubmissionsList';
-import { ShimmerDashboard } from '../../components/Shimmer';
-
 export default function CoordinatorFormSubmissions() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -21,7 +19,9 @@ export default function CoordinatorFormSubmissions() {
   if (status === 'loading') {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

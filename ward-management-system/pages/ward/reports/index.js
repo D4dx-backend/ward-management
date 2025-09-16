@@ -7,7 +7,6 @@ import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList } from '../../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../../hooks/useApiData';
 
 export default function WardReports() {
@@ -116,7 +115,9 @@ export default function WardReports() {
   if (status === 'loading' || loading || dashboardLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

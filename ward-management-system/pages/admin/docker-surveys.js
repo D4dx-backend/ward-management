@@ -8,7 +8,6 @@ import Button from '../../components/Button';
 import Pagination from '../../components/Pagination';
 import usePagination from '../../hooks/usePagination';
 import axios from 'axios';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData } from '../../hooks/useApiData';
 
 const statusColors = {
@@ -141,7 +140,9 @@ export default function AdminDockerSurveys() {
   if (loading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

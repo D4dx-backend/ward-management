@@ -6,8 +6,6 @@ import axios from 'axios';
 import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
-import { ShimmerDashboard } from '../../../../components/Shimmer';
-
 export default function ViewCoordinatorReport() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -124,7 +122,9 @@ export default function ViewCoordinatorReport() {
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

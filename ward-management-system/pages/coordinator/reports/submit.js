@@ -8,7 +8,6 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import FormRenderer from '../../../components/FormRenderer';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
 
 export default function SubmitReport() {
@@ -271,7 +270,9 @@ export default function SubmitReport() {
   if (isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import Card from './Card';
 import Button from './Button';
-import { ShimmerTable } from './Shimmer';
 
 export default function WardReportStatus({ compact = false }) {
   const [statusData, setStatusData] = useState(null);
@@ -46,7 +45,9 @@ export default function WardReportStatus({ compact = false }) {
       <Card>
         <div className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Ward Report Status</h3>
-          <ShimmerTable />
+          <div className="flex items-center justify-center h-32">
+          <div className="text-gray-500">Loading...</div>
+        </div>
         </div>
       </Card>
     );
