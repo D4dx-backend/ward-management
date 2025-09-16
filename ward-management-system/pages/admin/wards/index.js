@@ -204,11 +204,13 @@ export default function AdminWards() {
   }, [selectedDistrict]);
 
   const fetchData = async () => {
+    console.time('AdminWards.fetchData');
     try {
       setIsLoading(true);
 
       // Get all wards
       const wardsResponse = await axios.get('/api/wards');
+      console.log(`[AdminWards] Fetched ${wardsResponse.data.length} wards`);
       
       // Debug: Log the actual number of wards received
       console.log('Wards API Response:', {
@@ -221,6 +223,7 @@ export default function AdminWards() {
       const usersResponse = await axios.get('/api/users');
       const coordinators = usersResponse.data.filter(user => user.role === 'coordinator');
       const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
+      console.log(`[AdminWards] Fetched ${usersResponse.data.length} users (${coordinators.length} coordinators, ${wardAdmins.length} ward admins)`);
 
       setWards(wardsResponse.data);
       setFilteredWards(wardsResponse.data);
@@ -232,6 +235,7 @@ export default function AdminWards() {
       console.error(error);
     } finally {
       setIsLoading(false);
+      console.timeEnd('AdminWards.fetchData');
     }
   };
 
@@ -587,6 +591,15 @@ export default function AdminWards() {
   );
 
   // ELIMINATED: No loading states on revisit
+
+  console.log('[AdminWards] Rendering component...');
+
+  useEffect(() => {
+    console.log('[AdminWards] Component did mount/update');
+    return () => {
+      console.log('[AdminWards] Component will unmount');
+    };
+  }, []);
 
   return (
     <Layout>
