@@ -275,7 +275,7 @@ export default async function handler(req, res) {
             // Also include sub-questions if they exist
             if (field.subQuestions && field.subQuestions.length > 0) {
               for (const subQuestion of field.subQuestions) {
-                const subQuestionKey = `${field.label} - ${subQuestion.label}`;
+                const subQuestionKey = `${field.label}_${subQuestion.label}`;
                 const subAnswer = formResponse.responses[subQuestionKey];
                 if (subAnswer !== undefined) {
                   processedResponses.push({

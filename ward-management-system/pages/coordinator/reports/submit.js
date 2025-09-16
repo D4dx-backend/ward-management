@@ -154,7 +154,7 @@ export default function SubmitReport() {
             if (field.subQuestions && field.subQuestions.length > 0) {
               field.subQuestions.forEach((subQuestion, subIndex) => {
                 const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-                const submittedKey = `${field.label} - ${subQuestion.label}`;
+                const submittedKey = `${field.label}_${subQuestion.label}`;
                 if (existingSubmission.responses[submittedKey]) {
                   submittedData[subKey] = existingSubmission.responses[submittedKey];
                 }
@@ -251,7 +251,7 @@ export default function SubmitReport() {
           field.subQuestions.forEach((subQuestion, subIndex) => {
             const subKey = `field_${fieldIndex}_sub_${subIndex}`;
             if (formData[subKey] !== undefined && formData[subKey] !== '') {
-              responseData[`${field.label} - ${subQuestion.label}`] = formData[subKey];
+              responseData[`${field.label}_${subQuestion.label}`] = formData[subKey];
             }
           });
         }
@@ -312,15 +312,15 @@ export default function SubmitReport() {
         <title>Submit Weekly Report - Ward Management System</title>
       </Head>
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Submit Weekly Report</h1>
-            <p className="mt-1 text-sm text-gray-600">Submit your coordinator weekly report</p>
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Submit Weekly Report</h1>
+            <p className="mt-1 text-sm text-gray-600 break-words">Submit your coordinator weekly report</p>
           </div>
           <div className="flex space-x-3">
             <Link href="/">
-              <Button variant="outline">
+              <Button variant="outline" className="w-full sm:w-auto">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
@@ -379,38 +379,38 @@ export default function SubmitReport() {
         ) : !selectedForm ? (
           <>
             {/* Summary Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-4 sm:mb-6">
               <Card>
-                <div className="p-6">
+                <div className="p-3 sm:p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Total Forms</p>
-                      <p className="text-2xl font-bold text-gray-900">{activeForms.length}</p>
+                    <div className="ml-2 sm:ml-4 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600">Total Forms</p>
+                      <p className="text-lg sm:text-2xl font-bold text-gray-900">{activeForms.length}</p>
                     </div>
                   </div>
                 </div>
               </Card>
 
               <Card>
-                <div className="p-6">
+                <div className="p-3 sm:p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Submitted</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                    <div className="ml-2 sm:ml-4 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600">Submitted</p>
+                      <p className="text-lg sm:text-2xl font-bold text-gray-900">
                         {activeForms.filter(f => f.isSubmitted).length}
                       </p>
                     </div>
@@ -419,18 +419,18 @@ export default function SubmitReport() {
               </Card>
 
               <Card>
-                <div className="p-6">
+                <div className="p-3 sm:p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Pending</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                    <div className="ml-2 sm:ml-4 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600">Pending</p>
+                      <p className="text-lg sm:text-2xl font-bold text-gray-900">
                         {activeForms.filter(f => !f.isSubmitted).length}
                       </p>
                     </div>
@@ -439,18 +439,18 @@ export default function SubmitReport() {
               </Card>
 
               <Card>
-                <div className="p-6">
+                <div className="p-3 sm:p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
                       </div>
                     </div>
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Overdue</p>
-                      <p className="text-2xl font-bold text-gray-900">
+                    <div className="ml-2 sm:ml-4 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-600">Overdue</p>
+                      <p className="text-lg sm:text-2xl font-bold text-gray-900">
                         {activeForms.filter(f => !f.isSubmitted && new Date() > new Date(f.closeDateTime)).length}
                       </p>
                     </div>
@@ -459,31 +459,31 @@ export default function SubmitReport() {
               </Card>
             </div>
           <Card>
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Available Report Forms</h2>
-              <p className="text-sm text-gray-600 mt-1">Select a form to submit or view your submitted reports</p>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 break-words">Available Report Forms</h2>
+              <p className="text-sm text-gray-600 mt-1 break-words">Select a form to submit or view your submitted reports</p>
             </div>
             
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Form Details
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Period
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Submission Date
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -496,70 +496,77 @@ export default function SubmitReport() {
                     
                     return (
                       <tr key={form._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center">
+                        <td className="px-3 sm:px-6 py-4">
+                          <div className="flex items-start sm:items-center">
                             <div className="flex-shrink-0">
                               {form.isSubmitted ? (
-                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
                                 </div>
                               ) : (
-                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
                                 </div>
                               )}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{form.title}</div>
+                            <div className="ml-2 sm:ml-4 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 break-words">{form.title}</div>
                               {form.description && (
-                                <div className="text-sm text-gray-500 mt-1">{form.description}</div>
+                                <div className="text-xs sm:text-sm text-gray-500 mt-1 break-words">{form.description}</div>
                               )}
+                              <div className="sm:hidden text-xs text-gray-500 mt-1">
+                                Week {form.weekNumber}, {form.year}
+                              </div>
                             </div>
                           </div>
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">Week {form.weekNumber}</div>
                           <div className="text-sm text-gray-500">{form.year}</div>
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                           {form.isSubmitted ? (
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
-                              Submitted
+                              <span className="hidden sm:inline">Submitted</span>
+                              <span className="sm:hidden">Done</span>
                             </span>
                           ) : isOverdue ? (
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                               </svg>
-                              Overdue
+                              <span className="hidden sm:inline">Overdue</span>
+                              <span className="sm:hidden">Late</span>
                             </span>
                           ) : daysUntilDue <= 2 ? (
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Due Soon
+                              <span className="hidden sm:inline">Due Soon</span>
+                              <span className="sm:hidden">Soon</span>
                             </span>
                           ) : (
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Pending
+                              <span className="hidden sm:inline">Pending</span>
+                              <span className="sm:hidden">Open</span>
                             </span>
                           )}
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900">
                             {dueDate.toLocaleDateString()}
                           </div>
@@ -575,7 +582,7 @@ export default function SubmitReport() {
                           </div>
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
                           {form.isSubmitted ? (
                             <div>
                               <div className="text-sm text-gray-900">
@@ -596,30 +603,32 @@ export default function SubmitReport() {
                           )}
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           {form.isSubmitted ? (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleFormSelect(form._id)}
-                              className="text-green-600 border-green-300 hover:bg-green-50"
+                              className="text-green-600 border-green-300 hover:bg-green-50 w-full sm:w-auto"
                             >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                               </svg>
-                              View
+                              <span className="hidden sm:inline">View</span>
+                              <span className="sm:hidden">View</span>
                             </Button>
                           ) : (
                             <Button
                               size="sm"
                               onClick={() => handleFormSelect(form._id)}
-                              className={isOverdue ? 'bg-red-600 hover:bg-red-700' : daysUntilDue <= 2 ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                              className={`w-full sm:w-auto ${isOverdue ? 'bg-red-600 hover:bg-red-700' : daysUntilDue <= 2 ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
                             >
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                               </svg>
-                              {isOverdue ? 'Submit Now' : 'Fill Form'}
+                              <span className="hidden sm:inline">{isOverdue ? 'Submit Now' : 'Fill Form'}</span>
+                              <span className="sm:hidden">{isOverdue ? 'Submit' : 'Fill'}</span>
                             </Button>
                           )}
                         </td>
@@ -649,17 +658,17 @@ export default function SubmitReport() {
           </>
         ) : (
           <Card>
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900">{selectedForm.title}</h2>
-                  <p className="text-sm text-gray-600">Week {selectedForm.weekNumber}, {selectedForm.year}</p>
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-3 sm:space-y-0">
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{selectedForm.title}</h2>
+                  <p className="text-sm text-gray-600 break-words">Week {selectedForm.weekNumber}, {selectedForm.year}</p>
                   {submittedResponse && (
                     <div className="mt-2 flex items-center">
-                      <svg className="w-4 h-4 text-green-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 text-green-500 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-sm text-green-600 font-medium">
+                      <span className="text-sm text-green-600 font-medium break-words">
                         Report submitted on {new Date(submittedResponse.submittedAt).toLocaleDateString()}
                       </span>
                     </div>
@@ -668,26 +677,27 @@ export default function SubmitReport() {
                 <Button
                   variant="outline"
                   onClick={() => setSelectedForm(null)}
+                  className="w-full sm:w-auto"
                 >
                   Change Form
                 </Button>
               </div>
               
               {selectedForm.description && (
-                <p className="mt-4 text-gray-700">{selectedForm.description}</p>
+                <p className="mt-4 text-gray-700 break-words">{selectedForm.description}</p>
               )}
               
               {submittedResponse && (
-                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <svg className="h-4 w-4 sm:h-5 sm:w-5 text-green-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-green-800">Report Already Submitted</h3>
-                      <p className="text-sm text-green-700 mt-1">
+                    <div className="ml-3 min-w-0">
+                      <h3 className="text-sm font-medium text-green-800 break-words">Report Already Submitted</h3>
+                      <p className="text-sm text-green-700 mt-1 break-words">
                         You have already submitted this weekly report. The form below shows your submitted responses and is read-only.
                       </p>
                     </div>
@@ -696,16 +706,16 @@ export default function SubmitReport() {
               )}
             </div>
             
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between mb-4 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-900">{selectedForm.title}</h3>
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 break-words">{selectedForm.title}</h3>
                 <button
                   type="button"
                   onClick={() => router.push('/')}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                   title="Close Form"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -739,11 +749,12 @@ export default function SubmitReport() {
                 </div>
               )}
               
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 sm:pt-6 border-t border-gray-200">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => router.push('/')}
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   {submittedResponse ? 'Back to Dashboard' : 'Cancel'}
                 </Button>
@@ -756,6 +767,7 @@ export default function SubmitReport() {
                         setShowPreview(true);
                         setPreviewClicked(true);
                       }}
+                      className="w-full sm:w-auto order-1 sm:order-2"
                     >
                       Preview Report
                     </Button>
@@ -764,14 +776,16 @@ export default function SubmitReport() {
                         type="submit"
                         disabled={isSubmitting}
                         onClick={handleSubmit}
+                        className="w-full sm:w-auto order-3"
                       >
                         {isSubmitting ? (
-                          <div className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <div className="flex items-center justify-center">
+                            <svg className="animate-spin -ml-1 mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Submitting...
+                            <span className="hidden sm:inline">Submitting...</span>
+                            <span className="sm:hidden">Submitting...</span>
                           </div>
                         ) : (
                           'Submit Report'
@@ -784,7 +798,7 @@ export default function SubmitReport() {
                   <Button
                     variant="outline"
                     disabled
-                    className="opacity-50 cursor-not-allowed"
+                    className="opacity-50 cursor-not-allowed w-full sm:w-auto order-3"
                   >
                     ✓ Already Submitted
                   </Button>
@@ -795,15 +809,15 @@ export default function SubmitReport() {
         )}
 
         {/* Information Note */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+              <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700">
+            <div className="ml-3 min-w-0">
+              <p className="text-sm text-blue-700 break-words">
                 <strong>Note:</strong> After submitting your reports, you can view them in <strong>Reports → My Reports</strong>. 
                 To view ward reports from your district, go to <strong>Reports → Ward Reports</strong>.
               </p>

@@ -153,6 +153,35 @@ export default async function handler(req, res) {
             }
           }
         }
+        
+        // Validate sub-questions if they exist and should be visible
+        if (field.subQuestions && field.subQuestions.length > 0) {
+          const fieldValue = updatedResponses[field.label];
+          
+          // Check if sub-questions should be visible
+          const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+          
+          if (shouldShowSubQuestions) {
+            for (const subQuestion of field.subQuestions) {
+              if (subQuestion.required) {
+                const subKey = `${field.label}_${subQuestion.label}`;
+                const subValue = updatedResponses[subKey];
+                
+                if (subQuestion.type === 'checkbox') {
+                  if (subValue === undefined || subValue === null) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                } else {
+                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                  }
+                }
+              }
+            }
+          }
+        }
       }
 
       // Update the response

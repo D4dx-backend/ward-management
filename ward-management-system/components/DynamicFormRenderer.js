@@ -192,25 +192,25 @@ export default function DynamicFormRenderer({
   const sortedFields = [...fields].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {sortedFields.map((field) => (
         <div key={field.id}>
           <label 
             htmlFor={`field_${field.id}`} 
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-sm font-medium text-gray-700 mb-2"
           >
-            {field.label}
+            <span className="break-words">{field.label}</span>
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           
           {renderField(field)}
           
           {field.helpText && (
-            <p className="mt-1 text-sm text-gray-600">{field.helpText}</p>
+            <p className="mt-1 text-sm text-gray-600 break-words">{field.helpText}</p>
           )}
           
           {errors[field.id] && (
-            <p className="mt-1 text-sm text-red-600">{errors[field.id]}</p>
+            <p className="mt-1 text-sm text-red-600 break-words">{errors[field.id]}</p>
           )}
         </div>
       ))}

@@ -151,13 +151,13 @@ export default function WardVisits() {
         <title>Ward Visits - Ward Management System</title>
       </Head>
 
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ward Visits</h1>
-            <p className="mt-1 text-sm text-gray-600">Record visits to your ward</p>
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Ward Visits</h1>
+            <p className="mt-1 text-sm text-gray-600 break-words">Record visits to your ward</p>
           </div>
-          <Button onClick={() => setShowForm(!showForm)}>
+          <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto">
             {showForm ? 'Cancel' : 'Record New Visit'}
           </Button>
         </div>
@@ -177,13 +177,13 @@ export default function WardVisits() {
         {/* Simple Form */}
         {showForm && (
           <Card>
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Record New Visit</h2>
+            <div className="p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 break-words">Record New Visit</h2>
               
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Visit Date *
                     </label>
                     <input
@@ -197,7 +197,7 @@ export default function WardVisits() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Visit Time
                     </label>
                     <input
@@ -211,7 +211,7 @@ export default function WardVisits() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Purpose of Visit *
                   </label>
                   <textarea
@@ -226,7 +226,7 @@ export default function WardVisits() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Findings
                   </label>
                   <textarea
@@ -240,7 +240,7 @@ export default function WardVisits() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Recommendations
                   </label>
                   <textarea
@@ -254,7 +254,7 @@ export default function WardVisits() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Attendees
                   </label>
                   <input
@@ -275,14 +275,14 @@ export default function WardVisits() {
                     onChange={handleInputChange}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
-                  <label className="ml-2 block text-sm text-gray-700">
+                  <label className="ml-2 block text-sm text-gray-700 break-words">
                     Follow-up required
                   </label>
                 </div>
 
                 {formData.followUpRequired && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Follow-up Date
                     </label>
                     <input
@@ -295,16 +295,17 @@ export default function WardVisits() {
                   </div>
                 )}
 
-                <div className="flex justify-end space-x-3">
+                <div className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
                     disabled={isSubmitting}
+                    className="w-full sm:w-auto order-2 sm:order-1"
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto order-1 sm:order-2">
                     {isSubmitting ? 'Recording...' : 'Record Visit'}
                   </Button>
                 </div>
@@ -315,52 +316,52 @@ export default function WardVisits() {
 
         {/* Simple Visits List */}
         <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Visit History</h2>
+          <div className="p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 break-words">Visit History</h2>
             
             {visits.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">No visits recorded yet</p>
-                <p className="text-sm text-gray-400 mt-1">Click "Record New Visit" to get started</p>
+              <div className="text-center py-6 sm:py-8">
+                <p className="text-gray-500 break-words">No visits recorded yet</p>
+                <p className="text-sm text-gray-400 mt-1 break-words">Click "Record New Visit" to get started</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {visits.map((visit) => (
                   <div 
                     key={visit._id} 
-                    className="border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all duration-200"
+                    className="border border-gray-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md hover:border-gray-300 transition-all duration-200"
                     onClick={() => handleViewVisit(visit)}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-2">
-                          <span className="text-sm font-medium text-gray-900">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 mb-2">
+                          <span className="text-sm font-medium text-gray-900 break-words">
                             {new Date(visit.visitDate).toLocaleDateString()}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 break-words">
                             {visit.visitTime}
                           </span>
                           {visit.followUpRequired && (
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 self-start">
                               Follow-up Required
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-900 mb-2">
+                        <p className="text-sm text-gray-900 mb-2 break-words">
                           {visit.purpose.length > 100 ? `${visit.purpose.substring(0, 100)}...` : visit.purpose}
                         </p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
                             {visit.coordinator?.name && (
-                              <span>Visitor: {visit.coordinator.name}</span>
+                              <span className="break-words">Visitor: {visit.coordinator.name}</span>
                             )}
                             {visit.attendees && (
-                              <span>Attendees: {visit.attendees.length > 30 ? `${visit.attendees.substring(0, 30)}...` : visit.attendees}</span>
+                              <span className="break-words">Attendees: {visit.attendees.length > 30 ? `${visit.attendees.substring(0, 30)}...` : visit.attendees}</span>
                             )}
                           </div>
-                          <div className="flex items-center text-blue-600">
+                          <div className="flex items-center text-blue-600 self-start sm:self-auto">
                             <span className="text-xs mr-1">View Details</span>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           </div>
@@ -382,33 +383,33 @@ export default function WardVisits() {
           size="lg"
         >
           {selectedVisit && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Visit Header */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Visit Date</label>
-                    <div className="text-sm text-gray-900">{formatDate(selectedVisit.visitDate)}</div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visit Date</label>
+                    <div className="text-sm text-gray-900 break-words">{formatDate(selectedVisit.visitDate)}</div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Visit Time</label>
-                    <div className="text-sm text-gray-900">{formatTime(selectedVisit.visitTime)}</div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visit Time</label>
+                    <div className="text-sm text-gray-900 break-words">{formatTime(selectedVisit.visitTime)}</div>
                   </div>
                   {selectedVisit.coordinator?.name && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Visitor</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visitor</label>
                       <div className="text-sm text-gray-900">{selectedVisit.coordinator.name}</div>
                     </div>
                   )}
                   {selectedVisit.followUpRequired && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Follow-up Status</label>
-                      <div className="flex items-center space-x-2">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                      <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Follow-up Status</label>
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
+                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 self-start">
                           Follow-up Required
                         </span>
                         {selectedVisit.followUpDate && (
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 break-words">
                             Due: {new Date(selectedVisit.followUpDate).toLocaleDateString()}
                           </span>
                         )}
@@ -420,18 +421,18 @@ export default function WardVisits() {
 
               {/* Purpose */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Purpose of Visit</label>
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.purpose}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-2 break-words">Purpose of Visit</label>
+                <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4">
+                  <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">{selectedVisit.purpose}</p>
                 </div>
               </div>
 
               {/* Findings */}
               {selectedVisit.findings && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Findings</label>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.findings}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">Findings</label>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">{selectedVisit.findings}</p>
                   </div>
                 </div>
               )}
@@ -439,9 +440,9 @@ export default function WardVisits() {
               {/* Recommendations */}
               {selectedVisit.recommendations && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Recommendations</label>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-900 whitespace-pre-wrap">{selectedVisit.recommendations}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">Recommendations</label>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+                    <p className="text-sm text-gray-900 whitespace-pre-wrap break-words">{selectedVisit.recommendations}</p>
                   </div>
                 </div>
               )}
@@ -449,33 +450,33 @@ export default function WardVisits() {
               {/* Attendees */}
               {selectedVisit.attendees && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Attendees</label>
-                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-900">{selectedVisit.attendees}</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-2 break-words">Attendees</label>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4">
+                    <p className="text-sm text-gray-900 break-words">{selectedVisit.attendees}</p>
                   </div>
                 </div>
               )}
 
               {/* Additional Information */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Additional Information</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 break-words">Additional Information</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Recorded on:</span>
-                    <span className="ml-2 text-gray-900">
+                    <span className="text-gray-600 break-words">Recorded on:</span>
+                    <span className="ml-2 text-gray-900 break-words">
                       {selectedVisit.createdAt ? new Date(selectedVisit.createdAt).toLocaleString() : 'Not available'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Last updated:</span>
-                    <span className="ml-2 text-gray-900">
+                    <span className="text-gray-600 break-words">Last updated:</span>
+                    <span className="ml-2 text-gray-900 break-words">
                       {selectedVisit.updatedAt ? new Date(selectedVisit.updatedAt).toLocaleString() : 'Not available'}
                     </span>
                   </div>
                   {selectedVisit.recordedByRole && (
                     <div>
-                      <span className="text-gray-600">Recorded by:</span>
-                      <span className="ml-2 text-gray-900">
+                      <span className="text-gray-600 break-words">Recorded by:</span>
+                      <span className="ml-2 text-gray-900 break-words">
                         {selectedVisit.recordedByRole === 'wardAdmin' ? 'Ward Admin' : 'Coordinator'}
                       </span>
                     </div>
@@ -484,8 +485,8 @@ export default function WardVisits() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <Button variant="outline" onClick={handleCloseVisitModal}>
+              <div className="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+                <Button variant="outline" onClick={handleCloseVisitModal} className="w-full sm:w-auto order-2 sm:order-1">
                   Close
                 </Button>
                 {selectedVisit.followUpRequired && (
@@ -494,6 +495,7 @@ export default function WardVisits() {
                       // Future: Add follow-up action functionality
                       alert('Follow-up functionality will be implemented soon');
                     }}
+                    className="w-full sm:w-auto order-1 sm:order-2"
                   >
                     Mark Follow-up Complete
                   </Button>

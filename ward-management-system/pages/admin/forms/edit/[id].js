@@ -358,17 +358,19 @@ export default function EditForm() {
     setFormData({ ...formData, sittingWardFields: updatedFields });
   };
 
-  const handleImportQuestions = () => {
+  const handleImportQuestions = (targetType = 'regular') => {
+    console.log('Importing questions for target type:', targetType);
     let apiUrl = `/api/recurring-questions?formType=${form.formType}&isActive=true`;
-    if (formData.isSittingWardForm) {
+    if (targetType === 'sittingWard' || formData.isSittingWardForm) {
       apiUrl += '&isSittingWard=true';
     }
     
     axios.get(apiUrl)
       .then(response => {
+        console.log('Fetched recurring questions:', response.data.length);
         setRecurringQuestions(response.data);
         setSelectedQuestions([]);
-        setImportType('regular');
+        setImportType(targetType);
         setShowImportModal(true);
       })
       .catch(error => {
@@ -386,6 +388,7 @@ export default function EditForm() {
   };
 
   const handleImportSelectedQuestions = () => {
+    console.log('Importing selected questions, import type:', importType);
     const questionsToImport = recurringQuestions.filter(q => selectedQuestions.includes(q._id));
     const newFields = questionsToImport.map((question) => ({
       label: question.question,
@@ -400,13 +403,22 @@ export default function EditForm() {
       expectedValue: question.expectedValue,
       maxAttempts: question.maxAttempts,
       recurringQuestionId: question._id,
-      order: formData.fields.length
+      order: importType === 'sittingWard' ? formData.sittingWardFields.length : formData.fields.length
     }));
 
-    setFormData({
-      ...formData,
-      fields: [...formData.fields, ...newFields]
-    });
+    if (importType === 'sittingWard') {
+      console.log('Adding questions to sitting ward fields');
+      setFormData({
+        ...formData,
+        sittingWardFields: [...formData.sittingWardFields, ...newFields]
+      });
+    } else {
+      console.log('Adding questions to main form fields');
+      setFormData({
+        ...formData,
+        fields: [...formData.fields, ...newFields]
+      });
+    }
     
     setShowImportModal(false);
     setSelectedQuestions([]);
@@ -861,12 +873,24 @@ export default function EditForm() {
                 <div className="border-t border-gray-200 pt-6">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-medium text-gray-900">Sitting Ward Questions</h2>
-                    <Button type="button" onClick={addSittingWardField} variant="outline">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      Add Sitting Ward Question
-                    </Button>
+                    <div className="flex space-x-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleImportQuestions('sittingWard')}
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Import Questions
+                      </Button>
+                      <Button type="button" onClick={addSittingWardField} variant="outline">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Sitting Ward Question
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-6">
@@ -1035,7 +1059,8 @@ export default function EditForm() {
                   onClick={handleImportSelectedQuestions}
                   disabled={selectedQuestions.length === 0}
                 >
-                  Import {selectedQuestions.length} Question{selectedQuestions.length !== 1 ? 's' : ''}
+                  Import {selectedQuestions.length} Question{selectedQuestions.length !== 1 ? 's' : ''} 
+                  {importType === 'sittingWard' ? ' to Sitting Ward Section' : ' to Main Form'}
                 </Button>
               </div>
             </div>
