@@ -8,8 +8,7 @@ import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
 import { formatWeekPeriod } from '../../../../lib/weekUtils';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../../components/Shimmer';
-import { useApiData } from '../../../../hooks/useApiData';
+import Loading from '../../../../components/Loading';
 
 export default function WardReports() {
   const { data: session, status } = useSession();
@@ -55,7 +54,9 @@ export default function WardReports() {
   if (isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex justify-center items-center h-screen">
+          <Loading />
+        </div>
       </Layout>
     );
   }
