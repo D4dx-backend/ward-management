@@ -5,7 +5,6 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import StatsCard from '../../components/StatsCard';
 import axios from 'axios';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData } from '../../hooks/useApiData';
 
 const statusColors = {
@@ -59,7 +58,9 @@ export default function CoordinatorDockerSurveys() {
   if (loading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

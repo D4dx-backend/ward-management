@@ -9,8 +9,6 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Modal from '../../components/Modal';
-import { ShimmerDashboard } from '../../components/Shimmer';
-
 export default function WardManagement() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -269,7 +267,9 @@ export default function WardManagement() {
   if (isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

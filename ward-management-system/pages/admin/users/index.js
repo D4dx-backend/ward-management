@@ -11,7 +11,6 @@ import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import UserWardsModal from '../../../components/UserWardsModal';
 import Pagination from '../../../components/Pagination';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
 import { usePersistentPaginationState, usePersistentFilterState } from '../../../hooks/usePersistentState';
 

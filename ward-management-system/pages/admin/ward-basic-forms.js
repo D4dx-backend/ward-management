@@ -9,7 +9,6 @@ import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import DynamicFormBuilder from '../../components/DynamicFormBuilder';
 import DynamicFormRenderer from '../../components/DynamicFormRenderer';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { usePersistentPaginationState } from '../../hooks/usePersistentState';
 import { useApiData } from '../../hooks/useApiData';
 
@@ -73,7 +72,9 @@ export default function WardBasicForms() {
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

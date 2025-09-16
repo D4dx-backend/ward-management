@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
-import { ShimmerDashboard } from '../../components/Shimmer';
 import { useDashboardData } from '../../hooks/useApiData';
 
 export default function AdminDashboard() {
@@ -51,7 +50,9 @@ export default function AdminDashboard() {
   if (loading && !stats) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

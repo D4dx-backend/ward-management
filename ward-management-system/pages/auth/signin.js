@@ -4,7 +4,6 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData } from '../../hooks/useApiData';
 
 export default function SignIn() {

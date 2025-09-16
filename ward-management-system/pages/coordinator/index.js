@@ -12,9 +12,7 @@ import CoordinatorFormTracker from '../../components/CoordinatorFormTracker';
 import WardReportStatus from '../../components/WardReportStatus';
 import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import CoordinatorReportsList from '../../components/CoordinatorReportsList';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../components/Shimmer';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
-import { useInstantDashboard } from '../../hooks/useInstantLoad';
 import { useInstantDashboard } from '../../hooks/useInstantLoad';
 
 export default function CoordinatorDashboard() {

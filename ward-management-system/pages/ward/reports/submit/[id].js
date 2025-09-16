@@ -9,8 +9,6 @@ import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
 import FormRenderer from '../../../../components/FormRenderer';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../../components/Shimmer';
-
 export default function SubmitSpecificWardReport() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -337,7 +335,9 @@ export default function SubmitSpecificWardReport() {
   if (isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

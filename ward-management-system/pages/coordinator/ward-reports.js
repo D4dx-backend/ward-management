@@ -9,7 +9,6 @@ import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
 import Modal from '../../components/Modal';
-import { ShimmerDashboard } from '../../components/Shimmer';
 import { usePersistedData } from '../../lib/simpleCache';
 
 
@@ -206,7 +205,9 @@ export default function CoordinatorWardReports() {
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }

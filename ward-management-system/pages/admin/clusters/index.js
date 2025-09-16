@@ -11,7 +11,6 @@ import Modal from '../../../components/Modal';
 import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import ClusterTableManager from '../../../components/ClusterTableManager';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { usePersistedData } from '../../../lib/simpleCache';
 import { useSmartPagination } from '../../../hooks/useSmartPagination';
 import { ensureArray, safeFilter, safeGet, createSafeFilters } from '../../../utils/safeArrayOperations';
@@ -465,7 +464,9 @@ export default function Clusters() {
   if (status === 'loading' || isLoading) {
     return (
       <Layout>
-        <ShimmerDashboard />
+        <div className="flex items-center justify-center h-64">
+          <div className="text-gray-500">Loading...</div>
+        </div>
       </Layout>
     );
   }
