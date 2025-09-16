@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     })
     .populate('wardAdmin', 'name email mobileNumber lastLogin')
     .populate('coordinator', 'name email')
-    .select('name district wardNumber panchayath population totalHouseholds totalClusters status wardAdmin coordinator createdAt updatedAt')
+    .select('name district wardNumber panchayath population totalHouseholds totalClusters status wardAdmin coordinator createdAt updatedAt isSittingWard')
     .sort({ name: 1 });
 
     console.log(`Found ${wards.length} wards for coordinator ${session.user.id}`);

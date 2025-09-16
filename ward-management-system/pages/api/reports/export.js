@@ -6,10 +6,21 @@ import FormTemplate from '../../../models/FormTemplate';
 import { logActivity, ACTIONS } from '../../../lib/logger';
 
 export default async function handler(req, res) {
+  console.log('[Reports Export] Starting export request');
   const session = await getSession({ req });
+  
+  console.log('[Reports Export] Session data:', {
+    hasSession: !!session,
+    userRole: session?.user?.role,
+    userId: session?.user?.id
+  });
   
   // Only state admin and coordinators can export reports
   if (!session || (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator')) {
+    console.log('[Reports Export] Unauthorized access attempt:', {
+      hasSession: !!session,
+      userRole: session?.user?.role
+    });
     return res.status(401).json({ message: 'Unauthorized' });
   }
   
@@ -21,6 +32,10 @@ export default async function handler(req, res) {
   
   try {
     const { formType, weekNumber, year, coordinatorId, wardId } = req.query;
+    
+    console.log('[Reports Export] Query parameters:', {
+      formType, weekNumber, year, coordinatorId, wardId
+    });
     
     // Build query - make parameters optional
     const query = {};

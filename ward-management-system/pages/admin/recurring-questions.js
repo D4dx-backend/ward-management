@@ -58,6 +58,7 @@ export default function RecurringQuestions() {
     recurringMessage: 'Please provide the required answer to continue.',
     applicableToForms: ['both'],
     applicableToClusters: false,
+    applicableToWards: false,
     applicableToSittingWards: false,
     priority: 0,
   });
@@ -627,6 +628,25 @@ export default function RecurringQuestions() {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
+                    id="applicableToWards"
+                    name="applicableToWards"
+                    checked={formData.applicableToWards}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="applicableToWards" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Wards (show as loop for coordinator wards data collection)
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will be asked for each ward assigned to the coordinator
+                </p>
+              </div>
+              
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
                     id="applicableToSittingWards"
                     name="applicableToSittingWards"
                     checked={formData.applicableToSittingWards}
@@ -989,6 +1009,25 @@ export default function RecurringQuestions() {
                 </div>
                 <p className="text-xs text-gray-500 mt-1 ml-6">
                   When enabled, this question will be asked for each cluster in the ward
+                </p>
+              </div>
+              
+              <div>
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="edit-applicableToWards"
+                    name="applicableToWards"
+                    checked={formData.applicableToWards}
+                    onChange={handleInputChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="edit-applicableToWards" className="ml-2 block text-sm text-gray-900">
+                    Applicable to Wards (show as loop for coordinator wards data collection)
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  When enabled, this question will be asked for each ward assigned to the coordinator
                 </p>
               </div>
               

@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       console.log('Response API - Request body:', req.body);
       console.log('Response API - Session user:', session.user);
       
-      const { formTemplateId, responses, wardId } = req.body;
+      const { formTemplateId, responses, wardId, wardData } = req.body;
       
       // Validate required fields
       if (!formTemplateId || !responses) {
@@ -261,6 +261,12 @@ export default async function handler(req, res) {
         year: formTemplate.year,
         district: session.user.district || 'Unknown',
       };
+      
+      // Add ward data for coordinator reports
+      if (formTemplate.formType === 'coordinatorReport' && wardData) {
+        console.log('Response API - Adding ward data:', wardData);
+        responseData.wardData = wardData;
+      }
       
       // Add ward only for ward reports
       if (formTemplate.formType === 'wardReport' && wardId) {

@@ -8,6 +8,7 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import FormRenderer from '../../../components/FormRenderer';
+import WardDataCollector from '../../../components/WardDataCollector';
 import { useApiData } from '../../../hooks/useApiData';
 
 export default function SubmitReport() {
@@ -16,6 +17,8 @@ export default function SubmitReport() {
   const [activeForms, setActiveForms] = useState([]);
   const [selectedForm, setSelectedForm] = useState(null);
   const [formData, setFormData] = useState({});
+  const [wardData, setWardData] = useState({});
+  const [recurringQuestions, setRecurringQuestions] = useState([]);
   const [submittedResponse, setSubmittedResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +42,7 @@ export default function SubmitReport() {
       router.push('/');
     } else if (status === 'authenticated') {
       fetchActiveForms();
+      fetchRecurringQuestions();
     }
   }, [status, session, router]);
 
@@ -95,10 +99,27 @@ export default function SubmitReport() {
     }
   };
 
+  const fetchRecurringQuestions = async () => {
+    try {
+      const response = await axios.get('/api/recurring-questions', {
+        params: {
+          formType: 'coordinatorReport',
+          isActive: true
+        }
+      });
+      setRecurringQuestions(response.data);
+      console.log('Fetched recurring questions:', response.data);
+    } catch (error) {
+      console.error('Error fetching recurring questions:', error);
+      setRecurringQuestions([]);
+    }
+  };
+
   const handleFormSelect = async (formId) => {
     const form = activeForms.find(f => f._id === formId);
     setSelectedForm(form);
     setFormData({});
+    setWardData({});
     setSubmittedResponse(null);
     
     // Check if user has already submitted this form
@@ -215,6 +236,11 @@ export default function SubmitReport() {
       // Convert form data from field indexes to field labels for API
       const responseData = {};
       selectedForm.fields.forEach((field, fieldIndex) => {
+        // Skip ward-applicable fields as they are handled separately
+        if (field.applicableToWards) {
+          return;
+        }
+        
         const fieldKey = `field_${fieldIndex}`;
         if (formData[fieldKey] !== undefined && formData[fieldKey] !== '') {
           responseData[field.label] = formData[fieldKey];
@@ -232,11 +258,13 @@ export default function SubmitReport() {
       });
 
       console.log('Submitting response data:', responseData);
+      console.log('Submitting ward data:', wardData);
 
       // Submit response
       const submitResponse = await axios.post('/api/responses', {
         formTemplateId: selectedForm._id,
         responses: responseData,
+        wardData: wardData, // Include ward data for coordinator reports
       });
       
       console.log('Submit response:', submitResponse.data);
@@ -253,6 +281,7 @@ export default function SubmitReport() {
       );
       
       setFormData({});
+      setWardData({});
       setSelectedForm(null);
       
       // Refresh the forms list to update submission status
@@ -687,6 +716,28 @@ export default function SubmitReport() {
                 setFormData={submittedResponse ? () => {} : setFormData}
                 readOnly={!!submittedResponse}
               />
+              
+              {/* Ward Data Collector for ward-applicable questions */}
+              {selectedForm && (
+                (selectedForm.fields && selectedForm.fields.some(field => field.applicableToWards)) ||
+                (recurringQuestions && recurringQuestions.some(q => q.applicableToWards))
+              ) && (
+                <div className="mt-8">
+                  <WardDataCollector
+                    coordinatorId={session?.user?.id}
+                    questions={selectedForm.fields.filter(field => field.applicableToWards).map((field, index) => ({
+                      id: `field_${selectedForm.fields.indexOf(field)}`,
+                      ...field
+                    }))}
+                    recurringQuestions={recurringQuestions.filter(q => q.applicableToWards)}
+                    formType="coordinatorReport"
+                    weekNumber={selectedForm.weekNumber}
+                    year={selectedForm.year}
+                    onDataChange={setWardData}
+                    disabled={!!submittedResponse}
+                  />
+                </div>
+              )}
               
               <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
                 <Button

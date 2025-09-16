@@ -108,6 +108,11 @@ export default function DragDropField({
                 🏘️ Clusters
               </span>
             )}
+            {field.applicableToWards && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                🏢 Wards
+              </span>
+            )}
           </div>
           <Button
             type="button"
@@ -200,6 +205,20 @@ export default function DragDropField({
           </label>
           <p className="text-xs text-gray-500 ml-6">
             When enabled, this question will be asked for each cluster in the ward
+          </p>
+          
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="applicableToWards"
+              checked={field.applicableToWards}
+              onChange={(e) => onFieldChange(index, e)}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">Applicable to Wards (Coordinator Reports)</span>
+          </label>
+          <p className="text-xs text-gray-500 ml-6">
+            When enabled, this question will be asked for each ward assigned to the coordinator
           </p>
         </div>
 

@@ -7,8 +7,10 @@ import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
+import Pagination from '../../../components/Pagination';
 import { getWeekOptions, formatWeekPeriod } from '../../../lib/weekUtils';
 import { useApiData } from '../../../hooks/useApiData';
+import { usePersistentPagination } from '../../../hooks/usePersistentPagination';
 
 export default function Reports() {
   const { data: session, status } = useSession();
@@ -18,6 +20,7 @@ export default function Reports() {
   const [coordinators, setCoordinators] = useState([]);
   const [wards, setWards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState({
     formType: '',
@@ -26,6 +29,20 @@ export default function Reports() {
     year: new Date().getFullYear(),
     coordinatorId: '',
     wardId: '',
+  });
+
+  // Add pagination using persistent pagination hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedResponses,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    paginationInfo
+  } = usePersistentPagination(responses, 10, {
+    storageKey: 'adminReportsPagination'
   });
 
   useEffect(() => {
@@ -69,6 +86,7 @@ export default function Reports() {
 
   const fetchResponses = async () => {
     try {
+      console.log('[Reports] Starting to fetch responses with filters:', filter);
       setIsLoading(true);
       
       // Build query string
@@ -79,37 +97,87 @@ export default function Reports() {
       if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
       if (filter.wardId) queryParams.append('wardId', filter.wardId);
       
+      console.log('[Reports] Making API request to:', `/api/responses?${queryParams.toString()}`);
       const response = await axios.get(`/api/responses?${queryParams.toString()}`);
+      
+      console.log('[Reports] Successfully fetched responses:', response.data.length, 'items');
       setResponses(response.data);
       setError('');
     } catch (error) {
+      console.error('[Reports] Error fetching responses:', error);
       setError('Failed to fetch responses');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    console.log('[Reports] Export requested with filters:', filter);
+    console.log('[Reports] Current responses count:', responses.length);
+    
     // Check if there are any responses to export
     if (responses.length === 0) {
+      console.log('[Reports] No responses to export, showing error');
       setError('No reports available to export. Please adjust your filters or wait for reports to be submitted.');
       return;
     }
     
-    // Build query string with current filters
-    const queryParams = new URLSearchParams();
-    if (filter.formType) queryParams.append('formType', filter.formType);
-    if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
-    if (filter.year) queryParams.append('year', filter.year);
-    if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
-    if (filter.wardId) queryParams.append('wardId', filter.wardId);
-    
-    // Open export URL in new tab
-    window.open(`/api/reports/export?${queryParams.toString()}`, '_blank');
-    
-    // Clear any previous errors
-    setError('');
+    try {
+      setIsExporting(true);
+      
+      // Build query string with current filters
+      const queryParams = new URLSearchParams();
+      if (filter.formType) queryParams.append('formType', filter.formType);
+      if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
+      if (filter.year) queryParams.append('year', filter.year);
+      if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
+      if (filter.wardId) queryParams.append('wardId', filter.wardId);
+      
+      const exportUrl = `/api/reports/export?${queryParams.toString()}`;
+      console.log('[Reports] Making export request to:', exportUrl);
+      
+      // Use axios with blob response type to maintain session context
+      const response = await axios.get(exportUrl, {
+        responseType: 'blob'
+      });
+      
+      console.log('[Reports] Export successful, creating download');
+      
+      // Create blob and download
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename based on filters
+      let filename = 'reports';
+      if (filter.formType) filename += `-${filter.formType}`;
+      if (filter.weekNumber) filename += `-week${filter.weekNumber}`;
+      if (filter.year) filename += `-${filter.year}`;
+      filename += `.xlsx`;
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      // Clear any previous errors
+      setError('');
+    } catch (error) {
+      console.error('[Reports] Export failed:', error);
+      if (error.response?.status === 401) {
+        setError('Unauthorized: Please ensure you are logged in as a state admin.');
+      } else if (error.response?.status === 404) {
+        setError('No reports found matching the current filters.');
+      } else {
+        setError('Failed to export reports. Please try again.');
+      }
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Get unique weeks from forms
@@ -144,12 +212,12 @@ export default function Reports() {
           <Button
             onClick={exportToExcel}
             variant="success"
-            disabled={responses.length === 0}
+            disabled={responses.length === 0 || isExporting}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Export to Excel ({responses.length} reports)
+            {isExporting ? 'Exporting...' : `Export to Excel (${totalItems} reports)`}
           </Button>
         </div>
 
@@ -285,7 +353,7 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {responses.map((response) => (
+                {paginatedResponses.map((response) => (
                   <tr key={response._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
@@ -338,7 +406,7 @@ export default function Reports() {
                     </td>
                   </tr>
                 ))}
-                {responses.length === 0 && (
+                {paginatedResponses.length === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -354,6 +422,18 @@ export default function Reports() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            pageSizeOptions={[5, 10, 25, 50, 100]}
+            showPageSizeSelector={true}
+            showItemsInfo={true}
+          />
         </Card>
       </div>
     </Layout>

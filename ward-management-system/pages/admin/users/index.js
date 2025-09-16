@@ -573,6 +573,33 @@ export default function Users() {
           </Button>
         </div>
 
+        {/* Security Warning */}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                🔐 Sensitive Data Warning
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>
+                  This page displays user passwords and PIN codes for management purposes. 
+                  <strong> Ensure your screen is not visible to unauthorized personnel.</strong>
+                </p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  <li>State Admin passwords are hashed and cannot be displayed</li>
+                  <li>Coordinator/Ward Incharge PIN codes are shown in plain text</li>
+                  <li>All access to this data is logged for security auditing</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
@@ -617,6 +644,22 @@ export default function Users() {
                     Mobile
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Password
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.023.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      PIN
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Assignments
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -659,6 +702,47 @@ export default function Users() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.mobileNumber || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center">
+                        {user.displayPassword === '[HASHED - Cannot Display]' ? (
+                          <span className="text-orange-600 bg-orange-50 px-2 py-1 rounded text-xs font-medium">
+                            🔒 HASHED
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 text-xs">
+                            {user.displayPassword}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center space-x-2">
+                        {user.displayPin && user.displayPin !== 'N/A' && user.displayPin !== '[Not Set]' ? (
+                          <>
+                            <span className="bg-red-100 text-red-800 px-2 py-1 rounded font-mono text-sm font-bold">
+                              {user.displayPin}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(user.displayPin);
+                                // Could add a toast notification here
+                                console.log(`PIN copied for ${user.name}`);
+                              }}
+                              className="text-gray-400 hover:text-gray-600 p-1"
+                              title="Copy PIN to clipboard"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-gray-500 text-xs">
+                            {user.displayPin || 'N/A'}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {user.role === 'stateAdmin' ? (
@@ -719,7 +803,7 @@ export default function Users() {
                 )) : null}
                 {(!paginatedUsers || paginatedUsers.length === 0) && totalItems === 0 && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="8" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />

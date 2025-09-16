@@ -51,6 +51,10 @@ const FieldSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  applicableToWards: {
+    type: Boolean,
+    default: false,
+  },
   order: {
     type: Number,
     default: 0,

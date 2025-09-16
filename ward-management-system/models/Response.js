@@ -25,6 +25,12 @@ const ResponseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     required: true,
   },
+  // Ward-wise data for coordinator reports (ward ID -> response data)
+  wardData: {
+    type: Map,
+    of: mongoose.Schema.Types.Mixed,
+    default: new Map()
+  },
   weekNumber: {
     type: Number,
     required: true,

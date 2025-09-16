@@ -106,6 +106,11 @@ const RecurringQuestionSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  // Ward applicability for coordinator reports
+  applicableToWards: {
+    type: Boolean,
+    default: false,
+  },
   // Sitting ward applicability
   applicableToSittingWards: {
     type: Boolean,

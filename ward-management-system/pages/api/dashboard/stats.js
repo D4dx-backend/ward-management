@@ -225,7 +225,7 @@ export default async function handler(req, res) {
       const coordinatorWards = await Ward.find({ 
         coordinator: session.user.id 
       })
-        .select('name wardNumber panchayath district wardAdmin population area isActive')
+        .select('name wardNumber panchayath district wardAdmin population area isActive isSittingWard')
         .populate('wardAdmin', 'name mobileNumber')
         .lean();
 
