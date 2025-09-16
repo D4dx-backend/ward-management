@@ -12,20 +12,24 @@ import SearchInput from '../../../components/SearchInput';
 import SearchableSelect from '../../../components/SearchableSelect';
 import DeleteModal from '../../../components/DeleteModal';
 import Pagination from '../../../components/Pagination';
+import Loading from '../../../components/Loading';
 
 import { KERALA_DISTRICTS, getPanchayathsByDistrict } from '../../../data/kerala-districts';
-import { ShimmerDashboard, ShimmerTable, ShimmerCard, ShimmerList, ShimmerForm } from '../../../components/Shimmer';
 import { useApiData } from '../../../hooks/useApiData';
 import { usePersistentPaginationState, usePersistentFilterState } from '../../../hooks/usePersistentState';
+import { clearCache } from '../../../lib/simpleCache';
 
 export default function AdminWards() {
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  const { data: wardsData, loading: wardsLoading, error: wardsError, refetch: refetchWards } = useApiData('/api/wards', { cacheKey: 'wards' });
+  const { data: usersData, loading: usersLoading, error: usersError } = useApiData('/api/users', { cacheKey: 'users' });
+
   const [wards, setWards] = useState([]);
   const [filteredWards, setFilteredWards] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
   const [wardAdmins, setWardAdmins] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -41,6 +45,28 @@ export default function AdminWards() {
   });
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
+
+  useEffect(() => {
+    if (wardsData) {
+      setWards(wardsData);
+      setFilteredWards(wardsData);
+    }
+  }, [wardsData]);
+
+  useEffect(() => {
+    if (usersData) {
+      const coordinators = usersData.filter(user => user.role === 'coordinator');
+      const wardAdmins = usersData.filter(user => user.role === 'wardAdmin');
+      setCoordinators(coordinators);
+      setWardAdmins(wardAdmins);
+    }
+  }, [usersData]);
+
+  useEffect(() => {
+    if (wardsError || usersError) {
+      setError('Failed to fetch data');
+    }
+  }, [wardsError, usersError]);
   
   // Persistent pagination state - survives tab switches and page reloads
   const {
@@ -121,8 +147,6 @@ export default function AdminWards() {
       router.push('/auth/signin');
     } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
       router.push('/');
-    } else if (status === 'authenticated') {
-      fetchData();
     }
   }, [status, session, router]);
 
@@ -203,42 +227,6 @@ export default function AdminWards() {
     }
   }, [selectedDistrict]);
 
-  const fetchData = async () => {
-    console.time('AdminWards.fetchData');
-    try {
-      setIsLoading(true);
-
-      // Get all wards
-      const wardsResponse = await axios.get('/api/wards');
-      console.log(`[AdminWards] Fetched ${wardsResponse.data.length} wards`);
-      
-      // Debug: Log the actual number of wards received
-      console.log('Wards API Response:', {
-        totalReceived: wardsResponse.data.length,
-        firstWard: wardsResponse.data[0]?.name,
-        lastWard: wardsResponse.data[wardsResponse.data.length - 1]?.name
-      });
-
-      // Get all users
-      const usersResponse = await axios.get('/api/users');
-      const coordinators = usersResponse.data.filter(user => user.role === 'coordinator');
-      const wardAdmins = usersResponse.data.filter(user => user.role === 'wardAdmin');
-      console.log(`[AdminWards] Fetched ${usersResponse.data.length} users (${coordinators.length} coordinators, ${wardAdmins.length} ward admins)`);
-
-      setWards(wardsResponse.data);
-      setFilteredWards(wardsResponse.data);
-      setCoordinators(coordinators);
-      setWardAdmins(wardAdmins);
-      setError('');
-    } catch (error) {
-      setError('Failed to fetch data');
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-      console.timeEnd('AdminWards.fetchData');
-    }
-  };
-
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
@@ -281,11 +269,8 @@ export default function AdminWards() {
       const response = await axios.post('/api/wards', formData);
 
       console.log('Ward created successfully:', response.data);
-
-      // Update wards list
-      const newWards = [...wards, response.data];
-      setWards(newWards);
-      setFilteredWards(newWards);
+      clearCache('wards');
+      refetchWards();
 
       // Reset form and close modal
       resetForm();
@@ -328,13 +313,8 @@ export default function AdminWards() {
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
 
       console.log('Ward updated successfully:', response.data);
-
-      // Update wards list
-      const updatedWards = wards.map(ward =>
-        ward._id === editingWard._id ? response.data : ward
-      );
-      setWards(updatedWards);
-      setFilteredWards(updatedWards);
+      clearCache('wards');
+      refetchWards();
 
       // Reset form and close modal
       resetForm();
@@ -406,9 +386,8 @@ export default function AdminWards() {
 
     try {
       await axios.delete(`/api/wards/${deleteModal.wardId}`);
-      const updatedWards = wards.filter(ward => ward._id !== deleteModal.wardId);
-      setWards(updatedWards);
-      setFilteredWards(updatedWards);
+      clearCache('wards');
+      refetchWards();
       closeDeleteModal();
     } catch (error) {
       setError('Failed to delete ward');
@@ -600,6 +579,16 @@ export default function AdminWards() {
       console.log('[AdminWards] Component will unmount');
     };
   }, []);
+
+  if (wardsLoading || usersLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center h-screen">
+          <Loading />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
