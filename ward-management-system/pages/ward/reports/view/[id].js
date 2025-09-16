@@ -41,6 +41,17 @@ export default function ViewWardReport() {
       
       setReport(response.data);
       setError('');
+      
+      // Log report structure for debugging
+      console.log('Report data received:', {
+        hasFormTemplate: !!response.data.formTemplate,
+        hasFields: !!response.data.formTemplate?.fields,
+        fieldsCount: response.data.formTemplate?.fields?.length || 0,
+        hasSittingWardFields: !!response.data.formTemplate?.sittingWardFields,
+        sittingWardFieldsCount: response.data.formTemplate?.sittingWardFields?.length || 0,
+        hasResponses: !!response.data.responses,
+        responsesKeys: response.data.responses ? Object.keys(response.data.responses) : []
+      });
     } catch (error) {
       console.error('Error fetching report:', error);
       setError('Failed to fetch report');
@@ -77,6 +88,19 @@ export default function ViewWardReport() {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+  };
+
+  const hasSittingWardResponses = (response) => {
+    if (!response.responses) return false;
+    
+    const responsesObj = response.responses instanceof Map ?
+      Object.fromEntries(response.responses) : response.responses;
+    
+    // Check if any response key contains 'sittingWard' or 'sitting'
+    return Object.keys(responsesObj).some(key => 
+      key.toLowerCase().includes('sittingward') || 
+      key.toLowerCase().includes('sitting')
+    );
   };
 
   const renderFieldValue = (field, value) => {
@@ -267,7 +291,12 @@ export default function ViewWardReport() {
                 return (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-900">{field.label}</h4>
+                      <h4 className="text-sm font-medium text-gray-900">
+                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
+                          Q{index + 1}
+                        </span>
+                        {field.label}
+                      </h4>
                       {field.required && (
                         <span className="text-xs text-red-500">Required</span>
                       )}
@@ -294,7 +323,12 @@ export default function ViewWardReport() {
                           return (
                             <div key={subIndex}>
                               <div className="flex items-start justify-between mb-2">
-                                <h5 className="text-sm font-medium text-gray-700">{subQuestion.label}</h5>
+                                <h5 className="text-sm font-medium text-gray-700">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded text-xs font-semibold mr-2">
+                                    Q{index + 1}.{subIndex + 1}
+                                  </span>
+                                  {subQuestion.label}
+                                </h5>
                                 {subQuestion.required && (
                                   <span className="text-xs text-red-500">Required</span>
                                 )}
@@ -310,6 +344,155 @@ export default function ViewWardReport() {
                   </div>
                 );
               })}
+
+              {/* Sitting Ward Fields - Only show if ward is a sitting ward or has sitting ward responses */}
+              {report.formTemplate?.sittingWardFields && report.formTemplate.sittingWardFields.length > 0 && (report.ward?.isSittingWard || hasSittingWardResponses(report)) && (
+                <div className="mt-8">
+                  <div className="border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      Sitting Ward Questions
+                    </h3>
+                    <div className="space-y-6">
+                      {report.formTemplate.sittingWardFields.map((field, index) => {
+                        // Try different ways to get the field value for sitting ward fields
+                        let fieldValue = null;
+                        if (report.responses) {
+                          // Try different key formats for sitting ward fields
+                          const sittingWardKey = `sittingWard_${field.label}`;
+                          fieldValue = report.responses[sittingWardKey];
+
+                          // If not found, try other possible formats
+                          if (fieldValue === undefined) {
+                            const possibleKeys = [
+                              `sittingWard_field_${index}`,
+                              `sittingWard_${index}`,
+                              field.label,
+                              `field_${report.formTemplate.fields.length + index}` // Continue numbering from regular fields
+                            ];
+
+                            for (const key of possibleKeys) {
+                              if (report.responses[key] !== undefined) {
+                                fieldValue = report.responses[key];
+                                break;
+                              }
+                            }
+                          }
+
+                          // Try case-insensitive matching
+                          if (fieldValue === undefined) {
+                            const keys = Object.keys(report.responses);
+                            const matchingKey = keys.find(key =>
+                              key.toLowerCase().includes(field.label?.toLowerCase()) ||
+                              key.toLowerCase().includes('sittingward')
+                            );
+                            if (matchingKey) {
+                              fieldValue = report.responses[matchingKey];
+                            }
+                          }
+                        }
+
+                        return (
+                          <div key={`sitting-${index}`} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <h4 className="text-sm font-medium text-green-700">
+                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mr-2">
+                                  SW{index + 1}
+                                </span>
+                                {field.label}
+                              </h4>
+                              {field.required && (
+                                <span className="text-xs text-red-500">Required</span>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-gray-700 bg-white p-3 rounded border border-green-200">
+                              {renderFieldValue(field, fieldValue)}
+                            </div>
+
+                            {/* Handle sub-questions for sitting ward fields */}
+                            {field.subQuestions && field.subQuestions.length > 0 && (
+                              <div className="mt-4 ml-4 space-y-3 border-l-2 border-green-300 pl-4">
+                                {field.subQuestions.map((subQuestion, subIndex) => {
+                                  // Check if sub-questions should be shown based on parent answer
+                                  let shouldShowSubQuestion = true;
+
+                                  if (field.showSubQuestionsWhen) {
+                                    if (field.type === 'yesno') {
+                                      const parentIsYes = fieldValue === 'Yes' || fieldValue === 'yes' || fieldValue === true;
+                                      shouldShowSubQuestion = (field.showSubQuestionsWhen === 'yes' && parentIsYes) ||
+                                        (field.showSubQuestionsWhen === 'no' && !parentIsYes);
+                                    } else if (field.type === 'select') {
+                                      shouldShowSubQuestion = fieldValue === field.showSubQuestionsWhen;
+                                    }
+                                  }
+
+                                  if (!shouldShowSubQuestion) {
+                                    return null;
+                                  }
+
+                                  // Try to find sub-question value for sitting ward
+                                  let subValue = null;
+                                  if (report.responses) {
+                                    // Try different key formats for sitting ward sub-questions
+                                    const possibleKeys = [
+                                      `sittingWard_${field.label}_${subQuestion.label}`,
+                                      `sittingWard_field_${index}_sub_${subIndex}`,
+                                      `sittingWard_${index}_sub_${subIndex}`,
+                                      `${field.label}_sub_${subQuestion.label}`,
+                                      `field_${report.formTemplate.fields.length + index}_sub_${subIndex}`
+                                    ];
+
+                                    for (const key of possibleKeys) {
+                                      if (report.responses[key] !== undefined) {
+                                        subValue = report.responses[key];
+                                        break;
+                                      }
+                                    }
+
+                                    // Try case-insensitive matching for sub-questions
+                                    if (subValue === undefined) {
+                                      const keys = Object.keys(report.responses);
+                                      const matchingKey = keys.find(key =>
+                                        key.toLowerCase().includes(subQuestion.label.toLowerCase()) ||
+                                        key.toLowerCase().includes('sittingward')
+                                      );
+                                      if (matchingKey) {
+                                        subValue = report.responses[matchingKey];
+                                      }
+                                    }
+                                  }
+
+                                  return (
+                                    <div key={subIndex} className="bg-green-100 border border-green-300 rounded-md p-3">
+                                      <div className="flex items-start justify-between mb-2">
+                                        <h5 className="text-sm font-medium text-green-800">
+                                          <span className="inline-flex items-center px-1.5 py-0.5 bg-green-200 text-green-900 rounded text-xs font-semibold mr-2">
+                                            SW{index + 1}.{subIndex + 1}
+                                          </span>
+                                          {subQuestion.label}
+                                        </h5>
+                                        {subQuestion.required && (
+                                          <span className="text-xs text-red-500">Required</span>
+                                        )}
+                                      </div>
+                                      <div className="text-sm text-gray-700 bg-white p-2 rounded border border-green-200">
+                                        {renderFieldValue(subQuestion, subValue)}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>

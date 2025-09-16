@@ -149,7 +149,7 @@ export default async function handler(req, res) {
       })
       .populate({
         path: 'ward',
-        select: 'name district'
+        select: 'name district isSittingWard'
       })
       .sort({ submittedAt: -1 })
       .skip(skip)

@@ -96,6 +96,7 @@ async function handlePost(req, res, session) {
       recurringMessage,
       applicableToForms,
       applicableToClusters,
+      applicableToWards,
       applicableToSittingWards,
       validation,
       priority
@@ -137,6 +138,7 @@ async function handlePost(req, res, session) {
       recurringMessage: recurringMessage || 'Please provide the required answer to continue.',
       applicableToForms: applicableToForms || ['both'],
       applicableToClusters: applicableToClusters || false,
+      applicableToWards: applicableToWards || false,
       applicableToSittingWards: applicableToSittingWards || false,
       validation: validation || {},
       priority: priority || 0,

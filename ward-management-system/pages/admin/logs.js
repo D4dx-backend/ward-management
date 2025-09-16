@@ -6,6 +6,7 @@ import axios from 'axios';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
+import SearchInput from '../../components/SearchInput';
 import { useApiData } from '../../hooks/useApiData';
 
 export default function ActivityLogs() {
@@ -16,12 +17,12 @@ export default function ActivityLogs() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState({
     action: '',
-    user: '',
     district: '',
     dateFrom: '',
     dateTo: '',
+    searchTerm: '',
     page: 1,
-    limit: 50
+    limit: 10
   });
   const [totalPages, setTotalPages] = useState(1);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -72,9 +73,11 @@ export default function ActivityLogs() {
     }
   }, [isFiltering]);
 
+
   const fetchLogs = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching logs with filter:', filter);
 
       // Build query string
       const queryParams = new URLSearchParams();
@@ -92,9 +95,10 @@ export default function ActivityLogs() {
       setLogs(logsData);
       setTotalPages(responseData.totalPages || 1);
       setError('');
+      console.log('Logs fetched successfully:', logsData.length);
     } catch (error) {
       setError('Failed to fetch activity logs');
-      console.error(error);
+      console.error('Error fetching logs:', error);
     } finally {
       setIsLoading(false);
     }
@@ -192,72 +196,89 @@ export default function ActivityLogs() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
-                <select
-                  value={filter.action}
-                  onChange={(e) => handleFilterChange('action', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Actions</option>
-                  <option value="LOGIN">Login</option>
-                  <option value="LOGOUT">Logout</option>
-                  <option value="FORM_SUBMIT">Form Submit</option>
-                  <option value="FORM_CREATE">Form Create</option>
-                  <option value="FORM_UPDATE">Form Update</option>
-                  <option value="FORM_DELETE">Form Delete</option>
-                  <option value="USER_CREATE">User Create</option>
-                  <option value="USER_UPDATE">User Update</option>
-                  <option value="USER_DELETE">User Delete</option>
-                  <option value="REPORT_VIEW">Report View</option>
-                  <option value="REPORT_EXPORT">Report Export</option>
-                </select>
+            <div className="space-y-4">
+              {/* Search Row */}
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                  <SearchInput
+                    value={filter.searchTerm}
+                    onChange={(value) => handleFilterChange('searchTerm', value)}
+                    placeholder="Search logs by description, user, or action..."
+                    debounceMs={500}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
-                <input
-                  ref={districtInputRef}
-                  type="text"
-                  value={filter.district}
-                  onChange={(e) => handleFilterChange('district', e.target.value, districtInputRef)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter district"
-                />
+
+              {/* Other Filters Row */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                  <select
+                    value={filter.action}
+                    onChange={(e) => handleFilterChange('action', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">All Actions</option>
+                    <option value="LOGIN">Login</option>
+                    <option value="LOGOUT">Logout</option>
+                    <option value="FORM_SUBMIT">Form Submit</option>
+                    <option value="FORM_CREATE">Form Create</option>
+                    <option value="FORM_UPDATE">Form Update</option>
+                    <option value="FORM_DELETE">Form Delete</option>
+                    <option value="USER_CREATE">User Create</option>
+                    <option value="USER_UPDATE">User Update</option>
+                    <option value="USER_DELETE">User Delete</option>
+                    <option value="REPORT_VIEW">Report View</option>
+                    <option value="REPORT_EXPORT">Report Export</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
+                  <input
+                    ref={districtInputRef}
+                    type="text"
+                    value={filter.district}
+                    onChange={(e) => handleFilterChange('district', e.target.value, districtInputRef)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter district"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                  <input
+                    ref={dateFromInputRef}
+                    type="date"
+                    value={filter.dateFrom}
+                    onChange={(e) => handleFilterChange('dateFrom', e.target.value, dateFromInputRef)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                  <input
+                    ref={dateToInputRef}
+                    type="date"
+                    value={filter.dateTo}
+                    onChange={(e) => handleFilterChange('dateTo', e.target.value, dateToInputRef)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                <input
-                  ref={dateFromInputRef}
-                  type="date"
-                  value={filter.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value, dateFromInputRef)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                <input
-                  ref={dateToInputRef}
-                  type="date"
-                  value={filter.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value, dateToInputRef)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
+
+              {/* Clear Filters Button */}
+              <div className="flex justify-end">
                 <Button
                   onClick={() => setFilter({
                     action: '',
-                    user: '',
                     district: '',
                     dateFrom: '',
                     dateTo: '',
+                    searchTerm: '',
                     page: 1,
-                    limit: 50
+                    limit: 10
                   })}
                   variant="outline"
-                  className="w-full"
                 >
                   Clear Filters
                 </Button>

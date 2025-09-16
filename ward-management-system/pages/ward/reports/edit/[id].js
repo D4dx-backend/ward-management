@@ -75,6 +75,60 @@ export default function EditWardReport() {
           }
         });
       }
+
+      // Convert sitting ward responses back to form field format
+      if (response.data.formTemplate?.sittingWardFields && response.data.responses) {
+        response.data.formTemplate.sittingWardFields.forEach((field, fieldIndex) => {
+          const fieldKey = `sitting_field_${fieldIndex}`;
+          
+          // Try different key formats for sitting ward fields
+          const sittingWardKey = `sittingWard_${field.label}`;
+          let fieldValue = response.data.responses[sittingWardKey];
+          
+          if (fieldValue === undefined) {
+            const possibleKeys = [
+              `sittingWard_field_${fieldIndex}`,
+              `sittingWard_${fieldIndex}`,
+              field.label,
+              `field_${response.data.formTemplate.fields.length + fieldIndex}`
+            ];
+
+            for (const key of possibleKeys) {
+              if (response.data.responses[key] !== undefined) {
+                fieldValue = response.data.responses[key];
+                break;
+              }
+            }
+          }
+
+          if (fieldValue !== undefined) {
+            convertedData[fieldKey] = fieldValue;
+          }
+          
+          // Handle sitting ward sub-questions
+          if (field.subQuestions && field.subQuestions.length > 0) {
+            field.subQuestions.forEach((subQuestion, subIndex) => {
+              const subKey = `sitting_field_${fieldIndex}_sub_${subIndex}`;
+              
+              // Try different key formats for sitting ward sub-questions
+              const possibleKeys = [
+                `sittingWard_${field.label}_${subQuestion.label}`,
+                `sittingWard_field_${fieldIndex}_sub_${subIndex}`,
+                `sittingWard_${fieldIndex}_sub_${subIndex}`,
+                `${field.label}_sub_${subQuestion.label}`,
+                `field_${response.data.formTemplate.fields.length + fieldIndex}_sub_${subIndex}`
+              ];
+
+              for (const key of possibleKeys) {
+                if (response.data.responses[key] !== undefined) {
+                  convertedData[subKey] = response.data.responses[key];
+                  break;
+                }
+              }
+            });
+          }
+        });
+      }
       
       setFormData(convertedData);
       setError('');
@@ -388,6 +442,7 @@ export default function EditWardReport() {
                   formData={formData}
                   setFormData={setFormData}
                   errors={validationErrors}
+                  ward={{ isSittingWard: report?.ward?.isSittingWard || false }} // Show sitting ward fields only if ward is a sitting ward
                 />
                 
                 <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">

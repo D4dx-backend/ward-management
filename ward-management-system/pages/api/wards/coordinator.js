@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     const wards = await Ward.find({ 
       coordinator: session.user.id 
     })
-    .select('name wardNumber district panchayath coordinator')
+    .select('name wardNumber district panchayath coordinator isSittingWard')
     .sort({ wardNumber: 1 });
 
     return res.status(200).json(wards);

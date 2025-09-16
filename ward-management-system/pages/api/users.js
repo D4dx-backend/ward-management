@@ -51,28 +51,43 @@ export default async function handler(req, res) {
       // Calculate pagination
       const skip = (parseInt(page) - 1);
 
-      // Fetch users
+      // Fetch users with password and PIN for admin management
       const users = await User.find(query)
-        .select('name email role district mobileNumber createdAt')
+        .select('name email role district mobileNumber createdAt password pinCode')
         .sort({ createdAt: -1 })
         .skip(skip);
+      
+      // Log that sensitive data is being accessed for admin management
+      console.log(`[ADMIN ACCESS] User credentials accessed by ${session.user.name} (${session.user.id}) for management purposes`);
 
       // Add assigned wards for each user based on their role
       const usersWithWards = await Promise.all(users.map(async (user) => {
         const userObj = user.toObject();
         if (user.role === 'coordinator') {
           const assignedWards = await Ward.find({ coordinator: user._id })
-            .select('name district')
+            .select('name district wardNumber')
             .lean();
           userObj.assignedWards = assignedWards;
         } else if (user.role === 'wardAdmin') {
           const assignedWard = await Ward.findOne({ wardAdmin: user._id })
-            .select('name district')
+            .select('name district wardNumber')
             .lean();
           userObj.assignedWards = assignedWard ? [assignedWard] : [];
         } else {
           userObj.assignedWards = [];
         }
+        
+        // Handle password display for admin management
+        if (userObj.role === 'stateAdmin') {
+          // Password is hashed - indicate this to admin
+          userObj.displayPassword = '[HASHED - Cannot Display]';
+          userObj.displayPin = 'N/A';
+        } else {
+          // PIN codes are stored as plain text and can be displayed
+          userObj.displayPassword = 'N/A';
+          userObj.displayPin = userObj.pinCode || '[Not Set]';
+        }
+        
         return userObj;
       }));
 

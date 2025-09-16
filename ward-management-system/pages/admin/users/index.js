@@ -40,13 +40,16 @@ export default function Users() {
     updateFilter,
     clearFilters
   } = usePersistentFilterState({
-    searchTerm: ''
+    searchTerm: '',
+    roleFilter: ''
   }, {
     filterKey: 'adminUsersFilters'
   });
 
   const searchTerm = filters.searchTerm || '';
   const setSearchTerm = (value) => updateFilter('searchTerm', value);
+  const roleFilter = filters.roleFilter || '';
+  const setRoleFilter = (value) => updateFilter('roleFilter', value);
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -59,7 +62,6 @@ export default function Users() {
     mobileNumber: '',
     pinCode: '',
     role: 'coordinator',
-    district: '',
     sendWhatsApp: true,
   });
   const [deleteModal, setDeleteModal] = useState({
@@ -152,36 +154,44 @@ export default function Users() {
     }
   };
 
-  // Track previous search term to detect actual changes
+  // Track previous search term and role filter to detect actual changes
   const prevSearchTermRef = useRef('');
+  const prevRoleFilterRef = useRef('');
   
   useEffect(() => {
-    // Filter users based on search term
+    // Filter users based on search term and role filter
+    let filtered = users;
+    
+    // Apply search term filter
     if (searchTerm.trim()) {
-      const filtered = users.filter(user =>
+      filtered = filtered.filter(user =>
         (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.role && user.role.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.district && user.district.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.mobileNumber && user.mobileNumber.includes(searchTerm))
       );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
     }
     
-    // Only reset to page 1 if search term actually changed (not just component mounting or data loading)
-    if (searchTerm !== prevSearchTermRef.current && users.length > 0 && prevSearchTermRef.current !== '') {
-      console.log('[AdminUsers] Search term actually changed, resetting pagination', { 
-        from: prevSearchTermRef.current, 
-        to: searchTerm 
+    // Apply role filter
+    if (roleFilter) {
+      filtered = filtered.filter(user => user.role === roleFilter);
+    }
+    
+    setFilteredUsers(filtered);
+    
+    // Only reset to page 1 if search term or role filter actually changed (not just component mounting or data loading)
+    if ((searchTerm !== prevSearchTermRef.current || roleFilter !== prevRoleFilterRef.current) && users.length > 0 && (prevSearchTermRef.current !== '' || prevRoleFilterRef.current !== '')) {
+      console.log('[AdminUsers] Filter actually changed, resetting pagination', { 
+        searchTerm: { from: prevSearchTermRef.current, to: searchTerm },
+        roleFilter: { from: prevRoleFilterRef.current, to: roleFilter }
       });
       handlePageChange(1);
     }
     
-    // Update previous search term reference
+    // Update previous filter references
     prevSearchTermRef.current = searchTerm;
-  }, [users, searchTerm, handlePageChange]);
+    prevRoleFilterRef.current = roleFilter;
+  }, [users, searchTerm, roleFilter, handlePageChange]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -207,7 +217,6 @@ export default function Users() {
       mobileNumber: '',
       pinCode: '',
       role: 'coordinator',
-      district: '',
       sendWhatsApp: true,
     });
   };
@@ -259,7 +268,6 @@ export default function Users() {
         name: formData.name,
         email: formData.email,
         role: formData.role,
-        district: formData.district || undefined,
         mobileNumber: formData.mobileNumber || undefined,
       };
       
@@ -296,7 +304,6 @@ export default function Users() {
       mobileNumber: user.mobileNumber || '',
       pinCode: '',
       role: user.role,
-      district: user.district || '',
     });
     setShowEditModal(true);
   };
@@ -573,6 +580,7 @@ export default function Users() {
           </Button>
         </div>
 
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <div className="flex">
@@ -590,13 +598,49 @@ export default function Users() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <SearchInput
-              onChange={setSearchTerm}
-              placeholder="Search users by name, email, role, district, or mobile..."
-              className="max-w-md"
-            />
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <SearchInput
+                  onChange={setSearchTerm}
+                  placeholder="Search users by name, email, role, or mobile..."
+                  className="max-w-md"
+                />
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="roleFilter" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    Filter by Role:
+                  </label>
+                  <select
+                    id="roleFilter"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="">All Roles</option>
+                    <option value="stateAdmin">State Admin</option>
+                    <option value="coordinator">Coordinator</option>
+                    <option value="wardAdmin">Ward Incharge</option>
+                  </select>
+                  {(searchTerm || roleFilter) && (
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                        setRoleFilter('');
+                      }}
+                      className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="mt-4 text-sm text-gray-600">
               Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} users
+              {(searchTerm || roleFilter) && (
+                <span className="ml-2 text-blue-600">
+                  (filtered)
+                </span>
+              )}
             </div>
           </div>
           
@@ -608,16 +652,18 @@ export default function Users() {
                     User
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    District
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Mobile
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Assignments
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 mr-1 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.023.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      PIN
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Assigned Wards
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -639,46 +685,74 @@ export default function Users() {
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{user.name}</div>
                           <div className="text-sm text-gray-500">{user.email}</div>
+                          <div className="mt-1">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.role === 'stateAdmin' 
+                                ? 'bg-purple-100 text-purple-800'
+                                : user.role === 'coordinator'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {user.role === 'stateAdmin' ? 'State Admin' : 
+                               user.role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.role === 'stateAdmin' 
-                          ? 'bg-purple-100 text-purple-800'
-                          : user.role === 'coordinator'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {user.role === 'stateAdmin' ? 'State Admin' : 
-                         user.role === 'coordinator' ? 'Coordinator' : 'Ward Incharge'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.district || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.mobileNumber || '-'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex items-center space-x-2">
+                        {user.displayPin && user.displayPin !== 'N/A' && user.displayPin !== '[Not Set]' ? (
+                          <>
+                            <span className="bg-red-100 text-red-800 px-2 py-1 rounded font-mono text-sm font-bold">
+                              {user.displayPin}
+                            </span>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(user.displayPin);
+                                // Could add a toast notification here
+                                console.log(`PIN copied for ${user.name}`);
+                              }}
+                              className="text-gray-400 hover:text-gray-600 p-1"
+                              title="Copy PIN to clipboard"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-gray-500 text-xs">
+                            {user.displayPin || 'N/A'}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.role === 'stateAdmin' ? (
-                        <span className="text-gray-500">-</span>
-                      ) : (
+                      {user.role === 'wardAdmin' ? (
                         <div className="flex items-center space-x-2">
-                          {user.wardCounts?.coordinator > 0 && (
-                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                              {user.wardCounts.coordinator} as Coordinator
-                            </span>
-                          )}
-                          {user.wardCounts?.wardAdmin > 0 && (
-                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                              {user.wardCounts.wardAdmin} as Admin
-                            </span>
-                          )}
-                          {user.wardCounts?.total === 0 && (
-                            <span className="text-gray-500 text-xs">No assignments</span>
+                          {user.assignedWards && user.assignedWards.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {user.assignedWards.slice(0, 3).map((ward, index) => (
+                                <span key={index} className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                  {ward.name}
+                                </span>
+                              ))}
+                              {user.assignedWards.length > 3 && (
+                                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+                                  +{user.assignedWards.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-500 text-xs">No wards assigned</span>
                           )}
                         </div>
+                      ) : (
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -719,7 +793,7 @@ export default function Users() {
                 )) : null}
                 {(!paginatedUsers || paginatedUsers.length === 0) && totalItems === 0 && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-12 text-center">
+                    <td colSpan="4" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
                         <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />

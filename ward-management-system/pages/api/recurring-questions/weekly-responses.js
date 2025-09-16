@@ -117,7 +117,7 @@ export default async function handler(req, res) {
       })
       .populate({
         path: 'ward',
-        select: 'name district'
+        select: 'name district isSittingWard'
       })
       .sort({ weekNumber: 1, submittedAt: -1 });
 

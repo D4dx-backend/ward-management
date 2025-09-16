@@ -51,6 +51,7 @@ export default function CreateForm() {
         subQuestions: [],
         showSubQuestionsWhen: '',
         applicableToClusters: false,
+        applicableToWards: false,
         order: 0,
         section: ''
       }
@@ -504,6 +505,7 @@ export default function CreateForm() {
       subQuestions: [],
       showSubQuestionsWhen: '',
       applicableToClusters: question.applicableToClusters || false,
+      applicableToWards: question.applicableToWards || false,
       isRecurring: question.isRecurring,
       recurringCondition: question.recurringCondition,
       expectedValue: question.expectedValue,
@@ -1035,6 +1037,11 @@ export default function CreateForm() {
                               {question.applicableToClusters && (
                                 <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                   Clusters
+                                </span>
+                              )}
+                              {question.applicableToWards && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  Wards
                                 </span>
                               )}
                               {question.applicableToSittingWards && (

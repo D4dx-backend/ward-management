@@ -7,8 +7,10 @@ import axios from 'axios';
 import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
+import Pagination from '../../../components/Pagination';
 import { getWeekOptions, formatWeekPeriod } from '../../../lib/weekUtils';
 import { useApiData } from '../../../hooks/useApiData';
+import { usePersistentPagination } from '../../../hooks/usePersistentPagination';
 
 export default function Reports() {
   const { data: session, status } = useSession();
@@ -18,6 +20,7 @@ export default function Reports() {
   const [coordinators, setCoordinators] = useState([]);
   const [wards, setWards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState({
     formType: '',
@@ -26,6 +29,21 @@ export default function Reports() {
     year: new Date().getFullYear(),
     coordinatorId: '',
     wardId: '',
+    sittingWardStatus: '',
+  });
+
+  // Add pagination using persistent pagination hook
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData: paginatedResponses,
+    totalPages,
+    totalItems,
+    handlePageChange,
+    handleItemsPerPageChange,
+    paginationInfo
+  } = usePersistentPagination(responses, 10, {
+    storageKey: 'adminReportsPagination'
   });
 
   useEffect(() => {
@@ -69,6 +87,7 @@ export default function Reports() {
 
   const fetchResponses = async () => {
     try {
+      console.log('[Reports] Starting to fetch responses with filters:', filter);
       setIsLoading(true);
       
       // Build query string
@@ -78,38 +97,100 @@ export default function Reports() {
       if (filter.year) queryParams.append('year', filter.year);
       if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
       if (filter.wardId) queryParams.append('wardId', filter.wardId);
+      if (filter.sittingWardStatus) queryParams.append('sittingWardStatus', filter.sittingWardStatus);
       
+      console.log('[Reports] Making API request to:', `/api/responses?${queryParams.toString()}`);
       const response = await axios.get(`/api/responses?${queryParams.toString()}`);
+      
+      console.log('[Reports] Successfully fetched responses:', response.data.length, 'items');
+      
+      // Log ward sitting status for debugging
+      console.log('Reports data received:', {
+        totalResponses: response.data.length,
+        sampleWardData: response.data.slice(0, 3).map(r => ({
+          wardName: r.ward?.name,
+          wardIsSittingWard: r.ward?.isSittingWard,
+          hasWard: !!r.ward
+        }))
+      });
+      
       setResponses(response.data);
       setError('');
     } catch (error) {
+      console.error('[Reports] Error fetching responses:', error);
       setError('Failed to fetch responses');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
+    console.log('[Reports] Export requested with filters:', filter);
+    console.log('[Reports] Current responses count:', responses.length);
+    
     // Check if there are any responses to export
     if (responses.length === 0) {
+      console.log('[Reports] No responses to export, showing error');
       setError('No reports available to export. Please adjust your filters or wait for reports to be submitted.');
       return;
     }
     
-    // Build query string with current filters
-    const queryParams = new URLSearchParams();
-    if (filter.formType) queryParams.append('formType', filter.formType);
-    if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
-    if (filter.year) queryParams.append('year', filter.year);
-    if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
-    if (filter.wardId) queryParams.append('wardId', filter.wardId);
-    
-    // Open export URL in new tab
-    window.open(`/api/reports/export?${queryParams.toString()}`, '_blank');
-    
-    // Clear any previous errors
-    setError('');
+    try {
+      setIsExporting(true);
+      
+      // Build query string with current filters
+      const queryParams = new URLSearchParams();
+      if (filter.formType) queryParams.append('formType', filter.formType);
+      if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
+      if (filter.year) queryParams.append('year', filter.year);
+      if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
+      if (filter.wardId) queryParams.append('wardId', filter.wardId);
+      
+      const exportUrl = `/api/reports/export?${queryParams.toString()}`;
+      console.log('[Reports] Making export request to:', exportUrl);
+      
+      // Use axios with blob response type to maintain session context
+      const response = await axios.get(exportUrl, {
+        responseType: 'blob'
+      });
+      
+      console.log('[Reports] Export successful, creating download');
+      
+      // Create blob and download
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Generate filename based on filters
+      let filename = 'reports';
+      if (filter.formType) filename += `-${filter.formType}`;
+      if (filter.weekNumber) filename += `-week${filter.weekNumber}`;
+      if (filter.year) filename += `-${filter.year}`;
+      filename += `.xlsx`;
+      
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      // Clear any previous errors
+      setError('');
+    } catch (error) {
+      console.error('[Reports] Export failed:', error);
+      if (error.response?.status === 401) {
+        setError('Unauthorized: Please ensure you are logged in as a state admin.');
+      } else if (error.response?.status === 404) {
+        setError('No reports found matching the current filters.');
+      } else {
+        setError('Failed to export reports. Please try again.');
+      }
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Get unique weeks from forms
@@ -144,12 +225,12 @@ export default function Reports() {
           <Button
             onClick={exportToExcel}
             variant="success"
-            disabled={responses.length === 0}
+            disabled={responses.length === 0 || isExporting}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Export to Excel ({responses.length} reports)
+            {isExporting ? 'Exporting...' : `Export to Excel (${totalItems} reports)`}
           </Button>
         </div>
 
@@ -171,7 +252,7 @@ export default function Reports() {
         <Card>
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter Reports</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Form Type</label>
                 <select
@@ -256,6 +337,18 @@ export default function Reports() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Status</label>
+                <select
+                  value={filter.sittingWardStatus}
+                  onChange={(e) => setFilter({ ...filter, sittingWardStatus: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Ward Types</option>
+                  <option value="sitting">Sitting Wards Only</option>
+                  <option value="regular">Regular Wards Only</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -285,15 +378,23 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {responses.map((response) => (
+                {paginatedResponses.map((response) => (
                   <tr key={response._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
                           {response.formTemplate?.title || 'Unknown Form'}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {response.district} {response.ward?.name && `• ${response.ward.name}`}
+                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                          <span>{response.district} {response.ward?.name && `• ${response.ward.name}`}</span>
+                          {response.ward?.isSittingWard && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              Sitting Ward
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -338,7 +439,7 @@ export default function Reports() {
                     </td>
                   </tr>
                 ))}
-                {responses.length === 0 && (
+                {paginatedResponses.length === 0 && (
                   <tr>
                     <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="text-gray-500">
@@ -354,6 +455,18 @@ export default function Reports() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+            pageSizeOptions={[5, 10, 25, 50, 100]}
+            showPageSizeSelector={true}
+            showItemsInfo={true}
+          />
         </Card>
       </div>
     </Layout>

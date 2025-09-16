@@ -88,7 +88,8 @@ export default function AdminWards() {
     searchTerm: '',
     filterDistrict: '',
     filterPanchayath: '',
-    filterCoordinator: ''
+    filterCoordinator: '',
+    filterSittingWardStatus: ''
   }, {
     filterKey: 'adminWardsFilters'
   });
@@ -97,11 +98,13 @@ export default function AdminWards() {
   const filterDistrict = filters.filterDistrict || '';
   const filterPanchayath = filters.filterPanchayath || '';
   const filterCoordinator = filters.filterCoordinator || '';
+  const filterSittingWardStatus = filters.filterSittingWardStatus || '';
   
   const setSearchTerm = (value) => updateFilter('searchTerm', value);
   const setFilterDistrict = (value) => updateFilter('filterDistrict', value);
   const setFilterPanchayath = (value) => updateFilter('filterPanchayath', value);
   const setFilterCoordinator = (value) => updateFilter('filterCoordinator', value);
+  const setFilterSittingWardStatus = (value) => updateFilter('filterSittingWardStatus', value);
   
   // Calculate pagination values
   const totalItems = filteredWards.length;
@@ -155,7 +158,8 @@ export default function AdminWards() {
     searchTerm: '',
     filterDistrict: '',
     filterPanchayath: '',
-    filterCoordinator: ''
+    filterCoordinator: '',
+    filterSittingWardStatus: ''
   });
   
   useEffect(() => {
@@ -189,10 +193,19 @@ export default function AdminWards() {
       filtered = filtered.filter(ward => ward.coordinator?._id === filterCoordinator);
     }
 
+    // Apply sitting ward status filter
+    if (filterSittingWardStatus) {
+      if (filterSittingWardStatus === 'sitting') {
+        filtered = filtered.filter(ward => ward.isSittingWard === true);
+      } else if (filterSittingWardStatus === 'regular') {
+        filtered = filtered.filter(ward => ward.isSittingWard !== true);
+      }
+    }
+
     setFilteredWards(filtered);
     
     // Check if any filter actually changed (not just component mounting or data loading)
-    const currentFilters = { searchTerm, filterDistrict, filterPanchayath, filterCoordinator };
+    const currentFilters = { searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus };
     const prevFilters = prevFiltersRef.current;
     
     const filtersChanged = Object.keys(currentFilters).some(key => 
@@ -200,7 +213,7 @@ export default function AdminWards() {
     );
     
     // Only reset to page 1 if filters actually changed and we have data
-    if (filtersChanged && wards.length > 0 && (prevFilters.searchTerm !== '' || prevFilters.filterDistrict !== '' || prevFilters.filterPanchayath !== '' || prevFilters.filterCoordinator !== '')) {
+    if (filtersChanged && wards.length > 0 && (prevFilters.searchTerm !== '' || prevFilters.filterDistrict !== '' || prevFilters.filterPanchayath !== '' || prevFilters.filterCoordinator !== '' || prevFilters.filterSittingWardStatus !== '')) {
       console.log('[AdminWards] Filters actually changed, resetting pagination', { 
         from: prevFilters, 
         to: currentFilters 
@@ -210,7 +223,7 @@ export default function AdminWards() {
     
     // Update previous filters reference
     prevFiltersRef.current = currentFilters;
-  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, handlePageChange]);
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus, handlePageChange]);
 
   // Get unique districts, panchayaths, and coordinators for filters
   const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();
@@ -668,12 +681,23 @@ export default function AdminWards() {
                   ))}
                 </select>
                 
-                {(filterDistrict || filterPanchayath || filterCoordinator) && (
+                <select
+                  value={filterSittingWardStatus}
+                  onChange={(e) => setFilterSittingWardStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Ward Types</option>
+                  <option value="sitting">Sitting Wards Only</option>
+                  <option value="regular">Regular Wards Only</option>
+                </select>
+                
+                {(filterDistrict || filterPanchayath || filterCoordinator || filterSittingWardStatus) && (
                   <button
                     onClick={() => {
                       setFilterDistrict('');
                       setFilterPanchayath('');
                       setFilterCoordinator('');
+                      setFilterSittingWardStatus('');
                     }}
                     className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
@@ -829,7 +853,7 @@ export default function AdminWards() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {(searchTerm || filterDistrict || filterPanchayath || filterCoordinator) 
+                          {(searchTerm || filterDistrict || filterPanchayath || filterCoordinator || filterSittingWardStatus) 
                             ? 'No wards found matching your search or filters' 
                             : 'No wards found'}
                         </p>
