@@ -65,12 +65,12 @@ export default async function handler(req, res) {
         const userObj = user.toObject();
         if (user.role === 'coordinator') {
           const assignedWards = await Ward.find({ coordinator: user._id })
-            .select('name district')
+            .select('name district wardNumber')
             .lean();
           userObj.assignedWards = assignedWards;
         } else if (user.role === 'wardAdmin') {
           const assignedWard = await Ward.findOne({ wardAdmin: user._id })
-            .select('name district')
+            .select('name district wardNumber')
             .lean();
           userObj.assignedWards = assignedWard ? [assignedWard] : [];
         } else {

@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         .populate('respondent', 'name email district role')
         .populate({
           path: 'ward',
-          select: 'name district coordinator',
+          select: 'name district coordinator isSittingWard',
           populate: {
             path: 'coordinator',
             select: 'name _id'

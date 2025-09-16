@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from './Button';
-import DynamicFormRenderer from './DynamicFormRenderer';
+import SingleQuestionRenderer from './SingleQuestionRenderer';
 import RecurringQuestionRenderer from './RecurringQuestionRenderer';
 
 export default function WardDataCollector({ 
@@ -163,6 +163,9 @@ export default function WardDataCollector({
   const wardApplicableQuestions = questions.filter(q => q.applicableToWards);
   const wardApplicableRecurringQuestions = recurringQuestions.filter(q => q.applicableToWards);
 
+  console.log('WardDataCollector: Ward applicable questions:', wardApplicableQuestions);
+  console.log('WardDataCollector: Ward applicable recurring questions:', wardApplicableRecurringQuestions);
+
   if (wardApplicableQuestions.length === 0 && wardApplicableRecurringQuestions.length === 0) {
     return null;
   }
@@ -205,7 +208,7 @@ export default function WardDataCollector({
                 <h4 className="text-md font-medium text-gray-900 mb-4">Ward Questions</h4>
                 <div className="space-y-4">
                   {wardApplicableQuestions.map((question, qIndex) => (
-                    <DynamicFormRenderer
+                    <SingleQuestionRenderer
                       key={`${ward._id}-${question.id || qIndex}`}
                       question={question}
                       value={wardData[ward._id]?.[question.id] || ''}

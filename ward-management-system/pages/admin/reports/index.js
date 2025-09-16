@@ -29,6 +29,7 @@ export default function Reports() {
     year: new Date().getFullYear(),
     coordinatorId: '',
     wardId: '',
+    sittingWardStatus: '',
   });
 
   // Add pagination using persistent pagination hook
@@ -96,11 +97,23 @@ export default function Reports() {
       if (filter.year) queryParams.append('year', filter.year);
       if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
       if (filter.wardId) queryParams.append('wardId', filter.wardId);
+      if (filter.sittingWardStatus) queryParams.append('sittingWardStatus', filter.sittingWardStatus);
       
       console.log('[Reports] Making API request to:', `/api/responses?${queryParams.toString()}`);
       const response = await axios.get(`/api/responses?${queryParams.toString()}`);
       
       console.log('[Reports] Successfully fetched responses:', response.data.length, 'items');
+      
+      // Log ward sitting status for debugging
+      console.log('Reports data received:', {
+        totalResponses: response.data.length,
+        sampleWardData: response.data.slice(0, 3).map(r => ({
+          wardName: r.ward?.name,
+          wardIsSittingWard: r.ward?.isSittingWard,
+          hasWard: !!r.ward
+        }))
+      });
+      
       setResponses(response.data);
       setError('');
     } catch (error) {
@@ -239,7 +252,7 @@ export default function Reports() {
         <Card>
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Filter Reports</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Form Type</label>
                 <select
@@ -324,6 +337,18 @@ export default function Reports() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ward Status</label>
+                <select
+                  value={filter.sittingWardStatus}
+                  onChange={(e) => setFilter({ ...filter, sittingWardStatus: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Ward Types</option>
+                  <option value="sitting">Sitting Wards Only</option>
+                  <option value="regular">Regular Wards Only</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -360,8 +385,16 @@ export default function Reports() {
                         <div className="text-sm font-medium text-gray-900">
                           {response.formTemplate?.title || 'Unknown Form'}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {response.district} {response.ward?.name && `• ${response.ward.name}`}
+                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                          <span>{response.district} {response.ward?.name && `• ${response.ward.name}`}</span>
+                          {response.ward?.isSittingWard && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                              </svg>
+                              Sitting Ward
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>

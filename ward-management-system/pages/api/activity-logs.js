@@ -23,20 +23,31 @@ export default async function handler(req, res) {
   try {
     const {
       action,
-      user,
       district,
       dateFrom,
       dateTo,
+      searchTerm,
       page = 1,
-      limit = 50
+      limit = 10
     } = req.query;
+
+    console.log('Activity logs API - Query params:', req.query);
 
     // Build query
     const query = {};
 
     if (action) query.action = action;
-    if (user) query.user = user;
     if (district) query.district = new RegExp(district, 'i');
+    
+    // Add search functionality
+    if (searchTerm) {
+      query.$or = [
+        { description: new RegExp(searchTerm, 'i') },
+        { action: new RegExp(searchTerm, 'i') },
+        { 'user.name': new RegExp(searchTerm, 'i') },
+        { userName: new RegExp(searchTerm, 'i') }
+      ];
+    }
 
     if (dateFrom || dateTo) {
       query.timestamp = {};
@@ -62,6 +73,8 @@ export default async function handler(req, res) {
       .sort({ timestamp: -1 })
       .skip(skip)
       .limit(parseInt(limit));
+
+    console.log('Activity logs API - Found logs:', logs.length, 'Total pages:', totalPages);
 
     return res.status(200).json({
       logs,

@@ -27,13 +27,13 @@ export default async function handler(req, res) {
         .populate('respondent', 'name email role')
         .populate({
           path: 'ward',
-          select: 'name district coordinator',
+          select: 'name district coordinator isSittingWard',
           populate: {
             path: 'coordinator',
             select: 'name _id'
           }
         })
-        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime')
+        .populate('formTemplate', 'title fields sittingWardFields formType allowEditAfterSubmission closeDateTime')
         .lean();
 
       if (!response) {
@@ -45,6 +45,8 @@ export default async function handler(req, res) {
         id: response._id,
         district: response.district,
         wardId: response.ward?._id,
+        wardName: response.ward?.name,
+        wardIsSittingWard: response.ward?.isSittingWard,
         wardCoordinator: response.ward?.coordinator?._id,
         respondentId: response.respondent._id
       });
@@ -119,7 +121,7 @@ export default async function handler(req, res) {
     try {
       // Find the response
       const response = await Response.findById(id)
-        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime');
+        .populate('formTemplate', 'title fields sittingWardFields formType allowEditAfterSubmission closeDateTime');
 
       if (!response) {
         return res.status(404).json({ error: 'Response not found' });
@@ -186,13 +188,13 @@ export default async function handler(req, res) {
         .populate('respondent', 'name email role')
         .populate({
           path: 'ward',
-          select: 'name district coordinator',
+          select: 'name district coordinator isSittingWard',
           populate: {
             path: 'coordinator',
             select: 'name _id'
           }
         })
-        .populate('formTemplate', 'title fields formType allowEditAfterSubmission closeDateTime');
+        .populate('formTemplate', 'title fields sittingWardFields formType allowEditAfterSubmission closeDateTime');
 
       return res.status(200).json(populatedResponse);
     } catch (error) {

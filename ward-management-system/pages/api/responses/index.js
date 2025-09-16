@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   
   if (req.method === 'GET') {
     try {
-      const { formType, weekNumber, year, wardId, coordinatorId, coordinatorOnly, formTemplate } = req.query;
+      const { formType, weekNumber, year, wardId, coordinatorId, coordinatorOnly, formTemplate, sittingWardStatus } = req.query;
       
       // Build query
       const query = {};
@@ -35,6 +35,31 @@ export default async function handler(req, res) {
       if (wardId) query.ward = wardId;
       if (coordinatorId) query.respondent = coordinatorId;
       if (formTemplate) query.formTemplate = formTemplate;
+      
+      // Handle sitting ward status filter
+      if (sittingWardStatus) {
+        if (sittingWardStatus === 'sitting') {
+          // Find wards that are sitting wards
+          const sittingWards = await Ward.find({ isSittingWard: true }).select('_id');
+          const sittingWardIds = sittingWards.map(ward => ward._id);
+          if (sittingWardIds.length > 0) {
+            query.ward = { $in: sittingWardIds };
+          } else {
+            // No sitting wards found, return empty result
+            return res.status(200).json([]);
+          }
+        } else if (sittingWardStatus === 'regular') {
+          // Find wards that are not sitting wards
+          const regularWards = await Ward.find({ isSittingWard: { $ne: true } }).select('_id');
+          const regularWardIds = regularWards.map(ward => ward._id);
+          if (regularWardIds.length > 0) {
+            query.ward = { $in: regularWardIds };
+          } else {
+            // No regular wards found, return empty result
+            return res.status(200).json([]);
+          }
+        }
+      }
       
       // Filter based on user role
       if (session.user.role === 'coordinator') {
@@ -69,7 +94,7 @@ export default async function handler(req, res) {
         .populate('respondent', 'name email district role')
         .populate({
           path: 'ward',
-          select: 'name district coordinator',
+          select: 'name district coordinator isSittingWard',
           populate: {
             path: 'coordinator',
             select: 'name _id'
@@ -321,7 +346,7 @@ export default async function handler(req, res) {
         .populate('respondent', 'name email')
         .populate({
           path: 'ward',
-          select: 'name district coordinator',
+          select: 'name district coordinator isSittingWard',
           populate: {
             path: 'coordinator',
             select: 'name _id'
