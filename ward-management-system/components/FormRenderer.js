@@ -33,8 +33,8 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
     // Initialize regular form fields
     if (form.fields) {
       form.fields.forEach((field, fieldIndex) => {
-        if (!field.applicableToClusters) {
-          // Regular ward-level fields
+        if (!field.applicableToClusters && !field.applicableToWards) {
+          // Regular ward-level fields (exclude cluster and ward applicable questions)
           const fieldKey = `field_${fieldIndex}`;
           if (formData[fieldKey] === undefined) {
             if (field.type === 'checkbox') {
@@ -537,11 +537,14 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
 
   // Helper function to render fields grouped by sections
   const renderFieldsBySection = (fields, fieldPrefix = '') => {
+    // Filter out ward-applicable questions as they should only appear in WardDataCollector
+    const filteredFields = fields.filter(field => !field.applicableToWards);
+    
     // Group fields by section
     const sections = {};
     let questionCounter = 1;
     
-    fields.forEach((field, index) => {
+    filteredFields.forEach((field, index) => {
       const sectionName = field.section || 'General Questions';
       if (!sections[sectionName]) {
         sections[sectionName] = [];

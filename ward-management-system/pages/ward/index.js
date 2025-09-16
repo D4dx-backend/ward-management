@@ -242,21 +242,21 @@ export default function WardAdminDashboard() {
         <title>Ward Incharge Dashboard - Ward Management System</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">Ward Incharge Dashboard</h1>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            <div className="flex-1">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Ward Incharge Dashboard</h1>
                 {userInfo?.ward?.isSittingWard && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 w-fit">
                     🪑 Sitting Ward
                   </span>
                 )}
                 <button
                   onClick={() => refresh()}
-                  className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-fit"
                   title="Refresh dashboard data"
                 >
                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,123 +265,120 @@ export default function WardAdminDashboard() {
                   Refresh
                 </button>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
-                <div>
-                  <span className="text-gray-600">Ward:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 text-sm">
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Ward:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.name || 'Not assigned'}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Panchayath:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Panchayath:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.panchayath || 'Not specified'}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">District:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">District:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.district || 'Not specified'}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Coordinator:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Coordinator:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.coordinator?.name || 'Not assigned'}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Current Week:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Current Week:</span>
                   <p className="font-medium text-gray-900">Week {currentWeekNumber}, {currentYear}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Period:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Period:</span>
                   <p className="font-medium text-gray-900">{currentWeekPeriod}</p>
                 </div>
-                <div>
-                  <span className="text-gray-600">Sitting Ward:</span>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="text-gray-600 block">Sitting Ward:</span>
                   <p className="font-medium text-gray-900">{userInfo?.ward?.isSittingWard ? 'Yes' : 'No'}</p>
                 </div>
               </div>
-            </div>
-            <div className="text-right text-sm text-gray-600">
-              <p>Last login:</p>
-              <p className="font-medium">{session?.user?.lastLogin ? new Date(session.user.lastLogin).toLocaleDateString() : 'N/A'}</p>
-              <p className="text-xs">{session?.user?.lastLogin ? new Date(session.user.lastLogin).toLocaleTimeString() : 'N/A'}</p>
             </div>
           </div>
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
           {/* Reports Submitted */}
-          <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-orange-600 text-lg">📝</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Reports</p>
-                    <p className="text-sm text-gray-600">Submitted</p>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Reports</p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Submitted</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{stats?.reportsSubmitted || stats?.totalReports || recentReports?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.reportsSubmitted || stats?.totalReports || recentReports?.length || 0}</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-2 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </div>
 
           {/* Pending Reports */}
-          <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-red-600 text-lg">⏰</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Pending Reports</p>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Pending</p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Reports</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{pendingReportsList?.length || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{pendingReportsList?.length || 0}</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-2 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </div>
 
           {/* Total Clusters */}
-          <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-green-600 text-lg">🏢</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Total Clusters</p>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Total</p>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Clusters</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{userInfo?.ward?.clusters?.length || stats?.totalClusters || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{userInfo?.ward?.clusters?.length || stats?.totalClusters || 0}</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-2 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </div>
 
           {/* Instructions */}
-          <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-purple-600 text-lg">📋</span>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Instructions</p>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">Instructions</p>
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">{recentInstructions?.length || stats?.instructions || 0}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{recentInstructions?.length || stats?.instructions || 0}</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-2 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
@@ -389,20 +386,21 @@ export default function WardAdminDashboard() {
 
           {/* Ward Visits */}
           <Link href="/ward/ward-visits" className="block">
-            <div className="bg-white rounded-lg shadow-sm p-6 cursor-pointer hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 cursor-pointer hover:shadow-md transition-all duration-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
                       <span className="text-indigo-600 text-lg">👥</span>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Ward Visits</p>
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">Ward</p>
+                      <p className="text-xs sm:text-sm text-gray-600 truncate">Visits</p>
                     </div>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.wardVisits || 0}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{stats?.wardVisits || 0}</p>
                 </div>
-                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-2 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </div>
@@ -413,14 +411,19 @@ export default function WardAdminDashboard() {
         {/* House Visit Status - Recent 4 Weeks */}
         <WardClusterVisitStatus />
 
-        {/* Main Content - Three Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pending Reports */}
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Pending Reports</h2>
+        {/* Main Content - Mobile First Layout */}
+        <div className="space-y-6">
+          {/* Pending Reports - Priority Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900">Pending Reports</h2>
+                <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                  {pendingReportsList.length} pending
+                </span>
+              </div>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3">
               {pendingReportsList.length > 0 ? (
                 // Sort pending reports by due date (closest deadline first)
                 [...pendingReportsList]
@@ -428,24 +431,24 @@ export default function WardAdminDashboard() {
                   .map((report, index) => (
                   <div 
                     key={report._id || index}
-                    className="bg-red-50 border border-red-200 rounded-lg p-4 cursor-pointer hover:bg-red-100 transition-colors"
+                    className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:bg-red-100 transition-colors"
                     onClick={() => handlePendingReportClick(report)}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900">{report.title}</h3>
-                        <p className="text-sm text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{report.title}</h3>
+                        <p className="text-xs sm:text-sm text-gray-600">
                           {report.formType === 'wardReport' ? 'Ward Report' : report.formType} - Week {report.weekNumber}, {report.year}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
                           Due: {formatDate(report.closeDateTime)}
                         </p>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center justify-between sm:justify-end space-x-2">
                         <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
                           Pending
                         </span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                       </div>
@@ -465,69 +468,77 @@ export default function WardAdminDashboard() {
             </div>
           </div>
 
-          {/* Recent Reports */}
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Reports</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              {recentReports.length > 0 ? (
-                // Show recent reports sorted by submission date (newest first)
-                recentReports
-                  .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-                  .slice(0, 5)
-                  .map((report, index) => (
-                  <div 
-                    key={report._id || index}
-                    className="bg-green-50 border border-green-200 rounded-lg p-4 cursor-pointer hover:bg-green-100 transition-colors"
-                    onClick={() => handleRecentReportClick(report)}
-                  >
-                    <div className="flex items-center justify-between">
+          {/* Two Column Layout for Reports and Visits */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Reports */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="p-4 sm:p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">Recent Reports</h2>
+                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                    {recentReports.length} submitted
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 sm:p-6 space-y-3">
+                {recentReports.length > 0 ? (
+                  // Show recent reports sorted by submission date (newest first)
+                  recentReports
+                    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                    .slice(0, 5)
+                    .map((report, index) => (
+                    <div 
+                      key={report._id || index}
+                      className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 cursor-pointer hover:bg-green-100 transition-colors"
+                      onClick={() => handleRecentReportClick(report)}
+                    >
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{report.formTemplate?.title || report.form?.title || `Report ${index + 1}`}</h3>
-                          <p className="text-sm text-gray-600">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{report.formTemplate?.title || report.form?.title || `Report ${index + 1}`}</h3>
+                          <p className="text-xs sm:text-sm text-gray-600">
                             Week {report.weekNumber}, {report.year}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             Submitted: {formatDate(report.submittedAt)}
                           </p>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          Submitted
-                        </span>
-                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <div className="flex items-center space-x-2 flex-shrink-0">
+                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            Submitted
+                          </span>
+                          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-500">No reports submitted yet</p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Submitted reports will appear here
+                    </p>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500">No reports submitted yet</p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Submitted reports will appear here
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Recent Ward Visits */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <RecentWardVisits />
             </div>
           </div>
-
-          {/* Recent Ward Visits */}
-          <RecentWardVisits />
         </div>
 
         {/* Modals */}

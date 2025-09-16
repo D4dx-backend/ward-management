@@ -4,6 +4,7 @@ import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
 import { logActivity, ACTIONS } from '../../../lib/logger';
+import { sendExcelResponse, prepareExcelData, generateExcelFilename } from '../../../utils/excelExport';
 
 export default async function handler(req, res) {
   console.log('[Reports Export] Starting export request');
@@ -126,15 +127,8 @@ export default async function handler(req, res) {
       return row;
     });
     
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, 'Responses');
-    
-    // Generate Excel file
-    const excelBuffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    // Prepare data for Excel export with UTF-8 encoding
+    const excelData = prepareExcelData(data);
     
     // Log the export activity
     await logActivity({
@@ -160,14 +154,9 @@ export default async function handler(req, res) {
     if (formType) filename += `-${formType}`;
     if (weekNumber) filename += `-week${weekNumber}`;
     if (year) filename += `-${year}`;
-    filename += `.xlsx`;
     
-    // Set headers for file download
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
-    // Send Excel file
-    return res.status(200).send(excelBuffer);
+    // Send Excel file with UTF-8 encoding
+    return sendExcelResponse(res, excelData, filename, 'Responses');
   } catch (error) {
     return res.status(500).json({ message: 'Error exporting report', error: error.message });
   }

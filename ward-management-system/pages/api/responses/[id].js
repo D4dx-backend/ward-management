@@ -235,8 +235,92 @@ export default async function handler(req, res) {
       
       return res.status(500).json({ error: 'Failed to update response' });
     }
+  } else if (req.method === 'DELETE') {
+    const { id } = req.query;
+
+    try {
+      console.log('Deleting response with ID:', id);
+      console.log('User session:', { id: session.user.id, role: session.user.role, district: session.user.district });
+      
+      // Only state admin can delete responses
+      if (session.user.role !== 'stateAdmin') {
+        console.log('Access denied: Only state admin can delete responses');
+        return res.status(403).json({ error: 'Only state administrators can delete reports' });
+      }
+
+      // Find the response to get details for logging
+      const response = await Response.findById(id)
+        .populate('respondent', 'name email role')
+        .populate({
+          path: 'ward',
+          select: 'name district coordinator isSittingWard',
+          populate: {
+            path: 'coordinator',
+            select: 'name _id'
+          }
+        })
+        .populate('formTemplate', 'title formType');
+
+      if (!response) {
+        console.log('Response not found for deletion:', id);
+        return res.status(404).json({ error: 'Response not found' });
+      }
+
+      // Delete the response
+      const deletedResponse = await Response.findByIdAndDelete(id);
+
+      if (!deletedResponse) {
+        console.log('Failed to delete response:', id);
+        return res.status(404).json({ error: 'Response not found' });
+      }
+
+      // Log the deletion activity
+      try {
+        await logActivity({
+          userId: session.user.id,
+          action: ACTIONS.RESPONSE_DELETE,
+          description: `Deleted ${response.formTemplate?.formType || 'report'} for week ${response.weekNumber}, ${response.year} from ${response.ward?.name || 'Unknown Ward'}`,
+          entityType: 'Response',
+          entityId: response._id,
+          metadata: { 
+            formType: response.formTemplate?.formType || 'unknown',
+            weekNumber: response.weekNumber, 
+            year: response.year,
+            wardName: response.ward?.name || 'Unknown',
+            respondentName: response.respondent?.name || 'Unknown'
+          },
+          district: response.district || 'Unknown',
+          ward: response.ward?._id || null,
+          ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
+          userAgent: req.headers['user-agent']
+        });
+        console.log('Successfully logged response deletion activity');
+      } catch (logError) {
+        console.error('Failed to log response deletion activity:', logError);
+      }
+
+      console.log('Successfully deleted response:', id);
+      return res.status(200).json({ message: 'Report deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting response:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Handle invalid ObjectId
+      if (error.name === 'CastError') {
+        return res.status(404).json({ error: 'Response not found - Invalid ID format' });
+      }
+      
+      return res.status(500).json({ 
+        error: 'Failed to delete response', 
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+      });
+    }
   } else {
-    res.setHeader('Allow', ['GET', 'PUT']);
+    res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }

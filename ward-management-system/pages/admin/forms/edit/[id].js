@@ -40,6 +40,7 @@ export default function EditForm() {
         subQuestions: [],
         showSubQuestionsWhen: '',
         applicableToClusters: false,
+        applicableToWards: false,
         order: 0
       }
     ],
@@ -77,6 +78,7 @@ export default function EditForm() {
           showSubQuestionsWhen: field.showSubQuestionsWhen || '',
           options: field.options || [],
           applicableToClusters: field.applicableToClusters || false,
+          applicableToWards: field.applicableToWards || false,
           order: field.order !== undefined ? field.order : index,
           section: field.section || ''
         })) : [{
@@ -87,6 +89,7 @@ export default function EditForm() {
           subQuestions: [],
           showSubQuestionsWhen: '',
           applicableToClusters: false,
+          applicableToWards: false,
           order: 0,
           section: ''
         }],
@@ -96,6 +99,7 @@ export default function EditForm() {
           showSubQuestionsWhen: field.showSubQuestionsWhen || '',
           options: field.options || [],
           applicableToClusters: field.applicableToClusters || false,
+          applicableToWards: field.applicableToWards || false,
           order: field.order !== undefined ? field.order : index,
           section: field.section || ''
         })) : []
@@ -119,11 +123,13 @@ export default function EditForm() {
 
   const handleFieldChange = (index, e) => {
     const { name, value, type, checked } = e.target;
+    console.log(`Field change - Index: ${index}, Name: ${name}, Value: ${value}, Type: ${type}, Checked: ${checked}`);
     const updatedFields = [...formData.fields];
     updatedFields[index] = {
       ...updatedFields[index],
       [name]: type === 'checkbox' ? checked : value
     };
+    console.log(`Updated field ${index}:`, updatedFields[index]);
     setFormData({ ...formData, fields: updatedFields });
   };
 
@@ -156,6 +162,7 @@ export default function EditForm() {
         subQuestions: [],
         showSubQuestionsWhen: '',
         applicableToClusters: false,
+        applicableToWards: false,
         order: formData.fields.length,
         section: ''
       }]
@@ -249,6 +256,7 @@ export default function EditForm() {
         subQuestions: [],
         showSubQuestionsWhen: '',
         applicableToClusters: false,
+        applicableToWards: false,
         order: formData.sittingWardFields.length,
         section: ''
       }]
@@ -284,11 +292,13 @@ export default function EditForm() {
 
   const handleSittingWardFieldChange = (index, e) => {
     const { name, value, type, checked } = e.target;
+    console.log(`Sitting ward field change - Index: ${index}, Name: ${name}, Value: ${value}, Type: ${type}, Checked: ${checked}`);
     const updatedFields = [...formData.sittingWardFields];
     updatedFields[index] = {
       ...updatedFields[index],
       [name]: type === 'checkbox' ? checked : value
     };
+    console.log(`Updated sitting ward field ${index}:`, updatedFields[index]);
     setFormData({ ...formData, sittingWardFields: updatedFields });
   };
 
@@ -398,6 +408,7 @@ export default function EditForm() {
       subQuestions: [],
       showSubQuestionsWhen: '',
       applicableToClusters: question.applicableToClusters || false,
+      applicableToWards: question.applicableToWards || false,
       isRecurring: question.isRecurring,
       recurringCondition: question.recurringCondition,
       expectedValue: question.expectedValue,
@@ -493,6 +504,7 @@ export default function EditForm() {
       }
 
       // Submit form
+      console.log('Form submission - formData.fields:', formData.fields);
       const updateData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -515,6 +527,7 @@ export default function EditForm() {
             })) : [],
             showSubQuestionsWhen: field.showSubQuestionsWhen || '',
             applicableToClusters: Boolean(field.applicableToClusters),
+            applicableToWards: Boolean(field.applicableToWards),
             order: field.order !== undefined ? field.order : index
           };
           
@@ -533,10 +546,12 @@ export default function EditForm() {
           })) : [],
           showSubQuestionsWhen: field.showSubQuestionsWhen || '',
           applicableToClusters: Boolean(field.applicableToClusters),
+          applicableToWards: Boolean(field.applicableToWards),
           order: field.order !== undefined ? field.order : index
         }))
       };
 
+      console.log('Sending update data:', JSON.stringify(updateData, null, 2));
       await axios.put(`/api/forms/${id}`, updateData);
 
       setSuccess('Form updated successfully!');

@@ -6,8 +6,6 @@ import Link from 'next/link';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import StatsCard from '../../components/StatsCard';
-import RecentActivity from '../../components/RecentActivity';
-import DashboardLoginHistory from '../../components/DashboardLoginHistory';
 import CoordinatorFormTracker from '../../components/CoordinatorFormTracker';
 import WardReportStatus from '../../components/WardReportStatus';
 import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
@@ -27,8 +25,6 @@ export default function CoordinatorDashboard() {
   // Extract data from dashboard response
   const stats = dashboardData?.stats || {};
   const recentReports = dashboardData?.recentReports || [];
-  const recentActivity = dashboardData?.recentActivity || [];
-  const recentLogins = dashboardData?.recentLogins || [];
   const [dashboardError, setDashboardError] = useState('');
 
   useEffect(() => {
@@ -67,7 +63,7 @@ export default function CoordinatorDashboard() {
         <title>Coordinator Dashboard - Ward Management System</title>
       </Head>
 
-      <div className="space-y-4">
+      <div className="space-y-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Welcome back, {session?.user?.name || 'Coordinator'}!
@@ -102,7 +98,7 @@ export default function CoordinatorDashboard() {
         )}
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             title="Total Wards"
             value={stats?.totalWards || 0}
@@ -133,56 +129,47 @@ export default function CoordinatorDashboard() {
           />
         </div>
 
-        {/* Form Statistics Overview - Removed as per user request */}
-        {/* <CoordinatorFormTracker compact={true} /> */}
+        {/* My Pending Reports - Moved to top priority */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">My Pending Reports</h2>
+            <div className="text-sm text-gray-500">
+              {stats?.pendingReports || 0} reports pending review
+            </div>
+          </div>
+          <CoordinatorReportsList 
+            type="pending"
+            title=""
+          />
+        </div>
 
-        {/* Ward Report Status Table */}
-        <WardReportStatus />
-
-        {/* Ward House Visit Status */}
-        <WardClusterVisitStatus />
-
-        {/* Coordinator Reports Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Submitted Coordinator Reports */}
-          <div className="lg:col-span-1">
-            <CoordinatorReportsList 
-              type="submitted"
-              title="My Submitted Reports"
-            />
+        {/* Ward Management Overview */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Ward Report Status Table */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Report Status</h2>
+            <WardReportStatus />
           </div>
 
-          {/* Pending Coordinator Reports */}
-          <div className="lg:col-span-1">
-            <CoordinatorReportsList 
-              type="pending"
-              title="My Pending Reports"
-            />
+          {/* Ward House Visit Status */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Visit Status</h2>
+            <WardClusterVisitStatus />
           </div>
         </div>
 
-
-
-        {/* Management Actions - removed per request */}
-
-        {/* Additional Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Recent Activity */}
-          <div className="lg:col-span-1">
-            <RecentActivity 
-              logs={recentActivity} 
-              title="Recent Activity"
-              userRole="coordinator"
-            />
+        {/* My Submitted Reports */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">My Submitted Reports</h2>
+            <div className="text-sm text-gray-500">
+              {stats?.totalReports || 0} total reports submitted
+            </div>
           </div>
-
-          {/* Recent Logins */}
-          <div className="lg:col-span-1">
-            <DashboardLoginHistory 
-              logins={recentLogins} 
-              userRole="coordinator"
-            />
-          </div>
+          <CoordinatorReportsList 
+            type="submitted"
+            title=""
+          />
         </div>
 
 

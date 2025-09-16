@@ -3,6 +3,7 @@ import connectToDatabase from '../../../../lib/mongodb';
 import Response from '../../../../models/Response';
 import FormTemplate from '../../../../models/FormTemplate';
 import * as XLSX from 'xlsx';
+import { sendExcelResponse, prepareExcelData, generateExcelFilename } from '../../../../utils/excelExport';
 
 export default async function handler(req, res) {
   const session = await getSession({ req });
@@ -270,11 +271,16 @@ export default async function handler(req, res) {
       const analyticsSheet = XLSX.utils.aoa_to_sheet(analyticsData);
       XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Analytics');
       
-      // Generate Excel file
-      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+      // Generate Excel file with UTF-8 encoding
+      const excelBuffer = XLSX.write(workbook, { 
+        type: 'buffer', 
+        bookType: 'xlsx',
+        cellStyles: true,
+        compression: true
+      });
       
-      // Set headers for download
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      // Set headers for download with UTF-8 encoding
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${formTemplate.title}_Complete_Export_${new Date().toISOString().split('T')[0]}.xlsx"`);
       
       return res.status(200).send(excelBuffer);
