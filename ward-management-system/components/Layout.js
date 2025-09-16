@@ -107,8 +107,8 @@ const Layout = memo(({ children }) => {
         </div>
 
         {/* Page content */}
-        <main className="flex-1 py-8 overflow-auto">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 py-2 sm:py-8 overflow-auto">
+          <div className="mx-auto max-w-7xl px-2 sm:px-4 lg:px-8">
             {children}
           </div>
         </main>
