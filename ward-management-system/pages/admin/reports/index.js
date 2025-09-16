@@ -8,6 +8,7 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Pagination from '../../../components/Pagination';
+import DeleteModal from '../../../components/DeleteModal';
 import { getWeekOptions, formatWeekPeriod } from '../../../lib/weekUtils';
 import { useApiData } from '../../../hooks/useApiData';
 import { usePersistentPagination } from '../../../hooks/usePersistentPagination';
@@ -22,6 +23,12 @@ export default function Reports() {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState('');
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    responseId: null,
+    responseTitle: '',
+    isLoading: false
+  });
   const [filter, setFilter] = useState({
     formType: '',
     weekPeriod: '',
@@ -191,6 +198,58 @@ export default function Reports() {
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleDeleteClick = (response) => {
+    console.log('Delete clicked for response:', response._id);
+    setDeleteModal({
+      isOpen: true,
+      responseId: response._id,
+      responseTitle: `${response.formTemplate?.title || 'Unknown Form'} - Week ${response.weekNumber}, ${response.year}`,
+      isLoading: false
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteModal.responseId) return;
+
+    console.log('Confirming deletion of response:', deleteModal.responseId);
+    setDeleteModal(prev => ({ ...prev, isLoading: true }));
+
+    try {
+      const response = await axios.delete(`/api/responses/${deleteModal.responseId}`);
+      console.log('Delete response successful:', response.data);
+      
+      // Remove the deleted response from the local state
+      setResponses(prevResponses => 
+        prevResponses.filter(response => response._id !== deleteModal.responseId)
+      );
+      
+      // Close the modal
+      setDeleteModal({
+        isOpen: false,
+        responseId: null,
+        responseTitle: '',
+        isLoading: false
+      });
+      
+      // Clear any previous errors
+      setError('');
+    } catch (error) {
+      console.error('Delete response failed:', error);
+      setError('Failed to delete report. Please try again.');
+      setDeleteModal(prev => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    console.log('Delete cancelled');
+    setDeleteModal({
+      isOpen: false,
+      responseId: null,
+      responseTitle: '',
+      isLoading: false
+    });
   };
 
   // Get unique weeks from forms
@@ -433,9 +492,20 @@ export default function Reports() {
                       {new Date(response.submittedAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link href={`/admin/reports/view/${response._id}`} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        View Details
-                      </Link>
+                      <div className="flex justify-end space-x-2">
+                        <Link href={`/admin/reports/view/${response._id}`} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                          View Details
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(response)}
+                          className="inline-flex items-center justify-center p-2 border border-red-300 rounded-md shadow-sm text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                          title="Delete Report"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -469,6 +539,19 @@ export default function Reports() {
           />
         </Card>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Report"
+        message="Are you sure you want to delete this report? This action cannot be undone and will permanently remove all data associated with this report."
+        itemName={deleteModal.responseTitle}
+        confirmText="Delete Report"
+        cancelText="Cancel"
+        isLoading={deleteModal.isLoading}
+      />
     </Layout>
   );
 }

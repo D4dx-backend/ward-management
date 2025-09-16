@@ -112,34 +112,32 @@ export default function SignIn() {
             </div>
           )}
           
-          {!isMobile && (
-            <div className="mb-6">
-              <div className="flex border-b border-gray-200">
-                <button
-                  onClick={() => setLoginMethod('mobile')}
-                  className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
-                    loginMethod === 'mobile'
-                      ? 'border-b-2 border-green-500 text-green-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Mobile & PIN
-                </button>
-                <button
-                  onClick={() => setLoginMethod('email')}
-                  className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
-                    loginMethod === 'email'
-                      ? 'border-b-2 border-green-500 text-green-600'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Email & Password
-                </button>
-              </div>
+          <div className="mb-6">
+            <div className="flex border-b border-gray-200">
+              <button
+                onClick={() => setLoginMethod('mobile')}
+                className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+                  loginMethod === 'mobile'
+                    ? 'border-b-2 border-green-500 text-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Mobile & PIN
+              </button>
+              <button
+                onClick={() => setLoginMethod('email')}
+                className={`flex-1 py-3 text-center text-sm font-medium transition-colors ${
+                  loginMethod === 'email'
+                    ? 'border-b-2 border-green-500 text-green-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Email & Password
+              </button>
             </div>
-          )}
+          </div>
           
-          {(loginMethod === 'mobile' || isMobile) && (
+          {loginMethod === 'mobile' && (
             <form onSubmit={handleMobileSubmit} className="space-y-6">
               <div>
                 <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700 mb-1">
@@ -204,7 +202,7 @@ export default function SignIn() {
             </form>
           )}
           
-          {loginMethod === 'email' && !isMobile && (
+          {loginMethod === 'email' && (
             <form onSubmit={handleEmailSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -266,9 +264,6 @@ export default function SignIn() {
                 Admin Login
               </button>
             )}
-            <p className="text-sm text-gray-600">
-              Demo: admin@d4media.com / admin123
-            </p>
           </div>
         </Card>
       </div>

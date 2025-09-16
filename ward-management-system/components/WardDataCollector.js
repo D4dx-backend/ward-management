@@ -17,6 +17,7 @@ export default function WardDataCollector({
   const [wards, setWards] = useState([]);
   const [wardData, setWardData] = useState({});
   const [recurringData, setRecurringData] = useState({});
+  const [bulkAnswers, setBulkAnswers] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,6 +47,8 @@ export default function WardDataCollector({
       // Initialize ward data structure
       const initialData = {};
       const initialRecurringData = {};
+      const initialBulkAnswers = {};
+      
       response.data.forEach(ward => {
         initialData[ward._id] = {};
         initialRecurringData[ward._id] = {};
@@ -59,9 +62,24 @@ export default function WardDataCollector({
         });
       });
       
+      // Initialize bulk answers for ward-applicable questions
+      questions.forEach(question => {
+        if (question.applicableToWards) {
+          initialBulkAnswers[question.id] = question.defaultValue || '';
+        }
+      });
+      
+      recurringQuestions.forEach(question => {
+        if (question.applicableToWards) {
+          initialBulkAnswers[question._id] = '';
+        }
+      });
+      
       console.log('WardDataCollector: Initialized ward data:', initialData);
+      console.log('WardDataCollector: Initialized bulk answers:', initialBulkAnswers);
       setWardData(initialData);
       setRecurringData(initialRecurringData);
+      setBulkAnswers(initialBulkAnswers);
       
       if (onDataChange) {
         onDataChange(initialData);
@@ -102,6 +120,43 @@ export default function WardDataCollector({
       }
     };
     setRecurringData(newData);
+  };
+
+  const handleBulkAnswerChange = (questionId, value) => {
+    console.log('WardDataCollector: Bulk answer change:', { questionId, value });
+    const newBulkAnswers = {
+      ...bulkAnswers,
+      [questionId]: value
+    };
+    setBulkAnswers(newBulkAnswers);
+    
+    // Apply the bulk answer to all wards
+    const newWardData = { ...wardData };
+    const newRecurringData = { ...recurringData };
+    
+    wards.forEach(ward => {
+      // Check if it's a regular question or recurring question
+      const isRecurringQuestion = recurringQuestions.some(q => q._id === questionId);
+      
+      if (isRecurringQuestion) {
+        newRecurringData[ward._id] = {
+          ...newRecurringData[ward._id],
+          [questionId]: value
+        };
+      } else {
+        newWardData[ward._id] = {
+          ...newWardData[ward._id],
+          [questionId]: value
+        };
+      }
+    });
+    
+    setWardData(newWardData);
+    setRecurringData(newRecurringData);
+    
+    if (onDataChange) {
+      onDataChange(newWardData);
+    }
   };
 
   if (isLoading) {
@@ -172,81 +227,164 @@ export default function WardDataCollector({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 sm:p-3">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <svg className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
+      {/* Ward-applicable Questions - Show once with separate answers for each ward */}
+      {(wardApplicableQuestions.length > 0 || wardApplicableRecurringQuestions.length > 0) && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start mb-4">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3 min-w-0">
+              <h3 className="text-sm font-medium text-blue-800 break-words">Ward-specific Questions</h3>
+              <p className="text-sm text-blue-700 mt-1 break-words">
+                Answer these questions for each ward separately.
+              </p>
+            </div>
           </div>
-          <div className="ml-3 min-w-0">
-            <h3 className="text-sm font-medium text-blue-800 break-words">Ward-specific Questions</h3>
-            <p className="text-sm text-blue-700 mt-1 break-words">
-              The following questions will be asked for each ward assigned to you. Please fill them for each ward separately.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {wards.map((ward, wardIndex) => (
-        <div key={ward._id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm">
-          <div className="mb-3 sm:mb-4">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-start sm:items-center">
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
-                <span className="text-xs sm:text-sm font-medium text-blue-600">{wardIndex + 1}</span>
-              </div>
-              <div className="min-w-0">
-                <span className="break-words">{ward.name}</span>
-                <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-gray-500 break-words">({ward.district})</span>
-              </div>
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 ml-8 sm:ml-11 break-words">Ward Number: {ward.wardNumber}</p>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {/* Regular Questions */}
-            {wardApplicableQuestions.length > 0 && (
-              <div>
-                <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">Ward Questions</h4>
-                <div className="space-y-3 sm:space-y-4">
-                  {wardApplicableQuestions.map((question, qIndex) => (
-                    <SingleQuestionRenderer
-                      key={`${ward._id}-${question.id || qIndex}`}
-                      question={question}
-                      value={wardData[ward._id]?.[question.id] || ''}
-                      onChange={(value) => handleWardDataChange(ward._id, question.id, value)}
-                      disabled={disabled}
-                      questionNumber={qIndex + 1}
-                    />
+          
+          <div className="space-y-6">
+            {/* Regular Questions - Show once with ward-specific answers */}
+            {wardApplicableQuestions.map((question, qIndex) => (
+              <div key={`question-${question.id}`} className="bg-white border border-blue-200 rounded-lg p-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <span className="text-blue-600 font-semibold">{qIndex + 1}.</span> 
+                    <span className="break-words ml-1">{question.label}</span>
+                    {question.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {wards.map((ward, wardIndex) => (
+                    <div key={`${question.id}-${ward._id}`} className="border border-gray-200 rounded-lg p-3">
+                      <div className="mb-2">
+                        <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                          <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span className="text-xs font-medium text-blue-600">{wardIndex + 1}</span>
+                          </div>
+                          <span className="break-words">{ward.name}</span>
+                        </h4>
+                        <p className="text-xs text-gray-500 ml-7 break-words">Ward {ward.wardNumber}</p>
+                      </div>
+                      
+                      <SingleQuestionRenderer
+                        question={question}
+                        value={wardData[ward._id]?.[question.id] || ''}
+                        onChange={(value) => handleWardDataChange(ward._id, question.id, value)}
+                        disabled={disabled}
+                        questionNumber={null} // Don't show question number for individual ward answers
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
-
-            {/* Recurring Questions */}
-            {wardApplicableRecurringQuestions.length > 0 && (
-              <div>
-                <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">Recurring Questions</h4>
-                <div className="space-y-3 sm:space-y-4">
-                  {wardApplicableRecurringQuestions.map((question, qIndex) => (
-                    <RecurringQuestionRenderer
-                      key={`${ward._id}-${question._id}`}
-                      question={question}
-                      userId={coordinatorId}
-                      wardId={ward._id}
-                      formType={formType}
-                      weekNumber={weekNumber}
-                      year={year}
-                      onAnswerChange={(value) => handleRecurringDataChange(ward._id, question._id, value)}
-                      disabled={disabled}
-                    />
+            ))}
+            
+            {/* Recurring Questions - Show once with ward-specific answers */}
+            {wardApplicableRecurringQuestions.map((question, qIndex) => (
+              <div key={`recurring-question-${question._id}`} className="bg-white border border-blue-200 rounded-lg p-4">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <span className="text-blue-600 font-semibold">{wardApplicableQuestions.length + qIndex + 1}.</span> 
+                    <span className="break-words ml-1">{question.question}</span>
+                    {question.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {wards.map((ward, wardIndex) => (
+                    <div key={`${question._id}-${ward._id}`} className="border border-gray-200 rounded-lg p-3">
+                      <div className="mb-2">
+                        <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                          <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                            <span className="text-xs font-medium text-blue-600">{wardIndex + 1}</span>
+                          </div>
+                          <span className="break-words">{ward.name}</span>
+                        </h4>
+                        <p className="text-xs text-gray-500 ml-7 break-words">Ward {ward.wardNumber}</p>
+                      </div>
+                      
+                      <RecurringQuestionRenderer
+                        question={question}
+                        wardId={ward._id}
+                        formType={formType}
+                        weekNumber={weekNumber}
+                        year={year}
+                        onComplete={(questionId, value) => handleRecurringDataChange(ward._id, questionId, value)}
+                        disabled={disabled}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
+            ))}
           </div>
         </div>
-      ))}
+      )}
+
+      {/* Individual Ward Sections - Only show if there are non-ward-applicable questions */}
+      {questions.filter(q => !q.applicableToWards).length > 0 || recurringQuestions.filter(q => !q.applicableToWards).length > 0 ? (
+        wards.map((ward, wardIndex) => (
+          <div key={ward._id} className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm">
+            <div className="mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex items-start sm:items-center">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+                  <span className="text-xs sm:text-sm font-medium text-blue-600">{wardIndex + 1}</span>
+                </div>
+                <div className="min-w-0">
+                  <span className="break-words">{ward.name}</span>
+                  <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-gray-500 break-words">({ward.district})</span>
+                </div>
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 ml-8 sm:ml-11 break-words">Ward Number: {ward.wardNumber}</p>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+              {/* Regular Questions - Individual Ward (only non-ward-applicable) */}
+              {questions.filter(q => !q.applicableToWards).length > 0 && (
+                <div>
+                  <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">Ward Questions</h4>
+                  <div className="space-y-3 sm:space-y-4">
+                    {questions.filter(q => !q.applicableToWards).map((question, qIndex) => (
+                      <SingleQuestionRenderer
+                        key={`${ward._id}-${question.id || qIndex}`}
+                        question={question}
+                        value={wardData[ward._id]?.[question.id] || ''}
+                        onChange={(value) => handleWardDataChange(ward._id, question.id, value)}
+                        disabled={disabled}
+                        questionNumber={qIndex + 1}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recurring Questions - Individual Ward (only non-ward-applicable) */}
+              {recurringQuestions.filter(q => !q.applicableToWards).length > 0 && (
+                <div>
+                  <h4 className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">Recurring Questions</h4>
+                  <div className="space-y-3 sm:space-y-4">
+                    {recurringQuestions.filter(q => !q.applicableToWards).map((question, qIndex) => (
+                      <RecurringQuestionRenderer
+                        key={`${ward._id}-${question._id}`}
+                        question={question}
+                        wardId={ward._id}
+                        formType={formType}
+                        weekNumber={weekNumber}
+                        year={year}
+                        onComplete={(questionId, value) => handleRecurringDataChange(ward._id, questionId, value)}
+                        disabled={disabled}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))
+      ) : null}
     </div>
   );
 }
