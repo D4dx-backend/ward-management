@@ -49,10 +49,10 @@ export default async function handler(req, res) {
     try {
       const { id } = req.query;
       
-      // Find the ward by ID
+      // Find the ward by ID with comprehensive population
       const ward = await Ward.findById(id)
-        .populate('coordinator', 'name email')
-        .populate('wardAdmin', 'name email role')
+        .populate('coordinator', 'name email mobileNumber district lastLogin')
+        .populate('wardAdmin', 'name email mobileNumber role lastLogin')
         .lean();
       
       if (!ward) {

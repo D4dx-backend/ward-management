@@ -15,23 +15,32 @@ export default async function handler(req, res) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    if (session.user.role !== 'coordinator') {
-      return res.status(403).json({ message: 'Access denied. Coordinator role required.' });
+    // Allow both coordinators and state admins to access
+    if (!['coordinator', 'stateAdmin'].includes(session.user.role)) {
+      return res.status(403).json({ message: 'Access denied. Coordinator or Admin role required.' });
     }
 
     await dbConnect();
 
     const { wardId } = req.query;
-    const coordinatorId = session.user.id;
 
     if (!wardId) {
       return res.status(400).json({ message: 'Ward ID is required' });
     }
 
-    // Verify ward belongs to coordinator
-    const ward = await Ward.findOne({ _id: wardId, coordinator: coordinatorId });
-    if (!ward) {
-      return res.status(403).json({ message: 'Access denied to this ward' });
+    // For coordinators, verify ward belongs to them. For state admins, allow access to any ward
+    let ward;
+    if (session.user.role === 'coordinator') {
+      ward = await Ward.findOne({ _id: wardId, coordinator: session.user.id });
+      if (!ward) {
+        return res.status(403).json({ message: 'Access denied to this ward' });
+      }
+    } else {
+      // State admin can access any ward
+      ward = await Ward.findById(wardId);
+      if (!ward) {
+        return res.status(404).json({ message: 'Ward not found' });
+      }
     }
 
     // Get House Visits for the ward

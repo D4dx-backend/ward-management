@@ -7,6 +7,7 @@ import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
 import SearchInput from '../../../../components/SearchInput';
+import Table from '../../../../components/Table';
 import { useApiData } from '../../../../hooks/useApiData';
 
 export default function FormResponses() {
@@ -23,6 +24,10 @@ export default function FormResponses() {
   const [error, setError] = useState('');
   const [expandedResponses, setExpandedResponses] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [filters, setFilters] = useState({
     role: 'all',
     ward: 'all',
@@ -60,6 +65,12 @@ export default function FormResponses() {
       }
     }
   }, [direct, responseId, responses]);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    console.log('Filters or search changed, resetting to page 1');
+    setCurrentPage(1);
+  }, [searchTerm, filters]);
 
   // Filter responses based on search term and filters
   useEffect(() => {
@@ -139,6 +150,7 @@ export default function FormResponses() {
   };
 
   const clearFilters = () => {
+    console.log('Clearing all filters and resetting pagination');
     setFilters({
       role: 'all',
       ward: 'all',
@@ -146,6 +158,7 @@ export default function FormResponses() {
       dateRange: 'all'
     });
     setSearchTerm('');
+    setCurrentPage(1);
   };
 
   const toggleResponseExpansion = (responseId) => {
@@ -166,6 +179,18 @@ export default function FormResponses() {
 
   const collapseAll = () => {
     setExpandedResponses(new Set());
+  };
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    console.log('Changing to page:', page);
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newPageSize) => {
+    console.log('Changing page size to:', newPageSize);
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when page size changes
   };
 
   const fetchFormAndResponses = async () => {
@@ -278,6 +303,87 @@ export default function FormResponses() {
     }
   };
 
+  // Create table columns configuration
+  const createTableColumns = () => {
+    if (!form || !form.fields) return [];
+
+    console.log('Creating table columns for form:', form.title);
+    console.log('Form fields count:', form.fields.length);
+    console.log('Sitting ward fields count:', form.sittingWardFields?.length || 0);
+
+    const columns = [
+      {
+        key: 'respondent',
+        title: 'Respondent',
+        sortable: true,
+        render: (value, row) => (
+          <div>
+            <div className="font-medium text-gray-900">{row.respondent?.name || 'Unknown'}</div>
+            <div className="text-sm text-gray-500">{row.respondent?.role || 'Unknown Role'}</div>
+          </div>
+        )
+      },
+      {
+        key: 'ward',
+        title: 'Ward',
+        sortable: true,
+        render: (value, row) => (
+          <div>
+            <div className="font-medium text-gray-900">{row.ward?.name || 'Unknown'}</div>
+            <div className="text-sm text-gray-500">{row.ward?.district || 'Unknown District'}</div>
+          </div>
+        )
+      },
+      {
+        key: 'submittedAt',
+        title: 'Submitted',
+        sortable: true,
+        render: (value) => (
+          <div className="text-sm">
+            {formatDate(value)}
+          </div>
+        )
+      }
+    ];
+
+    // Add form field columns (limit to first 3-4 most important fields for table readability)
+    const formFieldColumns = form.fields.slice(0, 3).map((field, index) => ({
+      key: `response_${field.label}`,
+      title: field.label,
+      sortable: false,
+      render: (value, row) => {
+        const fieldValue = row.responses?.[field.label];
+        return (
+          <div className="max-w-xs truncate" title={fieldValue}>
+            {renderFieldValue(field, fieldValue)}
+          </div>
+        );
+      }
+    }));
+
+    columns.push(...formFieldColumns);
+
+    // Add actions column
+    columns.push({
+      key: 'actions',
+      title: 'Actions',
+      sortable: false,
+      render: (value, row) => (
+        <div className="flex space-x-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSelectedResponse(row)}
+          >
+            View Details
+          </Button>
+        </div>
+      )
+    });
+
+    return columns;
+  };
+
   const exportResponses = () => {
     if (!filteredResponses.length || !form) return;
     
@@ -385,24 +491,60 @@ export default function FormResponses() {
               <h1 className="text-2xl font-bold text-gray-900">
                 {form?.title || 'Form'} - Responses
               </h1>
-              <p className="text-sm text-gray-600">
-                Showing {filteredResponses.length} of {responses.length} response{responses.length !== 1 ? 's' : ''}
-              </p>
+                <p className="text-sm text-gray-600">
+                  {viewMode === 'table' ? (
+                    `Showing ${Math.min((currentPage - 1) * pageSize + 1, filteredResponses.length)}-${Math.min(currentPage * pageSize, filteredResponses.length)} of ${filteredResponses.length} filtered response${filteredResponses.length !== 1 ? 's' : ''} (${responses.length} total)`
+                  ) : (
+                    `Showing ${filteredResponses.length} of ${responses.length} response${responses.length !== 1 ? 's' : ''}`
+                  )}
+                </p>
             </div>
           </div>
           <div className="flex space-x-3">
-            <Button onClick={expandAll} variant="outline" size="sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
-              Expand All
-            </Button>
-            <Button onClick={collapseAll} variant="outline" size="sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9l6 6m0-6l-6 6M21 3l-6 6m0 0V4m0 5h5M3 21l6-6m0 0v5m0-5H4" />
-              </svg>
-              Collapse All
-            </Button>
+            {/* View Mode Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <Button
+                variant={viewMode === 'table' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('table')}
+                className="px-3 py-1.5"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0V4a2 2 0 012-2h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+                Table
+              </Button>
+              <Button
+                variant={viewMode === 'cards' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('cards')}
+                className="px-3 py-1.5"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Cards
+              </Button>
+            </div>
+            
+            {/* Card view specific controls */}
+            {viewMode === 'cards' && (
+              <>
+                <Button onClick={expandAll} variant="outline" size="sm">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                  Expand All
+                </Button>
+                <Button onClick={collapseAll} variant="outline" size="sm">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9l6 6m0-6l-6 6M21 3l-6 6m0 0V4m0 5h5M3 21l6-6m0 0v5m0-5H4" />
+                  </svg>
+                  Collapse All
+                </Button>
+              </>
+            )}
+            
             <Button onClick={exportResponses} variant="outline">
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -431,18 +573,48 @@ export default function FormResponses() {
 
         {/* Filters Section */}
         <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">Filters & Search</h2>
-              <Button onClick={clearFilters} variant="outline" size="sm">
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Clear All
-              </Button>
+          <div className="border-b border-gray-200">
+            <div 
+              className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+              onClick={() => setFiltersExpanded(!filtersExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <svg 
+                    className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${filtersExpanded ? 'rotate-90' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <h2 className="text-lg font-medium text-gray-900">Filters & Search</h2>
+                  {!filtersExpanded && (
+                    <span className="text-sm text-gray-500">
+                      ({Object.values(filters).filter(v => v !== 'all').length + (searchTerm ? 1 : 0)} active)
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center space-x-3">
+                  {filtersExpanded && (
+                    <Button onClick={clearFilters} variant="outline" size="sm">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Clear All
+                    </Button>
+                  )}
+                  <span className="text-xs text-gray-400">
+                    {filtersExpanded ? 'Click to collapse' : 'Click to expand'}
+                  </span>
+                </div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          </div>
+          
+          {filtersExpanded && (
+            <div className="p-6 animate-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {/* Search */}
               <div className="lg:col-span-2">
                 <SearchInput
@@ -519,290 +691,382 @@ export default function FormResponses() {
                   ))}
                 </select>
               </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </Card>
 
-        <div className="space-y-4">
-          {filteredResponses.length > 0 ? (
-            filteredResponses.map((response) => {
-              const isExpanded = expandedResponses.has(response._id);
-              
-              return (
-                <Card 
-                  key={response._id} 
-                  id={`response-${response._id}`}
-                  className="transition-all duration-300 overflow-hidden"
-                >
-                  {/* Response Header - Always Visible */}
-                  <div 
-                    className="p-6 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
-                    onClick={() => toggleResponseExpansion(response._id)}
+        {/* Responses Display */}
+        {viewMode === 'table' ? (
+          // Table View
+          <div className="space-y-4">
+            <Table
+              data={filteredResponses}
+              columns={createTableColumns()}
+              loading={isLoading}
+              error={error}
+              emptyMessage="No responses found for the current filters"
+              sortable={true}
+              striped={true}
+              hover={true}
+              pagination={true}
+              pageSize={pageSize}
+              currentPage={currentPage}
+              onPageChange={handlePageChange}
+              totalItems={filteredResponses.length}
+            />
+            
+            {/* Page Size Selector */}
+            {filteredResponses.length > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex items-center space-x-2">
+                  <span>Show:</span>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                    className="px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-shrink-0">
-                          <svg 
-                            className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
+                    <option value={5}>5 per page</option>
+                    <option value={10}>10 per page</option>
+                    <option value={25}>25 per page</option>
+                    <option value={50}>50 per page</option>
+                    <option value={100}>100 per page</option>
+                  </select>
+                </div>
+                <div>
+                  Total: {filteredResponses.length} response{filteredResponses.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Cards View */
+          <div className="space-y-4">
+            {filteredResponses.length > 0 ? (
+              filteredResponses.map((response) => {
+                const isExpanded = expandedResponses.has(response._id);
+                
+                return (
+                  <Card 
+                    key={response._id} 
+                    id={`response-${response._id}`}
+                    className="transition-all duration-300 overflow-hidden"
+                  >
+                    {/* Response Header - Always Visible */}
+                    <div 
+                      className="p-6 cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      onClick={() => toggleResponseExpansion(response._id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex-shrink-0">
+                            <svg 
+                              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-gray-900">
+                              Response from {response.respondent?.name || 'Unknown User'}
+                            </h3>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
+                              <span>Submitted: {formatDate(response.submittedAt)}</span>
+                              {response.respondent?.role && (
+                                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                  {response.respondent.role.replace('Admin', ' Admin')}
+                                </span>
+                              )}
+                              {response.ward && (
+                                <span className="text-gray-600">
+                                  {response.ward.name}, {response.ward.district}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900">
-                            Response from {response.respondent?.name || 'Unknown User'}
-                          </h3>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                            <span>Submitted: {formatDate(response.submittedAt)}</span>
-                            {response.respondent?.role && (
-                              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                {response.respondent.role.replace('Admin', ' Admin')}
-                              </span>
-                            )}
-                            {response.ward && (
-                              <span className="text-gray-600">
-                                {response.ward.name}, {response.ward.district}
-                              </span>
-                            )}
+                        <div className="flex items-center space-x-3">
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                            Submitted
+                          </span>
+                          <div className="text-sm text-gray-500">
+                            {form?.fields?.length || 0} fields
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                          Submitted
-                        </span>
-                        <div className="text-sm text-gray-500">
-                          {form?.fields?.length || 0} fields
-                        </div>
-                      </div>
                     </div>
-                  </div>
 
-                  {/* Response Content - Collapsible */}
-                  {isExpanded && (
-                    <div className="p-6 bg-gray-50">
-                      <div className="bg-white rounded-lg p-4 shadow-sm">
-                        <div className="space-y-4">
-                          {form?.fields && form.fields.length > 0 ? (
-                            form.fields.map((field, index) => (
-                              <div key={field._id || field.id} className={`${index !== form.fields.length - 1 ? 'border-b border-gray-100 pb-4' : ''}`}>
-                                <div className="flex items-start space-x-4">
-                                  <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                      <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
-                                        Q{index + 1}
+                    {/* Response Content - Collapsible */}
+                    {isExpanded && (
+                      <div className="p-6 bg-gray-50">
+                        <div className="bg-white rounded-lg p-4 shadow-sm">
+                          <div className="space-y-4">
+                            {form?.fields && form.fields.length > 0 ? (
+                              form.fields.map((field, index) => (
+                                <div key={field._id || field.id} className={`${index !== form.fields.length - 1 ? 'border-b border-gray-100 pb-4' : ''}`}>
+                                  <div className="flex items-start space-x-4">
+                                    <div className="flex-1">
+                                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
+                                          Q{index + 1}
+                                        </span>
+                                        {field.label}
+                                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                                      </label>
+                                      <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+                                        {renderFieldValue(field, response.responses?.[field.label])}
+                                      </div>
+                                    </div>
+                                    <div className="flex-shrink-0">
+                                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+                                        {field.type}
                                       </span>
-                                      {field.label}
-                                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                                    </label>
-                                    <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
-                                      {renderFieldValue(field, response.responses?.[field.label])}
                                     </div>
                                   </div>
-                                  <div className="flex-shrink-0">
-                                    <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
-                                      {field.type}
-                                    </span>
-                                  </div>
                                 </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-8 text-gray-500">
+                                <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p className="text-sm mt-2">No form fields available</p>
                               </div>
-                            ))
-                          ) : (
-                            <div className="text-center py-8 text-gray-500">
-                              <svg className="mx-auto h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                              <p className="text-sm mt-2">No form fields available</p>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Sitting Ward Fields - Only show if ward is a sitting ward or has sitting ward responses */}
-                          {form?.sittingWardFields && form.sittingWardFields.length > 0 && (response.ward?.isSittingWard || hasSittingWardResponses(response)) && (
-                            <div className="mt-8">
-                              <div className="border-t border-gray-200 pt-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                                  <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                  </svg>
-                                  Sitting Ward Questions
-                                </h3>
-                                <div className="space-y-4">
-                                  {form.sittingWardFields.map((field, index) => {
-                                    // Try different ways to get the field value for sitting ward fields
-                                    let fieldValue = null;
-                                    if (response.responses) {
-                                      // Try different key formats for sitting ward fields
-                                      const sittingWardKey = `sittingWard_${field.label}`;
-                                      fieldValue = response.responses[sittingWardKey];
+                            {/* Sitting Ward Fields - Only show if ward is a sitting ward or has sitting ward responses */}
+                            {form?.sittingWardFields && form.sittingWardFields.length > 0 && (response.ward?.isSittingWard || hasSittingWardResponses(response)) && (
+                              <div className="mt-8">
+                                <div className="border-t border-gray-200 pt-6">
+                                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    Sitting Ward Questions
+                                  </h3>
+                                  <div className="space-y-4">
+                                    {form.sittingWardFields.map((field, index) => {
+                                      // Try different ways to get the field value for sitting ward fields
+                                      let fieldValue = null;
+                                      if (response.responses) {
+                                        // Try different key formats for sitting ward fields
+                                        const sittingWardKey = `sittingWard_${field.label}`;
+                                        fieldValue = response.responses[sittingWardKey];
 
-                                      // If not found, try other possible formats
-                                      if (fieldValue === undefined) {
-                                        const possibleKeys = [
-                                          `sittingWard_field_${index}`,
-                                          `sittingWard_${index}`,
-                                          field.label,
-                                          `field_${form.fields.length + index}` // Continue numbering from regular fields
-                                        ];
+                                        // If not found, try other possible formats
+                                        if (fieldValue === undefined) {
+                                          const possibleKeys = [
+                                            `sittingWard_field_${index}`,
+                                            `sittingWard_${index}`,
+                                            field.label,
+                                            `field_${form.fields.length + index}` // Continue numbering from regular fields
+                                          ];
 
-                                        for (const key of possibleKeys) {
-                                          if (response.responses[key] !== undefined) {
-                                            fieldValue = response.responses[key];
-                                            break;
+                                          for (const key of possibleKeys) {
+                                            if (response.responses[key] !== undefined) {
+                                              fieldValue = response.responses[key];
+                                              break;
+                                            }
+                                          }
+                                        }
+
+                                        // Try case-insensitive matching
+                                        if (fieldValue === undefined) {
+                                          const keys = Object.keys(response.responses);
+                                          const matchingKey = keys.find(key =>
+                                            key.toLowerCase().includes(field.label?.toLowerCase()) ||
+                                            key.toLowerCase().includes('sittingward')
+                                          );
+                                          if (matchingKey) {
+                                            fieldValue = response.responses[matchingKey];
                                           }
                                         }
                                       }
 
-                                      // Try case-insensitive matching
-                                      if (fieldValue === undefined) {
-                                        const keys = Object.keys(response.responses);
-                                        const matchingKey = keys.find(key =>
-                                          key.toLowerCase().includes(field.label?.toLowerCase()) ||
-                                          key.toLowerCase().includes('sittingward')
-                                        );
-                                        if (matchingKey) {
-                                          fieldValue = response.responses[matchingKey];
-                                        }
-                                      }
-                                    }
-
-                                    return (
-                                      <div key={`sitting-${index}`} className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                        <div className="flex items-start space-x-4">
-                                          <div className="flex-1">
-                                            <label className="block text-sm font-medium text-green-700 mb-2">
-                                              <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mr-2">
-                                                SW{index + 1}
+                                      return (
+                                        <div key={`sitting-${index}`} className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                          <div className="flex items-start space-x-4">
+                                            <div className="flex-1">
+                                              <label className="block text-sm font-medium text-green-700 mb-2">
+                                                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mr-2">
+                                                  SW{index + 1}
+                                                </span>
+                                                {field.label}
+                                                {field.required && <span className="text-red-500 ml-1">*</span>}
+                                              </label>
+                                              <div className="text-sm text-gray-900 bg-white p-3 rounded-md border border-green-200">
+                                                {renderFieldValue(field, fieldValue)}
+                                              </div>
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-600">
+                                                {field.type}
                                               </span>
-                                              {field.label}
-                                              {field.required && <span className="text-red-500 ml-1">*</span>}
-                                            </label>
-                                            <div className="text-sm text-gray-900 bg-white p-3 rounded-md border border-green-200">
-                                              {renderFieldValue(field, fieldValue)}
                                             </div>
                                           </div>
-                                          <div className="flex-shrink-0">
-                                            <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-600">
-                                              {field.type}
-                                            </span>
-                                          </div>
-                                        </div>
 
-                                        {/* Handle sub-questions for sitting ward fields */}
-                                        {field.subQuestions && field.subQuestions.length > 0 && (
-                                          <div className="mt-4 space-y-3">
-                                            <div className="text-xs font-medium text-green-600 uppercase tracking-wide">Related Questions</div>
-                                            <div className="ml-4 space-y-3 border-l-2 border-green-300 pl-4">
-                                              {field.subQuestions.map((subQuestion, subIndex) => {
-                                                // Check if sub-questions should be shown based on parent answer
-                                                let shouldShowSubQuestion = true;
+                                          {/* Handle sub-questions for sitting ward fields */}
+                                          {field.subQuestions && field.subQuestions.length > 0 && (
+                                            <div className="mt-4 space-y-3">
+                                              <div className="text-xs font-medium text-green-600 uppercase tracking-wide">Related Questions</div>
+                                              <div className="ml-4 space-y-3 border-l-2 border-green-300 pl-4">
+                                                {field.subQuestions.map((subQuestion, subIndex) => {
+                                                  // Check if sub-questions should be shown based on parent answer
+                                                  let shouldShowSubQuestion = true;
 
-                                                if (field.showSubQuestionsWhen) {
-                                                  if (field.type === 'yesno') {
-                                                    const parentIsYes = fieldValue === 'Yes' || fieldValue === 'yes' || fieldValue === true;
-                                                    shouldShowSubQuestion = (field.showSubQuestionsWhen === 'yes' && parentIsYes) ||
-                                                      (field.showSubQuestionsWhen === 'no' && !parentIsYes);
-                                                  } else if (field.type === 'select') {
-                                                    shouldShowSubQuestion = fieldValue === field.showSubQuestionsWhen;
-                                                  }
-                                                }
-
-                                                if (!shouldShowSubQuestion) {
-                                                  return null;
-                                                }
-
-                                                // Try to find sub-question value for sitting ward
-                                                let subValue = null;
-                                                if (response.responses) {
-                                                  // Try different key formats for sitting ward sub-questions
-                                                  const possibleKeys = [
-                                                    `sittingWard_${field.label}_${subQuestion.label}`,
-                                                    `sittingWard_field_${index}_sub_${subIndex}`,
-                                                    `sittingWard_${index}_sub_${subIndex}`,
-                                                    `${field.label}_sub_${subQuestion.label}`,
-                                                    `field_${form.fields.length + index}_sub_${subIndex}`
-                                                  ];
-
-                                                  for (const key of possibleKeys) {
-                                                    if (response.responses[key] !== undefined) {
-                                                      subValue = response.responses[key];
-                                                      break;
+                                                  if (field.showSubQuestionsWhen) {
+                                                    if (field.type === 'yesno') {
+                                                      const parentIsYes = fieldValue === 'Yes' || fieldValue === 'yes' || fieldValue === true;
+                                                      shouldShowSubQuestion = (field.showSubQuestionsWhen === 'yes' && parentIsYes) ||
+                                                        (field.showSubQuestionsWhen === 'no' && !parentIsYes);
+                                                    } else if (field.type === 'select') {
+                                                      shouldShowSubQuestion = fieldValue === field.showSubQuestionsWhen;
                                                     }
                                                   }
 
-                                                  // Try case-insensitive matching for sub-questions
-                                                  if (subValue === undefined) {
-                                                    const keys = Object.keys(response.responses);
-                                                    const matchingKey = keys.find(key =>
-                                                      key.toLowerCase().includes(subQuestion.label.toLowerCase()) ||
-                                                      key.toLowerCase().includes('sittingward')
-                                                    );
-                                                    if (matchingKey) {
-                                                      subValue = response.responses[matchingKey];
+                                                  if (!shouldShowSubQuestion) {
+                                                    return null;
+                                                  }
+
+                                                  // Try to find sub-question value for sitting ward
+                                                  let subValue = null;
+                                                  if (response.responses) {
+                                                    // Try different key formats for sitting ward sub-questions
+                                                    const possibleKeys = [
+                                                      `sittingWard_${field.label}_${subQuestion.label}`,
+                                                      `sittingWard_field_${index}_sub_${subIndex}`,
+                                                      `sittingWard_${index}_sub_${subIndex}`,
+                                                      `${field.label}_sub_${subQuestion.label}`,
+                                                      `field_${form.fields.length + index}_sub_${subIndex}`
+                                                    ];
+
+                                                    for (const key of possibleKeys) {
+                                                      if (response.responses[key] !== undefined) {
+                                                        subValue = response.responses[key];
+                                                        break;
+                                                      }
+                                                    }
+
+                                                    // Try case-insensitive matching for sub-questions
+                                                    if (subValue === undefined) {
+                                                      const keys = Object.keys(response.responses);
+                                                      const matchingKey = keys.find(key =>
+                                                        key.toLowerCase().includes(subQuestion.label.toLowerCase()) ||
+                                                        key.toLowerCase().includes('sittingward')
+                                                      );
+                                                      if (matchingKey) {
+                                                        subValue = response.responses[matchingKey];
+                                                      }
                                                     }
                                                   }
-                                                }
 
-                                                return (
-                                                  <div key={subIndex} className="bg-green-100 border border-green-300 rounded-md p-3">
-                                                    <label className="block text-sm font-medium text-green-800 mb-1">
-                                                      <span className="inline-flex items-center px-1.5 py-0.5 bg-green-200 text-green-900 rounded text-xs font-semibold mr-2">
-                                                        SW{index + 1}.{subIndex + 1}
-                                                      </span>
-                                                      {subQuestion.label}
-                                                      {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
-                                                    </label>
-                                                    <div className="text-sm text-gray-900 bg-white p-2 rounded border border-green-200">
-                                                      {renderFieldValue(subQuestion, subValue)}
+                                                  return (
+                                                    <div key={subIndex} className="bg-green-100 border border-green-300 rounded-md p-3">
+                                                      <label className="block text-sm font-medium text-green-800 mb-1">
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 bg-green-200 text-green-900 rounded text-xs font-semibold mr-2">
+                                                          SW{index + 1}.{subIndex + 1}
+                                                        </span>
+                                                        {subQuestion.label}
+                                                        {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                                                      </label>
+                                                      <div className="text-sm text-gray-900 bg-white p-2 rounded border border-green-200">
+                                                        {renderFieldValue(subQuestion, subValue)}
+                                                      </div>
                                                     </div>
-                                                  </div>
-                                                );
-                                              })}
+                                                  );
+                                                })}
+                                              </div>
                                             </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
                                 </div>
                               </div>
+                            )}
+                          </div>
+
+                          {response.notes && (
+                            <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
+                                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Notes
+                              </h4>
+                              <p className="text-sm text-yellow-700">{response.notes}</p>
                             </div>
                           )}
                         </div>
-
-                        {response.notes && (
-                          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <h4 className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                              Notes
-                            </h4>
-                            <p className="text-sm text-yellow-700">{response.notes}</p>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  )}
-                </Card>
-              );
-            })
-          ) : (
-            <Card>
-              <div className="p-12 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No responses yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  This form hasn't received any responses yet.
-                </p>
+                    )}
+                  </Card>
+                );
+              })
+            ) : (
+              <Card>
+                <div className="p-12 text-center">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No responses yet</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    This form hasn't received any responses yet.
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Response Details Modal */}
+        {selectedResponse && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Response Details - {selectedResponse.respondent?.name || 'Unknown User'}
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedResponse(null)}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
               </div>
-            </Card>
-          )}
-        </div>
+              
+              <div className="max-h-96 overflow-y-auto">
+                <div className="space-y-4">
+                  {form?.fields && form.fields.length > 0 ? (
+                    form.fields.map((field, index) => (
+                      <div key={field._id || field.id} className="border-b border-gray-100 pb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
+                            Q{index + 1}
+                          </span>
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </label>
+                        <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+                          {renderFieldValue(field, selectedResponse.responses?.[field.label])}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No form fields available</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

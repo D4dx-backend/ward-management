@@ -11,6 +11,7 @@ import SearchInput from '../../../components/SearchInput';
 import DeleteModal from '../../../components/DeleteModal';
 import UserWardsModal from '../../../components/UserWardsModal';
 import Pagination from '../../../components/Pagination';
+import Loading from '../../../components/Loading';
 import { useApiData } from '../../../hooks/useApiData';
 import { usePersistentPaginationState, usePersistentFilterState } from '../../../hooks/usePersistentState';
 
@@ -108,11 +109,13 @@ export default function Users() {
 
   const fetchData = async () => {
     try {
+      console.log('[AdminUsers] Starting to fetch users data...');
       setIsLoading(true);
       
       // Fetch users only - the API already includes assignedWards
       const usersResponse = await axios.get('/api/users');
       const usersData = usersResponse.data;
+      console.log('[AdminUsers] Successfully fetched users data:', usersData?.length || 0, 'users');
 
       // Ensure usersData is an array
       if (!Array.isArray(usersData)) {
@@ -146,10 +149,12 @@ export default function Users() {
       setUsers(usersWithWardCounts);
       setFilteredUsers(usersWithWardCounts);
       setError('');
+      console.log('[AdminUsers] Data processing completed successfully');
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('[AdminUsers] Error fetching data:', error);
       setError('Failed to fetch users data: ' + error.message);
     } finally {
+      console.log('[AdminUsers] Finishing data fetch operation');
       setIsLoading(false);
     }
   };
@@ -596,7 +601,18 @@ export default function Users() {
           </div>
         )}
 
-        <Card>
+        {isLoading ? (
+          <Card>
+            <div className="p-12">
+              <Loading 
+                size="lg" 
+                text="Loading users..." 
+                className="min-h-[200px]"
+              />
+            </div>
+          </Card>
+        ) : (
+          <Card>
           <div className="p-6 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -820,6 +836,7 @@ export default function Users() {
             />
           )}
         </Card>
+        )}
 
         {/* Create User Modal */}
         <Modal

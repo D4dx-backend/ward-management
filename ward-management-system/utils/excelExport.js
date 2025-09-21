@@ -210,3 +210,4 @@ export function validateExcelData(data, requiredFields = []) {
   console.log(`[Excel Export] Validation complete: ${result.isValid ? 'valid' : 'invalid'}`);
   return result;
 }
+
