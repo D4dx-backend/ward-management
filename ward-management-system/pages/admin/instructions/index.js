@@ -59,11 +59,15 @@ export default function AdminInstructions() {
   };
 
   const handleFileUpload = async (file) => {
+    console.log('Starting file upload in index page:', file.name, file.size);
     setUploading(true);
+    setError('');
+    
     try {
       const uploadFormData = new FormData();
       uploadFormData.append('file', file);
 
+      console.log('Sending upload request to /api/upload');
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: uploadFormData,
@@ -71,6 +75,7 @@ export default function AdminInstructions() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Upload successful:', data);
         setFormData(prev => ({
           ...prev,
           fileUrl: data.url,
@@ -78,12 +83,16 @@ export default function AdminInstructions() {
           fileSize: file.size,
           fileType: file.type
         }));
+        setSuccess('File uploaded successfully');
       } else {
-        alert('Failed to upload file');
+        const errorData = await response.json();
+        const errorMessage = errorData.error || 'Failed to upload file';
+        console.error('Upload failed:', errorData);
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      alert('Failed to upload file');
+      setError('Failed to upload file: ' + error.message);
     } finally {
       setUploading(false);
     }

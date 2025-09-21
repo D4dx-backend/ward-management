@@ -29,12 +29,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Check if we're in production (Vercel) or development
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+    // Check deployment environment
+    const isVercel = process.env.VERCEL;
+    const isProduction = process.env.NODE_ENV === 'production';
+    const hasDigitalOceanConfig = process.env.DIGITAL_OCEAN_DEPLOYMENT;
+    const hasBlobToken = !!process.env.BLOB_READ_WRITE_TOKEN;
     
-    if (isProduction && !process.env.BLOB_READ_WRITE_TOKEN) {
-      console.error('BLOB_READ_WRITE_TOKEN not configured');
-      return res.status(500).json({ error: 'File storage not configured' });
+    console.log('Environment check:', { 
+      NODE_ENV: process.env.NODE_ENV, 
+      VERCEL: process.env.VERCEL, 
+      DIGITAL_OCEAN_DEPLOYMENT: process.env.DIGITAL_OCEAN_DEPLOYMENT,
+      isProduction,
+      isVercel,
+      hasDigitalOceanConfig,
+      hasBlobToken
+    });
+    
+    // For Vercel deployments, require Blob storage in production
+    if (isVercel && isProduction && !hasBlobToken) {
+      console.error('BLOB_READ_WRITE_TOKEN not configured for Vercel deployment');
+      return res.status(500).json({ error: 'File storage not configured - BLOB_READ_WRITE_TOKEN missing' });
     }
 
     const form = formidable({
@@ -87,8 +101,8 @@ export default async function handler(req, res) {
 
     let fileUrl, fileName;
 
-    if (isProduction) {
-      // Use Vercel Blob storage in production
+    if (isVercel && isProduction && hasBlobToken) {
+      // Use Vercel Blob storage for Vercel deployments
       console.log('Using Vercel Blob storage...');
       
       // Read file content
@@ -115,14 +129,73 @@ export default async function handler(req, res) {
       
       console.log('File uploaded to Vercel Blob:', fileUrl);
     } else {
-      // Use local storage in development
-      console.log('Using local storage for development...');
+      // Use local storage for development and Digital Ocean deployments
+      console.log('Using local storage for development/Digital Ocean deployment...');
       
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      // For Digital Ocean and other traditional hosting, use a more robust path approach
+      let uploadsDir;
+      
+      if (isProduction && !isVercel) {
+        // For production deployments on traditional servers (like Digital Ocean)
+        // Try multiple potential paths for uploads directory
+        const possiblePaths = [
+          path.join(process.cwd(), 'public', 'uploads'),
+          path.join(process.cwd(), 'uploads'),
+          path.join(__dirname, '..', '..', '..', 'public', 'uploads'),
+          '/var/www/html/uploads', // Common Digital Ocean path
+          '/opt/app/public/uploads', // Docker container path
+        ];
+        
+        uploadsDir = possiblePaths.find(dir => {
+          try {
+            // Check if directory exists or can be created
+            if (!fs.existsSync(dir)) {
+              fs.mkdirSync(dir, { recursive: true });
+            }
+            // Test write permissions
+            fs.accessSync(dir, fs.constants.W_OK);
+            return true;
+          } catch (error) {
+            console.log(`Cannot use directory ${dir}:`, error.message);
+            return false;
+          }
+        });
+        
+        if (!uploadsDir) {
+          console.error('No writable uploads directory found');
+          return res.status(500).json({ 
+            error: 'Server configuration error: No writable uploads directory available. Please ensure the uploads directory exists with proper write permissions.' 
+          });
+        }
+      } else {
+        // For development
+        uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      }
+      
+      console.log('Using uploads directory:', uploadsDir);
       
       if (!fs.existsSync(uploadsDir)) {
         console.log('Creating uploads directory...');
-        fs.mkdirSync(uploadsDir, { recursive: true });
+        try {
+          fs.mkdirSync(uploadsDir, { recursive: true, mode: 0o755 });
+          console.log('Uploads directory created successfully');
+        } catch (error) {
+          console.error('Failed to create uploads directory:', error);
+          return res.status(500).json({ error: 'Failed to create uploads directory: ' + error.message });
+        }
+      } else {
+        console.log('Uploads directory already exists');
+      }
+      
+      // Test write permissions
+      try {
+        fs.accessSync(uploadsDir, fs.constants.W_OK);
+        console.log('Uploads directory is writable');
+      } catch (error) {
+        console.error('Uploads directory is not writable:', error);
+        return res.status(500).json({ 
+          error: 'Server configuration error: Uploads directory is not writable. Please check file permissions.' 
+        });
       }
 
       // Generate unique filename
@@ -133,14 +206,41 @@ export default async function handler(req, res) {
       const uniqueFileName = `${baseName}_${timestamp}${extension}`;
       
       const newPath = path.join(uploadsDir, uniqueFileName);
+      console.log('Moving file from:', file.filepath, 'to:', newPath);
       
-      // Move file to uploads directory
-      fs.renameSync(file.filepath, newPath);
-      
-      fileUrl = `/uploads/${uniqueFileName}`;
-      fileName = file.originalFilename;
-      
-      console.log('File uploaded locally:', fileUrl);
+      try {
+        // Move file to uploads directory
+        fs.renameSync(file.filepath, newPath);
+        console.log('File moved successfully');
+        
+        // Verify file exists
+        if (!fs.existsSync(newPath)) {
+          throw new Error('File was not properly moved to uploads directory');
+        }
+        
+        // Generate appropriate URL based on deployment
+        if (isProduction && !isVercel) {
+          // For Digital Ocean and other traditional hosting
+          // Check if uploads is within public directory for proper URL mapping
+          const publicUploadsPath = path.join(process.cwd(), 'public', 'uploads');
+          if (uploadsDir === publicUploadsPath || uploadsDir.includes('/public/uploads')) {
+            fileUrl = `/uploads/${uniqueFileName}`;
+          } else {
+            // If uploads directory is outside public, we need to serve it differently
+            fileUrl = `/api/files/${uniqueFileName}`;
+            console.log('Using API file serving for uploads outside public directory');
+          }
+        } else {
+          fileUrl = `/uploads/${uniqueFileName}`;
+        }
+        
+        fileName = file.originalFilename;
+        
+        console.log('File uploaded successfully:', { fileUrl, uploadsDir, uniqueFileName });
+      } catch (error) {
+        console.error('Failed to move file:', error);
+        return res.status(500).json({ error: 'Failed to save file to uploads directory' });
+      }
     }
 
     res.status(200).json({

@@ -53,19 +53,25 @@ export default function CreateInstruction() {
   const uploadFile = async () => {
     if (!selectedFile) return null;
 
+    console.log('Starting file upload:', selectedFile.name, selectedFile.size);
     setUploading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
+      console.log('Sending upload request to /api/upload');
       const response = await axios.post('/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+      console.log('Upload successful:', response.data);
       return response.data;
     } catch (error) {
-      throw new Error('Failed to upload file');
+      console.error('Upload error:', error);
+      console.error('Upload error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || error.message || 'Failed to upload file';
+      throw new Error(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -125,7 +131,10 @@ export default function CreateInstruction() {
         throw new Error('Failed to create instruction');
       }
     } catch (error) {
-      setError(error.response?.data?.message || error.message);
+      console.error('Instruction creation error:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -273,8 +282,19 @@ export default function CreateInstruction() {
                   Supported formats: PDF, DOC, DOCX, TXT, JPG, PNG (Max 20MB)
                 </p>
                 {selectedFile && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                  <div className="mt-2">
+                    <div className="text-sm text-gray-600">
+                      Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </div>
+                    {uploading && (
+                      <div className="text-sm text-blue-600 mt-1 flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Uploading file...
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
