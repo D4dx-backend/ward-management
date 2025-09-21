@@ -1,8 +1,8 @@
 # Deployment Environment Configuration Guide
 
-## SignOut Localhost Redirect Fix
+## SignOut Localhost Redirect Fix - ENHANCED SOLUTION
 
-This document outlines the necessary environment variables and configurations to prevent signout redirects to localhost in production.
+This document outlines the comprehensive solution to prevent signout redirects to localhost in production environments. The enhanced solution includes multiple layers of protection.
 
 ## Required Environment Variables
 
@@ -11,7 +11,7 @@ This document outlines the necessary environment variables and configurations to
 Make sure to set the following environment variables in your hosting platform:
 
 ```bash
-# Required: Your production domain URL
+# CRITICAL: Your production domain URL (highest priority)
 NEXTAUTH_URL=https://your-production-domain.com
 
 # Required: NextAuth secret (generate a secure random string)
@@ -19,6 +19,9 @@ NEXTAUTH_SECRET=your-secure-random-secret-key
 
 # Required: MongoDB connection string
 MONGODB_URI=your-mongodb-connection-string
+
+# Optional: Vercel automatically sets VERCEL_URL (used as fallback)
+# VERCEL_URL=your-vercel-domain.vercel.app
 ```
 
 ### For Local Development
@@ -31,67 +34,120 @@ NEXTAUTH_SECRET=your-local-development-secret
 MONGODB_URI=your-mongodb-connection-string
 ```
 
-## Key Changes Made
+## Key Changes Made - ENHANCED SOLUTION
 
-### 1. Added NextAuth Redirect Callback
+### 1. Enhanced NextAuth Redirect Callback
 
-In `pages/api/auth/[...nextauth].js`, added a redirect callback to ensure proper URL handling:
+In `pages/api/auth/[...nextauth].js`, implemented a multi-layer redirect callback with production environment detection:
 
 ```javascript
 async redirect({ url, baseUrl }) {
-  // Ensure redirect uses the correct base URL and prevents localhost redirects in production
+  // Enhanced redirect handling to prevent localhost redirects in production
   console.log('NextAuth redirect callback - url:', url, 'baseUrl:', baseUrl);
   
-  // If url is a relative path, prepend baseUrl
+  // Get the proper base URL for production environments
+  const getProperBaseUrl = () => {
+    // Priority 1: Use NEXTAUTH_URL if set and not localhost
+    if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
+      return process.env.NEXTAUTH_URL;
+    }
+    
+    // Priority 2: Use VERCEL_URL if available (for Vercel deployments)
+    if (process.env.VERCEL_URL) {
+      return `https://${process.env.VERCEL_URL}`;
+    }
+    
+    // Priority 3: Warn if production is using localhost
+    if (process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
+      console.error('WARNING: Production environment is using localhost baseUrl. Please set NEXTAUTH_URL environment variable.');
+    }
+    
+    return baseUrl;
+  };
+  
+  const properBaseUrl = getProperBaseUrl();
+  
+  // Handle relative URLs
   if (url.startsWith('/')) {
-    return `${baseUrl}${url}`;
+    return `${properBaseUrl}${url}`;
   }
   
-  // If url is already absolute and matches our domain, allow it
-  if (url.startsWith(baseUrl)) {
-    return url;
-  }
-  
-  // For any other case, redirect to baseUrl (home page)
-  return baseUrl;
-}
-```
-
-### 2. Enhanced SignOut Calls
-
-Updated signOut calls in components to include explicit redirect URLs:
-
-```javascript
-signOut({ 
-  callbackUrl: getSignOutUrl(),
-  redirect: true 
-});
-```
-
-### 3. Created Base URL Utility
-
-Added `lib/baseUrl.js` to dynamically determine the correct base URL:
-
-```javascript
-export function getBaseUrl() {
-  // Client-side: use window.location.origin
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-
-  // Server-side: check environment variables
+  // Validate against proper domains
+  const validDomains = [properBaseUrl];
   if (process.env.NEXTAUTH_URL) {
-    return process.env.NEXTAUTH_URL;
+    validDomains.push(process.env.NEXTAUTH_URL);
   }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
+  
+  for (const domain of validDomains) {
+    if (url.startsWith(domain)) {
+      return url;
+    }
   }
-
-  // Fallback to localhost for development
-  return 'http://localhost:3000';
+  
+  return properBaseUrl;
 }
 ```
+
+### 2. Enhanced SignOut Calls with Client-Side Protection
+
+Updated signOut calls in components to include both server-side and client-side protection:
+
+```javascript
+const handleSignOut = () => {
+  const redirectUrl = getSignOutUrl();
+  
+  // Client-side safety check: if we're about to redirect to localhost in production, override it
+  let safeRedirectUrl = redirectUrl;
+  if (typeof window !== 'undefined' && redirectUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+    safeRedirectUrl = `${window.location.origin}/auth/signin`;
+    console.log('Client-side override: redirecting to current domain instead of localhost:', safeRedirectUrl);
+  }
+  
+  signOut({ 
+    callbackUrl: safeRedirectUrl,
+    redirect: true 
+  });
+};
+```
+
+### 3. Enhanced Base URL Utility with Production Override
+
+Enhanced `lib/baseUrl.js` with server-side production override capabilities:
+
+```javascript
+export function getSignOutUrl() {
+  const baseUrl = getBaseUrl();
+  
+  // Additional check: if we're in production and still getting localhost, 
+  // try to use environment variables directly
+  let finalBaseUrl = baseUrl;
+  
+  if (typeof window === 'undefined' && baseUrl.includes('localhost')) {
+    // Server-side and we got localhost - check environment variables again
+    if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
+      finalBaseUrl = process.env.NEXTAUTH_URL;
+      console.log('Overriding localhost with NEXTAUTH_URL for signout:', finalBaseUrl);
+    } else if (process.env.VERCEL_URL) {
+      finalBaseUrl = `https://${process.env.VERCEL_URL}`;
+      console.log('Overriding localhost with VERCEL_URL for signout:', finalBaseUrl);
+    }
+  }
+  
+  const signOutUrl = `${finalBaseUrl}/auth/signin`;
+  console.log('Sign out redirect URL:', signOutUrl);
+  return signOutUrl;
+}
+```
+
+### 4. Multi-Layer Protection Strategy
+
+The solution implements a **multi-layer protection strategy**:
+
+1. **Environment Variable Priority**: NEXTAUTH_URL → VERCEL_URL → Fallback
+2. **NextAuth Redirect Callback**: Server-side URL validation and override
+3. **Client-Side Protection**: Browser-based localhost detection and override
+4. **Production Environment Detection**: Warnings and automatic overrides
+5. **Extensive Logging**: Debug information for troubleshooting
 
 ## Verification Steps
 

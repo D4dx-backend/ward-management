@@ -26,9 +26,17 @@ export default function UserProfileDropdown() {
 
   const handleSignOut = () => {
     const redirectUrl = getSignOutUrl();
-    console.log('User signing out, redirecting to:', redirectUrl);
+    
+    // Client-side safety check: if we're about to redirect to localhost in production, override it
+    let safeRedirectUrl = redirectUrl;
+    if (typeof window !== 'undefined' && redirectUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+      safeRedirectUrl = `${window.location.origin}/auth/signin`;
+      console.log('Client-side override: redirecting to current domain instead of localhost:', safeRedirectUrl);
+    }
+    
+    console.log('User signing out, redirecting to:', safeRedirectUrl);
     signOut({ 
-      callbackUrl: redirectUrl,
+      callbackUrl: safeRedirectUrl,
       redirect: true 
     });
   };

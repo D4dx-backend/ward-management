@@ -639,8 +639,10 @@ export default function WardProfile() {
                                 <p className="text-xs text-gray-500">
                                   by {visit.recordedByRole === 'coordinator' 
                                     ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                                    : visit.recordedByRole === 'stateAdmin'
+                                    ? (visit.recordedBy?.name || 'State Admin')
                                     : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')} 
-                                  ({visit.recordedByRole === 'coordinator' ? 'Coordinator' : 'Ward Admin'})
+                                  ({visit.recordedByRole === 'coordinator' ? 'Coordinator' : visit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin'})
                                 </p>
                               </div>
                             </div>

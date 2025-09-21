@@ -28,9 +28,17 @@ const Layout = memo(({ children }) => {
 
   const handleSignOut = useCallback(() => {
     const redirectUrl = getSignOutUrl();
-    console.log('User signing out from layout, redirecting to:', redirectUrl);
+    
+    // Client-side safety check: if we're about to redirect to localhost in production, override it
+    let safeRedirectUrl = redirectUrl;
+    if (typeof window !== 'undefined' && redirectUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+      safeRedirectUrl = `${window.location.origin}/auth/signin`;
+      console.log('Client-side override from layout: redirecting to current domain instead of localhost:', safeRedirectUrl);
+    }
+    
+    console.log('User signing out from layout, redirecting to:', safeRedirectUrl);
     signOut({ 
-      callbackUrl: redirectUrl,
+      callbackUrl: safeRedirectUrl,
       redirect: true 
     });
   }, []);
