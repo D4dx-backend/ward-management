@@ -491,13 +491,13 @@ export default function FormResponses() {
               <h1 className="text-2xl font-bold text-gray-900">
                 {form?.title || 'Form'} - Responses
               </h1>
-              <p className="text-sm text-gray-600">
-                {viewMode === 'table' ? (
-                  `Showing ${Math.min((currentPage - 1) * pageSize + 1, filteredResponses.length)}-${Math.min(currentPage * pageSize, filteredResponses.length)} of ${filteredResponses.length} filtered response${filteredResponses.length !== 1 ? 's' : ''} (${responses.length} total)`
-                ) : (
-                  `Showing ${filteredResponses.length} of ${responses.length} response${responses.length !== 1 ? 's' : ''}`
-                )}
-              </p>
+                <p className="text-sm text-gray-600">
+                  {viewMode === 'table' ? (
+                    `Showing ${Math.min((currentPage - 1) * pageSize + 1, filteredResponses.length)}-${Math.min(currentPage * pageSize, filteredResponses.length)} of ${filteredResponses.length} filtered response${filteredResponses.length !== 1 ? 's' : ''} (${responses.length} total)`
+                  ) : (
+                    `Showing ${filteredResponses.length} of ${responses.length} response${responses.length !== 1 ? 's' : ''}`
+                  )}
+                </p>
             </div>
           </div>
           <div className="flex space-x-3">
@@ -691,13 +691,14 @@ export default function FormResponses() {
                   ))}
                 </select>
               </div>
+              )}
             </div>
           )}
         </Card>
 
         {/* Responses Display */}
         {viewMode === 'table' ? (
-          /* Table View */
+          // Table View
           <div className="space-y-4">
             <Table
               data={filteredResponses}
