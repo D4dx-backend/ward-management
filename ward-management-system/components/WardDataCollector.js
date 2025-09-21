@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Button from './Button';
 import SingleQuestionRenderer from './SingleQuestionRenderer';
+import SingleQuestionFieldOnly from './SingleQuestionFieldOnly';
 import RecurringQuestionRenderer from './RecurringQuestionRenderer';
+import RecurringQuestionFieldOnly from './RecurringQuestionFieldOnly';
 
 export default function WardDataCollector({ 
   coordinatorId, 
@@ -269,12 +271,12 @@ export default function WardDataCollector({
                         <p className="text-xs text-gray-500 ml-7 break-words">Ward {ward.wardNumber}</p>
                       </div>
                       
-                      <SingleQuestionRenderer
+                      <SingleQuestionFieldOnly
                         question={question}
                         value={wardData[ward._id]?.[question.id] || ''}
                         onChange={(value) => handleWardDataChange(ward._id, question.id, value)}
                         disabled={disabled}
-                        questionNumber={null} // Don't show question number for individual ward answers
+                        instanceId={ward._id}
                       />
                     </div>
                   ))}
@@ -290,6 +292,16 @@ export default function WardDataCollector({
                     <span className="text-blue-600 font-semibold">{wardApplicableQuestions.length + qIndex + 1}.</span> 
                     <span className="break-words ml-1">{question.question}</span>
                     {question.required && <span className="text-red-500 ml-1">*</span>}
+                    {question.isRecurring && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                        🔄 Recurring
+                      </span>
+                    )}
+                    {question.priority > 0 && (
+                      <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Priority: {question.priority}
+                      </span>
+                    )}
                   </label>
                 </div>
                 
@@ -306,7 +318,7 @@ export default function WardDataCollector({
                         <p className="text-xs text-gray-500 ml-7 break-words">Ward {ward.wardNumber}</p>
                       </div>
                       
-                      <RecurringQuestionRenderer
+                      <RecurringQuestionFieldOnly
                         question={question}
                         wardId={ward._id}
                         formType={formType}

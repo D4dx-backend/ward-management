@@ -761,6 +761,8 @@ export default function WardVisits() {
                           <div className="text-xs text-gray-500">
                             by {visit.recordedByRole === 'coordinator' || visit.recordedBy?.role === 'coordinator'
                               ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                              : visit.recordedByRole === 'stateAdmin' || visit.recordedBy?.role === 'stateAdmin'
+                              ? (visit.recordedBy?.name || 'State Admin')
                               : (visit.recordedBy?.name || visit.ward?.wardAdmin?.name || 'Ward Admin')}
                           </div>
                         </div>

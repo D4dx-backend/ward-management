@@ -3,6 +3,7 @@ import axios from 'axios';
 import Button from './Button';
 import DynamicFormRenderer from './DynamicFormRenderer';
 import RecurringQuestionRenderer from './RecurringQuestionRenderer';
+import RecurringQuestionFieldOnly from './RecurringQuestionFieldOnly';
 
 export default function ClusterDataCollector({ 
   wardId, 
@@ -318,26 +319,50 @@ export default function ClusterDataCollector({
               <p className="text-sm text-gray-600 mt-1">Recurring questions for each cluster</p>
             </div>
             <div className="p-6 space-y-6">
-              {clusters.map((cluster, index) => (
-                <div key={cluster._id} className="border border-gray-200 rounded-lg p-4">
-                  <h4 className="text-md font-medium text-gray-900 mb-4">
-                    {cluster.name} - Additional Questions
-                  </h4>
-                  <div className="space-y-4">
-                    {recurringQuestions.map((question) => (
-                      <RecurringQuestionRenderer
-                        key={`${cluster._id}_${question._id}`}
-                        question={question}
-                        formType={formType}
-                        weekNumber={weekNumber}
-                        year={year}
-                        wardId={wardId}
-                        clusterId={cluster._id}
-                        onComplete={(questionId, answer) => 
-                          handleRecurringQuestionComplete(cluster._id, questionId, answer)
-                        }
-                        disabled={disabled}
-                      />
+              {recurringQuestions.map((question, qIndex) => (
+                <div key={`recurring-question-${question._id}`} className="bg-white border border-blue-200 rounded-lg p-4">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <span className="text-blue-600 font-semibold">{questions.length + qIndex + 1}.</span> 
+                      <span className="break-words ml-1">{question.question}</span>
+                      {question.required && <span className="text-red-500 ml-1">*</span>}
+                      {question.isRecurring && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          🔄 Recurring
+                        </span>
+                      )}
+                      {question.priority > 0 && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Priority: {question.priority}
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {clusters.map((cluster, clusterIndex) => (
+                      <div key={`${question._id}-${cluster._id}`} className="border border-gray-200 rounded-lg p-3">
+                        <div className="mb-2">
+                          <h4 className="text-sm font-medium text-gray-900 flex items-center">
+                            <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                              <span className="text-xs font-medium text-blue-600">{clusterIndex + 1}</span>
+                            </div>
+                            <span className="break-words">{cluster.name}</span>
+                          </h4>
+                          <p className="text-xs text-gray-500 ml-7 break-words">Cluster ID: {cluster.clusterId}</p>
+                        </div>
+                        
+                        <RecurringQuestionFieldOnly
+                          question={question}
+                          formType={formType}
+                          weekNumber={weekNumber}
+                          year={year}
+                          wardId={wardId}
+                          clusterId={cluster._id}
+                          onComplete={(questionId, value) => handleRecurringQuestionComplete(cluster._id, questionId, value)}
+                          disabled={disabled}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>

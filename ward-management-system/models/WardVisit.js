@@ -73,7 +73,7 @@ const WardVisitSchema = new mongoose.Schema({
   },
   recordedByRole: {
     type: String,
-    enum: ['coordinator', 'wardAdmin'],
+    enum: ['coordinator', 'wardAdmin', 'stateAdmin'],
     default: 'coordinator'
   }
 }, {
