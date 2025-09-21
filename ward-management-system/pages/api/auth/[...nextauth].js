@@ -118,7 +118,7 @@ export const authOptions = {
       
       // Get the proper base URL for production environments
       const getProperBaseUrl = () => {
-        // Priority 1: Use NEXTAUTH_URL if set
+        // Priority 1: Use NEXTAUTH_URL if set and not localhost
         if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
           console.log('Using NEXTAUTH_URL for redirect:', process.env.NEXTAUTH_URL);
           return process.env.NEXTAUTH_URL;
@@ -131,12 +131,21 @@ export const authOptions = {
           return vercelUrl;
         }
         
-        // Priority 3: Check if baseUrl looks like localhost and we're in production
+        // Priority 3: Hardcoded fallback for known production domain
         if (process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
-          console.log('Production environment detected with localhost baseUrl, needs manual configuration');
-          // In production, if we get localhost, something is wrong with environment config
-          // Return the baseUrl anyway but log the issue
-          console.error('WARNING: Production environment is using localhost baseUrl. Please set NEXTAUTH_URL environment variable.');
+          const productionUrl = 'https://model.myward.in';
+          console.log('Production environment detected with localhost baseUrl, using hardcoded production URL:', productionUrl);
+          console.error('WARNING: Production environment is using localhost baseUrl. Please set NEXTAUTH_URL=https://model.myward.in in your environment variables.');
+          return productionUrl;
+        }
+        
+        // Priority 4: Check if we can detect the production domain from request headers
+        if (baseUrl.includes('localhost') && typeof window === 'undefined') {
+          // We're on server-side and got localhost, but this might be wrong
+          // Let's try to use the known production domain
+          const productionUrl = 'https://model.myward.in';
+          console.log('Server-side localhost detected, overriding with production URL:', productionUrl);
+          return productionUrl;
         }
         
         console.log('Using NextAuth provided baseUrl:', baseUrl);

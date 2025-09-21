@@ -34,6 +34,12 @@ export default function UserProfileDropdown() {
       console.log('Client-side override: redirecting to current domain instead of localhost:', safeRedirectUrl);
     }
     
+    // Additional check specifically for model.myward.in domain
+    if (typeof window !== 'undefined' && window.location.hostname === 'model.myward.in' && redirectUrl.includes('localhost')) {
+      safeRedirectUrl = 'https://model.myward.in/auth/signin';
+      console.log('Client-side override for model.myward.in: fixing localhost redirect:', safeRedirectUrl);
+    }
+    
     console.log('User signing out, redirecting to:', safeRedirectUrl);
     signOut({ 
       callbackUrl: safeRedirectUrl,

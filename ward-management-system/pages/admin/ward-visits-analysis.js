@@ -681,18 +681,30 @@ export default function WardVisitsAnalysis() {
                 {/* Coordinator and Ward Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Coordinator</label>
+                    <label className="block text-sm font-medium text-gray-700">Visitor</label>
                     <div className="mt-1 flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-xs">
-                            {selectedVisit.coordinator?.name?.charAt(0) || 'C'}
+                            {selectedVisit.recordedByRole === 'coordinator' 
+                              ? (selectedVisit.recordedBy?.name?.charAt(0) || selectedVisit.coordinator?.name?.charAt(0) || 'C')
+                              : selectedVisit.recordedByRole === 'stateAdmin'
+                              ? (selectedVisit.recordedBy?.name?.charAt(0) || 'S')
+                              : (selectedVisit.recordedBy?.name?.charAt(0) || 'W')}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{selectedVisit.coordinator?.name || 'Unknown'}</p>
-                        <p className="text-xs text-gray-500">{selectedVisit.coordinator?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {selectedVisit.recordedByRole === 'coordinator' 
+                            ? (selectedVisit.recordedBy?.name || selectedVisit.coordinator?.name || 'Unknown Coordinator')
+                            : selectedVisit.recordedByRole === 'stateAdmin'
+                            ? (selectedVisit.recordedBy?.name || 'State Admin')
+                            : (selectedVisit.recordedBy?.name || 'Ward Admin')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {selectedVisit.recordedByRole === 'coordinator' ? 'Coordinator' : selectedVisit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin'}
+                        </p>
                       </div>
                     </div>
                   </div>

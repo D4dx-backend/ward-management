@@ -352,9 +352,13 @@ export default function WardVisits() {
                         </p>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                           <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-xs text-gray-500">
-                            {visit.coordinator?.name && (
-                              <span className="break-words">Visitor: {visit.coordinator.name}</span>
-                            )}
+                            <span className="break-words">
+                              Visitor: {visit.recordedByRole === 'coordinator' 
+                                ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                                : visit.recordedByRole === 'stateAdmin'
+                                ? (visit.recordedBy?.name || 'State Admin')
+                                : (visit.recordedBy?.name || 'Ward Admin')}
+                            </span>
                             {visit.attendees && (
                               <span className="break-words">Attendees: {visit.attendees.length > 30 ? `${visit.attendees.substring(0, 30)}...` : visit.attendees}</span>
                             )}
@@ -395,12 +399,16 @@ export default function WardVisits() {
                     <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visit Time</label>
                     <div className="text-sm text-gray-900 break-words">{formatTime(selectedVisit.visitTime)}</div>
                   </div>
-                  {selectedVisit.coordinator?.name && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visitor</label>
-                      <div className="text-sm text-gray-900">{selectedVisit.coordinator.name}</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Visitor</label>
+                    <div className="text-sm text-gray-900">
+                      {selectedVisit.recordedByRole === 'coordinator' 
+                        ? (selectedVisit.recordedBy?.name || selectedVisit.coordinator?.name || 'Unknown Coordinator')
+                        : selectedVisit.recordedByRole === 'stateAdmin'
+                        ? (selectedVisit.recordedBy?.name || 'State Admin')
+                        : (selectedVisit.recordedBy?.name || 'Ward Admin')}
                     </div>
-                  )}
+                  </div>
                   {selectedVisit.followUpRequired && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1 break-words">Follow-up Status</label>
@@ -477,7 +485,7 @@ export default function WardVisits() {
                     <div>
                       <span className="text-gray-600 break-words">Recorded by:</span>
                       <span className="ml-2 text-gray-900 break-words">
-                        {selectedVisit.recordedByRole === 'wardAdmin' ? 'Ward Admin' : 'Coordinator'}
+                        {selectedVisit.recordedByRole === 'coordinator' ? 'Coordinator' : selectedVisit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin'}
                       </span>
                     </div>
                   )}

@@ -28,6 +28,10 @@ export default function AdminWardVisits() {
     followUpStatus: ''
   });
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); // 10 items per page
+
   // Use persistent data hooks to prevent unnecessary reloading
   const { 
     data: visits = [], 
@@ -236,22 +240,137 @@ export default function AdminWardVisits() {
 
     setFilteredVisits(filtered);
     
+    // Reset to first page when filters change
+    if (currentPage > 1 && filtered.length <= (currentPage - 1) * itemsPerPage) {
+      setCurrentPage(1);
+    }
+    
     // Mark as initialized after first successful filter
     if (!isInitialized && filtered) {
       setIsInitialized(true);
     }
-  }, [visits, searchTerm, filter, isLoading, isInitialized]);
+  }, [visits, searchTerm, filter, isLoading, isInitialized, currentPage, itemsPerPage]);
 
+  // Pagination calculations
+  const totalItems = filteredVisits.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedVisits = filteredVisits.slice(startIndex, endIndex);
 
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    console.log('Page changed to:', pageNumber);
+  };
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilter(prevFilter => ({ ...(prevFilter || {}), [name]: value }));
+    // Reset to first page when filter changes
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    // Reset to first page when search changes
+    setCurrentPage(1);
   };
 
   const handleViewDetails = (visit) => {
     setSelectedVisit(visit);
     setShowViewModal(true);
+  };
+
+  const handleExport = () => {
+    if (!filteredVisits || filteredVisits.length === 0) {
+      console.log('No data to export');
+      return;
+    }
+    
+    console.log('Exporting ward visits data...', filteredVisits.length, 'records');
+    
+    // Prepare data for export
+    const exportData = filteredVisits.map(visit => ({
+      'Visit Date': new Date(visit.visitDate).toLocaleDateString(),
+      'Visit Time': visit.visitTime || 'Not specified',
+      'District': visit.ward?.district || 'Unknown',
+      'Ward Name': visit.ward?.name || 'Unknown',
+      'Ward Number': visit.ward?.wardNumber || 'N/A',
+      'Visitor Name': visit.recordedByRole === 'coordinator' 
+        ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+        : visit.recordedByRole === 'stateAdmin'
+        ? (visit.recordedBy?.name || 'State Admin')
+        : (visit.recordedBy?.name || 'Ward Admin'),
+      'Visitor Role': visit.recordedByRole === 'coordinator' ? 'Coordinator' : visit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin',
+      'Purpose': visit.purpose || 'Not specified',
+      'Findings': visit.findings || 'Not specified',
+      'Recommendations': visit.recommendations || 'Not specified',
+      'Attendees': visit.attendees || 'Not specified',
+      'Follow-up Required': visit.followUpRequired ? 'Yes' : 'No',
+      'Follow-up Date': visit.followUpDate ? new Date(visit.followUpDate).toLocaleDateString() : 'N/A',
+      'Follow-up Completed': visit.followUpCompleted ? 'Yes' : 'No',
+      'Status': visit.status || 'completed',
+      'Recorded On': visit.createdAt ? new Date(visit.createdAt).toLocaleDateString() : 'Unknown',
+      'Last Updated': visit.updatedAt ? new Date(visit.updatedAt).toLocaleDateString() : 'Unknown'
+    }));
+
+    // Create CSV content
+    const headers = Object.keys(exportData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...exportData.map(row => 
+        headers.map(header => {
+          const value = row[header] || '';
+          // Escape commas and quotes in CSV
+          return `"${value.toString().replace(/"/g, '""')}"`;
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      // Generate filename with current date and filter info
+      const currentDate = new Date().toISOString().split('T')[0];
+      let filename = `ward-visits-${currentDate}`;
+      
+      if (filter.coordinator) {
+        const coordinatorName = coordinators.find(c => c._id === filter.coordinator)?.name || 'selected-coordinator';
+        filename += `-${coordinatorName.toLowerCase().replace(/\s+/g, '-')}`;
+      }
+      
+      if (filter.ward) {
+        const wardName = wards.find(w => w._id === filter.ward)?.name || 'selected-ward';
+        filename += `-${wardName.toLowerCase().replace(/\s+/g, '-')}`;
+      }
+      
+      if (filter.month && filter.year) {
+        filename += `-${filter.year}-${String(filter.month).padStart(2, '0')}`;
+      } else if (filter.year) {
+        filename += `-${filter.year}`;
+      }
+      
+      if (searchTerm) {
+        filename += `-search`;
+      }
+      
+      filename += `.csv`;
+      
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`Ward visits exported successfully: ${filename} (${exportData.length} records)`);
+    } else {
+      console.error('Export failed: Download not supported');
+    }
   };
 
   const formatDate = (dateString) => {
@@ -326,9 +445,30 @@ export default function AdminWardVisits() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Ward Visits Analysis</h1>
-            <p className="mt-1 text-sm text-gray-600">Monitor and analyze coordinator ward visits</p>
+            <p className="mt-1 text-sm text-gray-600">Monitor and analyze ward visits by all roles</p>
+            {visits && visits.length > 0 && (
+              <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                <span>Total: {visits.length} visits</span>
+                <span>•</span>
+                <span>Coordinators: {visits.filter(v => v.recordedByRole === 'coordinator').length}</span>
+                <span>•</span>
+                <span>Ward Admins: {visits.filter(v => v.recordedByRole === 'wardAdmin').length}</span>
+                <span>•</span>
+                <span>State Admins: {visits.filter(v => v.recordedByRole === 'stateAdmin').length}</span>
+              </div>
+            )}
           </div>
           <div className="flex space-x-3">
+            <button
+              onClick={handleExport}
+              disabled={!filteredVisits || filteredVisits.length === 0}
+              className="inline-flex items-center px-4 py-2 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export ({filteredVisits?.length || 0})
+            </button>
             <Link href="/" className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -442,7 +582,7 @@ export default function AdminWardVisits() {
             <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
               <SearchInput
                 value={searchTerm}
-                onChange={setSearchTerm}
+                onChange={handleSearchChange}
                 placeholder="Search visits..."
                 className="md:col-span-2"
               />
@@ -574,7 +714,7 @@ export default function AdminWardVisits() {
 
                 {/* Enhanced Table Body */}
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredVisits && filteredVisits.map((visit, index) => (
+                  {paginatedVisits && paginatedVisits.map((visit, index) => (
                     <tr key={visit._id} className={`hover:bg-blue-50 transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                       {/* Visit Details */}
                       <td className="px-6 py-4 border-r border-gray-200">
@@ -632,22 +772,30 @@ export default function AdminWardVisits() {
                         </div>
                       </td>
 
-                      {/* Visit By (Coordinator) */}
+                      {/* Visit By (Actual Visitor) */}
                       <td className="px-6 py-4 border-r border-gray-200">
                         <div className="flex items-center space-x-3">
                           <div className="flex-shrink-0">
                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                               <span className="text-white font-semibold text-sm">
-                                {visit.coordinator?.name?.charAt(0) || 'C'}
+                                {visit.recordedByRole === 'coordinator' 
+                                  ? (visit.recordedBy?.name?.charAt(0) || visit.coordinator?.name?.charAt(0) || 'C')
+                                  : visit.recordedByRole === 'stateAdmin'
+                                  ? (visit.recordedBy?.name?.charAt(0) || 'S')
+                                  : (visit.recordedBy?.name?.charAt(0) || 'W')}
                               </span>
                             </div>
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-sm font-semibold text-gray-900 truncate">
-                              {visit.coordinator?.name || 'Unknown'}
+                              {visit.recordedByRole === 'coordinator' 
+                                ? (visit.recordedBy?.name || visit.coordinator?.name || 'Unknown Coordinator')
+                                : visit.recordedByRole === 'stateAdmin'
+                                ? (visit.recordedBy?.name || 'State Admin')
+                                : (visit.recordedBy?.name || 'Ward Admin')}
                             </div>
                             <div className="text-xs text-gray-500">
-                              Coordinator
+                              {visit.recordedByRole === 'coordinator' ? 'Coordinator' : visit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin'}
                             </div>
                           </div>
                         </div>
@@ -756,12 +904,101 @@ export default function AdminWardVisits() {
                   </div>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Showing {filteredVisits?.length || 0} of {visits?.length || 0} visits
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems} visits
                 </div>
               </div>
             </div>
           </div>
         </Card>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+                  <span className="font-medium">{Math.min(endIndex, totalItems)}</span> of{' '}
+                  <span className="font-medium">{totalItems}</span> results
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            page === currentPage
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (
+                      page === currentPage - 2 || 
+                      page === currentPage + 2
+                    ) {
+                      return (
+                        <span key={page} className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span className="sr-only">Next</span>
+                    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* View Details Modal */}
         {showViewModal && selectedVisit && (
@@ -794,21 +1031,33 @@ export default function AdminWardVisits() {
                   </div>
                 </div>
 
-                {/* Coordinator and Ward Information */}
+                {/* Visitor and Ward Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Coordinator</label>
+                    <label className="block text-sm font-medium text-gray-700">Visitor</label>
                     <div className="mt-1 flex items-center space-x-3">
                       <div className="flex-shrink-0">
                         <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold text-xs">
-                            {selectedVisit.coordinator?.name?.charAt(0) || 'C'}
+                            {selectedVisit.recordedByRole === 'coordinator' 
+                              ? (selectedVisit.recordedBy?.name?.charAt(0) || selectedVisit.coordinator?.name?.charAt(0) || 'C')
+                              : selectedVisit.recordedByRole === 'stateAdmin'
+                              ? (selectedVisit.recordedBy?.name?.charAt(0) || 'S')
+                              : (selectedVisit.recordedBy?.name?.charAt(0) || 'W')}
                           </span>
                         </div>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{selectedVisit.coordinator?.name || 'Unknown'}</p>
-                        <p className="text-xs text-gray-500">{selectedVisit.coordinator?.email}</p>
+                        <p className="text-sm font-medium text-gray-900">
+                          {selectedVisit.recordedByRole === 'coordinator' 
+                            ? (selectedVisit.recordedBy?.name || selectedVisit.coordinator?.name || 'Unknown Coordinator')
+                            : selectedVisit.recordedByRole === 'stateAdmin'
+                            ? (selectedVisit.recordedBy?.name || 'State Admin')
+                            : (selectedVisit.recordedBy?.name || 'Ward Admin')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {selectedVisit.recordedByRole === 'coordinator' ? 'Coordinator' : selectedVisit.recordedByRole === 'stateAdmin' ? 'State Admin' : 'Ward Admin'}
+                        </p>
                       </div>
                     </div>
                   </div>
