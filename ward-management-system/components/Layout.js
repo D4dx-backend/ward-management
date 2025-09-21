@@ -36,6 +36,12 @@ const Layout = memo(({ children }) => {
       console.log('Client-side override from layout: redirecting to current domain instead of localhost:', safeRedirectUrl);
     }
     
+    // Additional check specifically for model.myward.in domain
+    if (typeof window !== 'undefined' && window.location.hostname === 'model.myward.in' && redirectUrl.includes('localhost')) {
+      safeRedirectUrl = 'https://model.myward.in/auth/signin';
+      console.log('Client-side override from layout for model.myward.in: fixing localhost redirect:', safeRedirectUrl);
+    }
+    
     console.log('User signing out from layout, redirecting to:', safeRedirectUrl);
     signOut({ 
       callbackUrl: safeRedirectUrl,

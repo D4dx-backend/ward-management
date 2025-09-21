@@ -52,6 +52,11 @@ export function getSignOutUrl() {
     } else if (process.env.VERCEL_URL) {
       finalBaseUrl = `https://${process.env.VERCEL_URL}`;
       console.log('Overriding localhost with VERCEL_URL for signout:', finalBaseUrl);
+    } else {
+      // Hardcoded fallback for known production domain
+      finalBaseUrl = 'https://model.myward.in';
+      console.log('Server-side localhost detected, using hardcoded production URL for signout:', finalBaseUrl);
+      console.error('URGENT: Please set NEXTAUTH_URL=https://model.myward.in in your production environment variables!');
     }
   }
   
