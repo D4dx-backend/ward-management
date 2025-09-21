@@ -36,8 +36,8 @@ export default function WardReportStatus({ compact = false }) {
   };
 
   const handleWardClick = (wardId, wardName) => {
-    // Navigate to ward analytics page (to be created)
-    router.push(`/coordinator/ward-analytics/${wardId}?name=${encodeURIComponent(wardName)}`);
+    // Navigate to unified ward status page
+    router.push(`/ward-status/${wardId}`);
   };
 
   if (loading) {

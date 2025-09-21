@@ -13,8 +13,7 @@ export const menuConfig = {
       type: 'category',
       icon: '👥',
       items: [
-        { name: 'Users', href: '/admin/users', icon: '👤' },
-        { name: 'Reset Password', href: '/reset-password', icon: '🔐' }
+        { name: 'Users', href: '/admin/users', icon: '👤' }
       ]
     },
     'Ward Management': {

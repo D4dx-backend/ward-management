@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import axios from 'axios';
+import { getSignOutUrl } from '../lib/baseUrl';
 
 export default function UserProfileDropdown() {
   const { data: session } = useSession();
@@ -24,7 +25,12 @@ export default function UserProfileDropdown() {
   };
 
   const handleSignOut = () => {
-    signOut();
+    const redirectUrl = getSignOutUrl();
+    console.log('User signing out, redirecting to:', redirectUrl);
+    signOut({ 
+      callbackUrl: redirectUrl,
+      redirect: true 
+    });
   };
 
   const handleResetPassword = async () => {

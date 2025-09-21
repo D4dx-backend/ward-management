@@ -62,7 +62,10 @@ export default async function handler(req, res) {
       }
       
       // Filter based on user role
-      if (session.user.role === 'coordinator') {
+      if (session.user.role === 'stateAdmin') {
+        // State admin can see all responses - no additional filtering needed
+        console.log('State admin access - no role-based filtering applied');
+      } else if (session.user.role === 'coordinator') {
         if (coordinatorOnly === 'true') {
           // Get only responses from wards under this coordinator
           const coordinatorWards = await Ward.find({ coordinator: session.user.id });

@@ -45,6 +45,7 @@ export default function AdminWards() {
   });
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     if (wardsData) {
@@ -409,6 +410,81 @@ export default function AdminWards() {
     }
   };
 
+  const handleExportCSV = async () => {
+    console.log('=== EXPORTING WARDS DATA TO CSV ===');
+    console.log('Total wards to export:', filteredWards.length);
+    
+    try {
+      setIsExporting(true);
+
+      // Check if there's data to export
+      if (filteredWards.length === 0) {
+        setError('No wards available to export');
+        return;
+      }
+
+      // Prepare CSV data
+      const csvData = filteredWards.map(ward => ({
+        'Ward Name': ward.name || '',
+        'Ward Number': ward.wardNumber || '',
+        'Panchayath': ward.panchayath || '',
+        'District': ward.district || '',
+        'Ward Incharge': ward.wardAdmin?.name || 'Not assigned',
+        'Ward Incharge Phone': ward.wardAdmin?.mobileNumber || '',
+        'State Incharge': ward.coordinator?.name || 'Not assigned',
+        'State Incharge Phone': ward.coordinator?.mobileNumber || '',
+        'Status': ward.isActive !== false ? 'Active' : 'Inactive',
+        'Sitting Ward': ward.isSittingWard ? 'Yes' : 'No',
+        'Population': ward.population || '',
+        'Created Date': ward.createdAt ? new Date(ward.createdAt).toLocaleDateString('en-IN') : '',
+        'Last Updated': ward.updatedAt ? new Date(ward.updatedAt).toLocaleDateString('en-IN') : ''
+      }));
+
+      // Convert to CSV format
+      const headers = Object.keys(csvData[0]);
+      const csvContent = [
+        headers.join(','),
+        ...csvData.map(row => 
+          headers.map(header => {
+            const value = row[header];
+            // Escape commas and quotes in values
+            return `"${String(value).replace(/"/g, '""')}"`;
+          }).join(',')
+        )
+      ].join('\n');
+
+      // Add UTF-8 BOM for proper encoding
+      const bom = '\uFEFF';
+      const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+      
+      // Create download link
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `wards_export_${currentDate}.csv`;
+      link.setAttribute('download', filename);
+      
+      // Trigger download
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('✅ CSV export completed successfully');
+      console.log('File name:', filename);
+      console.log('Records exported:', csvData.length);
+      
+    } catch (error) {
+      console.error('❌ Error exporting CSV:', error);
+      setError('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const renderWardForm = (isEdit = false) => (
     <form onSubmit={isEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -615,12 +691,37 @@ export default function AdminWards() {
             <h1 className="text-2xl font-bold text-gray-900">All Wards</h1>
             <p className="mt-1 text-sm text-gray-600">Manage all wards across the state</p>
           </div>
-          <Button onClick={() => setShowCreateModal(true)}>
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Create Ward
-          </Button>
+          <div className="flex space-x-3">
+            <Button 
+              onClick={handleExportCSV} 
+              variant="outline"
+              disabled={isExporting || filteredWards.length === 0}
+              className="flex items-center"
+            >
+              {isExporting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export CSV
+                </>
+              )}
+            </Button>
+            <Button onClick={() => setShowCreateModal(true)}>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Ward
+            </Button>
+          </div>
         </div>
 
         {error && (
@@ -740,7 +841,7 @@ export default function AdminWards() {
                   <tr key={ward._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div>
-                        <Link href={`/admin/wards/reports/${ward._id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate">
+                        <Link href={`/ward-status/${ward._id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800 cursor-pointer truncate">
                           {ward.name}
                           {ward.isSittingWard && (
                             <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
@@ -847,6 +948,18 @@ export default function AdminWards() {
               onItemsPerPageChange={handleItemsPerPageChange}
             />
           )}
+          
+          {/* Export Info */}
+          <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+            <div className="flex items-center justify-between">
+              <span>
+                💡 Use the "Export CSV" button to download all ward data with full details including contacts and status.
+              </span>
+              <span>
+                {filteredWards.length} records ready for export
+              </span>
+            </div>
+          </div>
         </Card>
 
         {/* Create Ward Modal */}

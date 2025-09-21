@@ -14,14 +14,19 @@ export default async function handler(req, res) {
     await dbConnect();
 
     const session = await getServerSession(req, res, authOptions);
-    if (!session || session.user.role !== 'coordinator') {
+    if (!session) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const { wardId, weekNumber, year } = req.query;
+    // Allow stateAdmin and coordinator to access
+    if (!['stateAdmin', 'coordinator'].includes(session.user.role)) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
-    if (!wardId || !weekNumber || !year) {
-      return res.status(400).json({ message: 'Ward ID, week number, and year are required' });
+    const { wardId } = req.query;
+
+    if (!wardId) {
+      return res.status(400).json({ message: 'Ward ID is required' });
     }
 
     // Get ward information
@@ -34,13 +39,14 @@ export default async function handler(req, res) {
     const recurringQuestions = await RecurringQuestion.find({ isActive: true });
     const questionTexts = recurringQuestions.map(q => q.questionText);
 
-    // Find responses for this ward, week, and year that contain recurring questions
+    // Find responses for this ward that contain recurring questions (all weeks/years)
     const responses = await Response.find({
-      ward: wardId,
-      weekNumber: parseInt(weekNumber),
-      year: parseInt(year)
+      ward: wardId
     })
     .populate('formTemplate', 'title')
+    .populate('respondent', 'name role')
+    .sort({ submittedAt: -1 })
+    .limit(100) // Limit for performance
     .lean();
 
     // Extract recurring question responses
@@ -64,10 +70,16 @@ export default async function handler(req, res) {
               question.toLowerCase().includes('weekly') ||
               question.toLowerCase().includes('regular')) {
             recurringResponses.push({
-              question,
+              _id: `${response._id}_${question}`,
+              question: { question },
               answer,
               formTitle: response.formTemplate?.title,
+              user: response.respondent,
+              ward: response.ward,
+              weekNumber: response.weekNumber,
+              year: response.year,
               submittedAt: response.submittedAt,
+              formType: response.formType,
               responseId: response._id
             });
           }
@@ -80,15 +92,10 @@ export default async function handler(req, res) {
       index === self.findIndex(r => r.question === response.question)
     );
 
-    const result = {
-      wardId,
-      wardName: ward.name,
-      weekNumber: parseInt(weekNumber),
-      year: parseInt(year),
-      responses: uniqueResponses.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-    };
-
-    res.status(200).json(result);
+    // Simply return the sorted unique responses
+    const sortedResponses = uniqueResponses.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    
+    res.status(200).json(sortedResponses);
   } catch (error) {
     console.error('Error fetching ward recurring questions:', error);
     res.status(500).json({ message: 'Internal server error' });

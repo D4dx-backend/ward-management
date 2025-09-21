@@ -5,6 +5,7 @@ import { useRouter } from 'next/router';
 import Logo from './Logo';
 import MenuManager from './MenuManager';
 import UserProfileDropdown from './UserProfileDropdown';
+import { getSignOutUrl } from '../lib/baseUrl';
 
 const Layout = memo(({ children }) => {
   const { data: session, status } = useSession();
@@ -26,7 +27,12 @@ const Layout = memo(({ children }) => {
   }, []);
 
   const handleSignOut = useCallback(() => {
-    signOut();
+    const redirectUrl = getSignOutUrl();
+    console.log('User signing out from layout, redirecting to:', redirectUrl);
+    signOut({ 
+      callbackUrl: redirectUrl,
+      redirect: true 
+    });
   }, []);
 
   // Don't render anything until mounted (prevents SSR issues)

@@ -112,6 +112,23 @@ export const authOptions = {
       session.user.mobileNumber = token.mobileNumber;
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Ensure redirect uses the correct base URL and prevents localhost redirects in production
+      console.log('NextAuth redirect callback - url:', url, 'baseUrl:', baseUrl);
+      
+      // If url is a relative path, prepend baseUrl
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // If url is already absolute and matches our domain, allow it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      
+      // For any other case, redirect to baseUrl (home page)
+      return baseUrl;
+    },
     async signIn({ user, account, profile, email, credentials }) {
       // Log successful login and update last login
       try {
