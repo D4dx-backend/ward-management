@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
+import AdminWardReportStatus from '../../components/AdminWardReportStatus';
+import AdminWardClusterVisitStatus from '../../components/AdminWardClusterVisitStatus';
 import { useDashboardData } from '../../hooks/useApiData';
 
 export default function AdminDashboard() {
@@ -264,6 +266,15 @@ export default function AdminDashboard() {
 
         {/* House Visit Status - Recent 4 Weeks */}
         <ClusterVisitStatus />
+
+        {/* Ward Management Overview */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Ward Report Status Table */}
+          <AdminWardReportStatus />
+
+          {/* Ward House Visit Status */}
+          <AdminWardClusterVisitStatus />
+        </div>
 
         {/* Quick Actions */}
         <div>
