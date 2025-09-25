@@ -174,7 +174,16 @@ export default function EditWardReport() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    console.log('Input changed:', { name, value, type, checked });
+    console.log('Ward report edit - Input changed:', { name, value, type, checked });
+    
+    // Special handling for cluster fields
+    if (name.includes('_cluster_')) {
+      console.log('Ward report edit - Cluster field changed:', { 
+        fieldName: name, 
+        value: type === 'checkbox' ? checked : value,
+        isClusterField: true 
+      });
+    }
     
     setFormData(prev => ({
       ...prev,
@@ -272,6 +281,11 @@ export default function EditWardReport() {
 
     try {
       console.log('Submitting ward report edit:', { id, formData });
+      console.log('Report data for submission:', { 
+        reportId: report?._id, 
+        formTemplate: report?.formTemplate?._id,
+        wardId: report?.ward?._id 
+      });
       
       // Convert form data from field_index format to field.label format for API
       const apiResponses = {};
@@ -361,11 +375,21 @@ export default function EditWardReport() {
       });
       
       console.log('API responses prepared:', apiResponses);
+      console.log('API responses count:', Object.keys(apiResponses).length);
+      console.log('Sample API responses:', Object.entries(apiResponses).slice(0, 5));
+      
+      // Debug cluster responses specifically
+      const clusterResponses = Object.entries(apiResponses).filter(([key]) => key.includes('_cluster_'));
+      console.log('Cluster responses count:', clusterResponses.length);
+      console.log('Cluster responses sample:', clusterResponses.slice(0, 3));
       
       // Update response
-      await axios.put(`/api/responses/${id}`, {
+      console.log('Sending PUT request to:', `/api/responses/${id}`);
+      const updateResponse = await axios.put(`/api/responses/${id}`, {
         responses: apiResponses,
       });
+      
+      console.log('Update response received:', updateResponse.data);
       
       setSuccess('Report updated successfully');
       setShowPreview(false);
@@ -377,7 +401,28 @@ export default function EditWardReport() {
       console.log('Ward report updated successfully');
     } catch (error) {
       console.error('Error updating ward report:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'An error occurred while updating the report';
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'An error occurred while updating the report';
+      
+      if (error.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again or contact support.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to edit this report.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Report not found.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);

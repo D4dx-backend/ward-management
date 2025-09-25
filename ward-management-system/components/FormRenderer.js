@@ -21,14 +21,17 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
     
     if (hasClusterQuestions) {
       setIsLoadingClusters(true);
+      console.log('FormRenderer fetching clusters for ward:', ward?._id);
+      
       axios.get('/api/clusters', {
         params: ward ? { wardId: ward._id } : {}
       })
         .then(response => {
-          setClusters(response.data);
+          setClusters(response.data || []);
+          console.log('FormRenderer clusters loaded:', response.data?.length || 0);
         })
         .catch(error => {
-          console.error('Error fetching clusters:', error);
+          console.error('FormRenderer error fetching clusters:', error);
           setClusters([]);
         })
         .finally(() => {
