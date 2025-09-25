@@ -167,21 +167,19 @@ export default function Reports() {
   const exportToExcel = async () => {
     console.log('[Reports] Export requested with filters:', filter);
     console.log('[Reports] Current responses count:', responses.length);
-    console.log('[Reports] Session status:', { 
+    console.log('[Reports] Export request - Session:', { 
       hasSession: !!session, 
-      userRole: session?.user?.role,
-      userId: session?.user?.id 
+      userRole: session?.user?.role
     });
     
-    // Check session first and refresh if needed
-    let currentSession = session;
-    if (!currentSession || currentSession.user.role !== 'stateAdmin') {
-      console.log('[Reports] Session invalid, attempting to refresh...');
-      currentSession = await refreshSession();
+    // Session check - if button is visible, user has permission
+    if (!session) {
+      console.log('[Reports] No session found, attempting to refresh...');
+      const refreshedSession = await refreshSession();
       
-      if (!currentSession || currentSession.user.role !== 'stateAdmin') {
-        console.log('[Reports] Unauthorized export attempt after refresh');
-        setError('Unauthorized: Please ensure you are logged in as a state admin. If you are logged in, please try refreshing the page and logging in again.');
+      if (!refreshedSession) {
+        console.log('[Reports] No session after refresh');
+        setError('Session expired. Please refresh the page and log in again.');
         return;
       }
     }
@@ -256,14 +254,7 @@ export default function Reports() {
         if (errorCode === 'NO_SESSION') {
           setError('Session expired. Please refresh the page and log in again.');
         } else {
-          setError('Unauthorized: Please ensure you are logged in as a state admin. If you are logged in, please try refreshing the page and logging in again.');
-        }
-      } else if (error.response?.status === 403) {
-        const errorCode = error.response?.data?.error;
-        if (errorCode === 'INSUFFICIENT_PERMISSIONS') {
-          setError('Access denied: Only state admins and coordinators can export reports.');
-        } else {
-          setError('Access denied: Insufficient permissions to export reports.');
+          setError('Authentication failed. Please refresh the page and log in again.');
         }
       } else if (error.response?.status === 404) {
         setError('No reports found matching the current filters.');
