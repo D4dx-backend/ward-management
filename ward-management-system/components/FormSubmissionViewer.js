@@ -75,7 +75,20 @@ export default function FormSubmissionViewer({
   };
 
   const renderFieldValue = (field, value) => {
-    if (!value && value !== 0) return 'Not provided';
+    // Handle different types of empty values
+    if (value === null || value === undefined) {
+      return 'Not provided';
+    }
+    
+    // For string values, check if empty after trimming
+    if (typeof value === 'string' && value.trim() === '') {
+      return 'Not provided';
+    }
+    
+    // For arrays, check if empty
+    if (Array.isArray(value) && value.length === 0) {
+      return 'Not provided';
+    }
 
     switch (field.type) {
       case 'yesno':

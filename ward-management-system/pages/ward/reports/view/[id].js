@@ -14,6 +14,7 @@ export default function ViewWardReport() {
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState(null);
+  const [clusters, setClusters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -40,6 +41,35 @@ export default function ViewWardReport() {
       }
       
       setReport(response.data);
+      
+      // Fetch clusters if there are cluster-applicable fields
+      const hasClusterFields = response.data.formTemplate?.fields?.some(field => field.applicableToClusters);
+      if (hasClusterFields) {
+        try {
+          // Try to get clusters for the specific ward first
+          const wardId = response.data.ward?._id;
+          let clustersResponse;
+          if (wardId) {
+            try {
+              clustersResponse = await axios.get(`/api/clusters?wardId=${wardId}`);
+              console.log('Clusters for ward response:', clustersResponse.data);
+            } catch (wardClusterError) {
+              console.log('Failed to get ward-specific clusters, trying all clusters:', wardClusterError);
+              clustersResponse = await axios.get('/api/clusters');
+            }
+          } else {
+            clustersResponse = await axios.get('/api/clusters');
+          }
+          
+          console.log('Raw clusters response:', clustersResponse.data);
+          setClusters(clustersResponse.data);
+          console.log('Clusters set in state:', clustersResponse.data);
+        } catch (clusterError) {
+          console.error('Error fetching clusters:', clusterError);
+          setClusters([]);
+        }
+      }
+      
       setError('');
       
       // Log report structure for debugging
@@ -47,10 +77,12 @@ export default function ViewWardReport() {
         hasFormTemplate: !!response.data.formTemplate,
         hasFields: !!response.data.formTemplate?.fields,
         fieldsCount: response.data.formTemplate?.fields?.length || 0,
+        clusterFieldsCount: response.data.formTemplate?.fields?.filter(f => f.applicableToClusters)?.length || 0,
         hasSittingWardFields: !!response.data.formTemplate?.sittingWardFields,
         sittingWardFieldsCount: response.data.formTemplate?.sittingWardFields?.length || 0,
         hasResponses: !!response.data.responses,
-        responsesKeys: response.data.responses ? Object.keys(response.data.responses) : []
+        responsesKeys: response.data.responses ? Object.keys(response.data.responses) : [],
+        clusterKeys: response.data.responses ? Object.keys(response.data.responses).filter(key => key.includes('_cluster_')) : []
       });
     } catch (error) {
       console.error('Error fetching report:', error);
@@ -103,8 +135,40 @@ export default function ViewWardReport() {
     );
   };
 
+  const getClusterName = (clusterId) => {
+    console.log('Getting cluster name for ID:', clusterId);
+    console.log('Available clusters:', clusters);
+    const cluster = clusters.find(c => c._id === clusterId);
+    console.log('Found cluster:', cluster);
+    
+    if (cluster) {
+      return cluster.name;
+    } else {
+      // Fallback: try to create a meaningful name from the ID
+      // Extract first 8 characters and format nicely
+      const shortId = clusterId.substring(0, 8);
+      return `Cluster ${shortId}`;
+    }
+  };
+
   const renderFieldValue = (field, value) => {
-    if (!value && value !== 0 && value !== false) return <span className="text-gray-400">Not provided</span>;
+    // Debug logging to understand the data structure
+    console.log('renderFieldValue - Field:', field.label, 'Value:', value, 'Type:', typeof value);
+    
+    // Handle different types of empty values
+    if (value === null || value === undefined) {
+      return <span className="text-gray-400">Not provided</span>;
+    }
+    
+    // For string values, check if empty after trimming
+    if (typeof value === 'string' && value.trim() === '') {
+      return <span className="text-gray-400">Not provided</span>;
+    }
+    
+    // For arrays, check if empty
+    if (Array.isArray(value) && value.length === 0) {
+      return <span className="text-gray-400">Not provided</span>;
+    }
 
     switch (field.type) {
       case 'yesno':
@@ -286,63 +350,123 @@ export default function ViewWardReport() {
             
             <div className="space-y-6">
               {report.formTemplate?.fields?.map((field, index) => {
-                const fieldValue = report.responses?.[field.label];
-                
-                return (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="text-sm font-medium text-gray-900">
-                        <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
-                          Q{index + 1}
-                        </span>
-                        {field.label}
-                      </h4>
-                      {field.required && (
-                        <span className="text-xs text-red-500">Required</span>
-                      )}
-                    </div>
-                    
-                    <div className="text-sm text-gray-700">
-                      {renderFieldValue(field, fieldValue)}
-                    </div>
+                if (field.applicableToClusters) {
+                  // Handle cluster-applicable fields
+                  const clusterResponses = {};
+                  Object.keys(report.responses || {}).forEach(key => {
+                    if (key.startsWith(`${field.label}_cluster_`)) {
+                      const clusterId = key.replace(`${field.label}_cluster_`, '');
+                      clusterResponses[clusterId] = report.responses[key];
+                    }
+                  });
 
-                    {/* Show sub-questions if they exist and should be visible */}
-                    {field.subQuestions && field.subQuestions.length > 0 && (
-                      <div className="mt-4 ml-4 space-y-3 border-l-2 border-gray-200 pl-4">
-                        {field.subQuestions.map((subQuestion, subIndex) => {
-                          const subKey = `${field.label}_${subQuestion.label}`;
-                          const subValue = report.responses?.[subKey];
-                          
-                          // Check if sub-question should be visible
-                          const shouldShow = field.showSubQuestionsWhen ? 
-                            (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
-                            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
-                          
-                          if (!shouldShow) return null;
-                          
-                          return (
-                            <div key={subIndex}>
-                              <div className="flex items-start justify-between mb-2">
-                                <h5 className="text-sm font-medium text-gray-700">
-                                  <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded text-xs font-semibold mr-2">
-                                    Q{index + 1}.{subIndex + 1}
-                                  </span>
-                                  {subQuestion.label}
-                                </h5>
-                                {subQuestion.required && (
-                                  <span className="text-xs text-red-500">Required</span>
-                                )}
+                  return (
+                    <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold mr-2">
+                            Q{index + 1}
+                          </span>
+                          {field.label}
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Cluster Question
+                          </span>
+                        </h4>
+                        {field.required && (
+                          <span className="text-xs text-red-500">Required</span>
+                        )}
+                      </div>
+                      
+                      {Object.keys(clusterResponses).length > 0 ? (
+                        <div className="space-y-3">
+                          {Object.entries(clusterResponses).map(([clusterId, value]) => (
+                            <div key={clusterId} className="bg-white border border-green-200 rounded-lg p-3">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span className="text-sm font-medium text-green-800">
+                                  {getClusterName(clusterId)}
+                                </span>
+                                <span className="text-xs text-gray-500">({clusterId})</span>
                               </div>
-                              <div className="text-sm text-gray-600">
-                                {renderFieldValue(subQuestion, subValue)}
+                              <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded border">
+                                {renderFieldValue(field, value)}
                               </div>
                             </div>
-                          );
-                        })}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-md">
+                          No cluster responses found
+                        </div>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // Handle regular fields
+                  const fieldValue = report.responses?.[field.label];
+                  
+                  // Debug logging to understand the data structure
+                  console.log('Field mapping - Field Label:', field.label, 'Field Value:', fieldValue, 'All Responses:', report.responses);
+                  
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-900">
+                          <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
+                            Q{index + 1}
+                          </span>
+                          {field.label}
+                        </h4>
+                        {field.required && (
+                          <span className="text-xs text-red-500">Required</span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
+                      
+                      <div className="text-sm text-gray-700">
+                        {renderFieldValue(field, fieldValue)}
+                      </div>
+
+                      {/* Show sub-questions if they exist and should be visible */}
+                      {field.subQuestions && field.subQuestions.length > 0 && (
+                        <div className="mt-4 ml-4 space-y-3 border-l-2 border-gray-200 pl-4">
+                          {field.subQuestions.map((subQuestion, subIndex) => {
+                            const subKey = `${field.label}_${subQuestion.label}`;
+                            const subValue = report.responses?.[subKey];
+                            
+                            // Check if sub-question should be visible
+                            const shouldShow = field.showSubQuestionsWhen ? 
+                              (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
+                              (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+                            
+                            if (!shouldShow) return null;
+                            
+                            return (
+                              <div key={subIndex}>
+                                <div className="flex items-start justify-between mb-2">
+                                  <h5 className="text-sm font-medium text-gray-700">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-200 text-blue-900 rounded text-xs font-semibold mr-2">
+                                      Q{index + 1}.{subIndex + 1}
+                                    </span>
+                                    {subQuestion.label}
+                                  </h5>
+                                  {subQuestion.required && (
+                                    <span className="text-xs text-red-500">Required</span>
+                                  )}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {renderFieldValue(subQuestion, subValue)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
               })}
 
               {/* Sitting Ward Fields - Only show if ward is a sitting ward or has sitting ward responses */}

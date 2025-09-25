@@ -290,6 +290,14 @@ export default async function handler(req, res) {
         district: session.user.district || 'Unknown',
       };
       
+      // Debug logging for response data
+      console.log('Response API - Creating response with data:', {
+        responses: responses,
+        responsesType: typeof responses,
+        responsesKeys: Object.keys(responses || {}),
+        formFields: formTemplate.fields?.map(f => f.label)
+      });
+      
       // Add ward data for coordinator reports
       if (formTemplate.formType === 'coordinatorReport' && wardData) {
         console.log('Response API - Adding ward data:', wardData);

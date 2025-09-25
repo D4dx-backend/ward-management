@@ -14,6 +14,7 @@ export default function WardDataCollector({
   weekNumber,
   year,
   onDataChange,
+  onRecurringDataChange,
   disabled = false 
 }) {
   const [wards, setWards] = useState([]);
@@ -107,6 +108,8 @@ export default function WardDataCollector({
     };
     setWardData(newData);
     
+    console.log('WardDataCollector: Updated ward data:', newData);
+    
     if (onDataChange) {
       onDataChange(newData);
     }
@@ -122,6 +125,12 @@ export default function WardDataCollector({
       }
     };
     setRecurringData(newData);
+    
+    console.log('WardDataCollector: Updated recurring data:', newData);
+    
+    if (onRecurringDataChange) {
+      onRecurringDataChange(newData);
+    }
   };
 
   const handleBulkAnswerChange = (questionId, value) => {
@@ -156,8 +165,15 @@ export default function WardDataCollector({
     setWardData(newWardData);
     setRecurringData(newRecurringData);
     
+    console.log('WardDataCollector: Updated ward data after bulk change:', newWardData);
+    console.log('WardDataCollector: Updated recurring data after bulk change:', newRecurringData);
+    
     if (onDataChange) {
       onDataChange(newWardData);
+    }
+    
+    if (onRecurringDataChange) {
+      onRecurringDataChange(newRecurringData);
     }
   };
 

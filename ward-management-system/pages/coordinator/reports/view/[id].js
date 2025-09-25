@@ -6,12 +6,15 @@ import axios from 'axios';
 import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
+import ClusterResponseSummary from '../../../../components/ClusterResponseSummary';
 export default function ViewCoordinatorReport() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { id } = router.query;
   const [report, setReport] = useState(null);
   const [formTemplate, setFormTemplate] = useState(null);
+  const [wardNames, setWardNames] = useState({});
+  const [clusters, setClusters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -46,10 +49,44 @@ export default function ViewCoordinatorReport() {
 
       setReport(reportData);
 
+      // Log ward data for debugging
+      console.log('Coordinator Report View - Ward Data:', {
+        wardData: reportData.wardData,
+        wardDataKeys: Object.keys(reportData.wardData || {}),
+        wardDataLength: Object.keys(reportData.wardData || {}).length
+      });
+
+      // Fetch ward names if wardData exists
+      if (reportData.wardData && Object.keys(reportData.wardData).length > 0) {
+        try {
+          const wardIds = Object.keys(reportData.wardData);
+          const wardResponse = await axios.get('/api/coordinator/wards');
+          const wardNamesMap = {};
+          wardResponse.data.forEach(ward => {
+            if (wardIds.includes(ward._id)) {
+              wardNamesMap[ward._id] = ward.name;
+            }
+          });
+          setWardNames(wardNamesMap);
+          console.log('Fetched ward names:', wardNamesMap);
+        } catch (error) {
+          console.error('Error fetching ward names:', error);
+        }
+      }
+
       // Fetch the form template to get field definitions
       if (reportData.formTemplate) {
         const templateResponse = await axios.get(`/api/forms/${reportData.formTemplate._id}`);
         setFormTemplate(templateResponse.data);
+      }
+
+      // Fetch clusters for cluster response display
+      try {
+        const clustersResponse = await axios.get('/api/clusters');
+        setClusters(clustersResponse.data || []);
+        console.log('Fetched clusters:', clustersResponse.data?.length || 0);
+      } catch (error) {
+        console.error('Error fetching clusters:', error);
       }
     } catch (error) {
       console.error('Error fetching report:', error);
@@ -81,6 +118,11 @@ export default function ViewCoordinatorReport() {
     endDate.setDate(startDate.getDate() + 6);
     
     return `${startDate.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })} - ${endDate.toLocaleDateString('en-IN', { month: 'long', day: 'numeric' })}`;
+  };
+
+  const getClusterName = (clusterId) => {
+    const cluster = clusters.find(c => c._id === clusterId);
+    return cluster?.name || `Cluster ${clusterId.slice(-4)}`;
   };
 
   const renderFieldValue = (field, value) => {
@@ -245,15 +287,76 @@ export default function ViewCoordinatorReport() {
             
             {formTemplate && formTemplate.fields ? (
               <div className="space-y-6">
-                {formTemplate.fields.map((field, index) => (
-                  <div key={field.id || index} className="border-b border-gray-200 pb-4 last:border-b-0">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {field.label}
-                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                    </label>
-                    <div className="mt-1">
-                      {renderFieldValue(field, report.responses[field.label])}
-                    </div>
+                {formTemplate.fields.map((field, index) => {
+                  // Handle cluster-applicable fields
+                  if (field.applicableToClusters) {
+                    return (
+                      <ClusterResponseSummary
+                        key={field.id || index}
+                        field={field}
+                        responses={report.responses}
+                        clusters={clusters}
+                        questionIndex={index}
+                        getClusterName={getClusterName}
+                        renderFieldValue={renderFieldValue}
+                      />
+                    );
+                  }
+
+                  return (
+                    <div key={field.id || index} className="border-b border-gray-200 pb-4 last:border-b-0">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                        {field.applicableToWards && (
+                          <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            Ward-specific
+                          </span>
+                        )}
+                      </label>
+                    
+                    {/* Show ward data for ward-applicable questions - only ward answers, no main answer */}
+                    {field.applicableToWards && report.wardData && Object.keys(report.wardData).length > 0 ? (
+                      <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-orange-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          Ward-specific Answers
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {Object.entries(report.wardData).map(([wardId, wardResponses]) => {
+                            const fieldKey = `field_${index}`;
+                            const wardAnswer = wardResponses[fieldKey];
+                            return (
+                              <div key={wardId} className="bg-white border border-orange-200 rounded-md p-3">
+                                <div className="flex items-center mb-2">
+                                  <div className="w-4 h-4 bg-orange-100 rounded-full flex items-center justify-center mr-2">
+                                    <span className="text-xs font-medium text-orange-600">W</span>
+                                  </div>
+                                  <span className="text-xs font-medium text-orange-700">
+                                    {wardNames[wardId] || `Ward ${wardId.slice(-4)}`}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-900">
+                                  {wardAnswer !== undefined && wardAnswer !== null && wardAnswer !== '' ? (
+                                    <span>{String(wardAnswer)}</span>
+                                  ) : (
+                                    <span className="text-gray-400 italic">No response</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : field.applicableToWards ? (
+                      <div className="text-sm text-gray-500 italic">No ward-specific data available</div>
+                    ) : (
+                      <div className="mt-1">
+                        {renderFieldValue(field, report.responses[field.label])}
+                      </div>
+                    )}
                     
                     {/* Handle sub-questions */}
                     {field.subQuestions && field.subQuestions.length > 0 && (
@@ -281,7 +384,8 @@ export default function ViewCoordinatorReport() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="space-y-4">
@@ -303,6 +407,7 @@ export default function ViewCoordinatorReport() {
             )}
           </div>
         </Card>
+
       </div>
     </Layout>
   );

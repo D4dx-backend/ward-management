@@ -39,6 +39,15 @@ export default async function handler(req, res) {
       }
       // State admins can see all clusters
       
+      // For admin users, if no specific wardId is requested, show all clusters
+      if (session.user.role === 'stateAdmin' && !wardId) {
+        // Remove ward filter for state admins when no specific ward is requested
+        delete query.ward;
+      }
+      
+      console.log('Cluster query:', query);
+      console.log('User role:', session.user.role);
+      
       const clusters = await Cluster.find(query)
         .populate('ward', 'name district panchayath')
         .populate('createdBy', 'name')

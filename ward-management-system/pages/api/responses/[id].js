@@ -50,6 +50,14 @@ export default async function handler(req, res) {
         wardCoordinator: response.ward?.coordinator?._id,
         respondentId: response.respondent._id
       });
+      
+      // Debug logging for responses data
+      console.log('Response data structure:', {
+        responses: response.responses,
+        responsesType: typeof response.responses,
+        responsesKeys: Object.keys(response.responses || {}),
+        formFields: response.formTemplate?.fields?.map(f => f.label)
+      });
 
       // Check if user has access to this response
       if (session.user.role === 'stateAdmin') {
