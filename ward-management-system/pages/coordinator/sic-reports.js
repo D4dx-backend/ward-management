@@ -19,6 +19,8 @@ export default function SICReports() {
   const [error, setError] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [wardNames, setWardNames] = useState({});
+  const [formTemplate, setFormTemplate] = useState(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -77,7 +79,45 @@ export default function SICReports() {
       if (type === 'submitted') {
         // Fetch full report details for submitted reports
         const response = await axios.get(`/api/coordinator/reports/${report._id}`);
-        setSelectedReport({ ...response.data, reportType: 'submitted' });
+        const reportData = response.data;
+        
+        // Log ward data for debugging
+        console.log('SIC Reports View - Ward Data:', {
+          wardData: reportData.wardData,
+          wardDataKeys: Object.keys(reportData.wardData || {}),
+          wardDataLength: Object.keys(reportData.wardData || {}).length
+        });
+        
+        // Fetch ward names if wardData exists
+        if (reportData.wardData && Object.keys(reportData.wardData).length > 0) {
+          try {
+            const wardIds = Object.keys(reportData.wardData);
+            const wardResponse = await axios.get('/api/coordinator/wards');
+            const wardNamesMap = {};
+            wardResponse.data.forEach(ward => {
+              if (wardIds.includes(ward._id)) {
+                wardNamesMap[ward._id] = ward.name;
+              }
+            });
+            setWardNames(wardNamesMap);
+            console.log('SIC Reports - Fetched ward names:', wardNamesMap);
+          } catch (error) {
+            console.error('Error fetching ward names:', error);
+          }
+        }
+        
+        // Fetch the form template to get field definitions
+        if (reportData.formTemplate) {
+          try {
+            const templateResponse = await axios.get(`/api/forms/${reportData.formTemplate._id}`);
+            setFormTemplate(templateResponse.data);
+            console.log('SIC Reports - Fetched form template:', templateResponse.data);
+          } catch (error) {
+            console.error('Error fetching form template:', error);
+          }
+        }
+        
+        setSelectedReport({ ...reportData, reportType: 'submitted' });
         setShowReportModal(true);
       } else {
         // For pending reports, navigate directly to the editable form
@@ -118,6 +158,35 @@ export default function SICReports() {
     return new Date() > new Date(report.closeDateTime);
   };
 
+  const renderFieldValue = (field, value) => {
+    if (value === undefined || value === null || value === '') {
+      return <span className="text-gray-400 italic">Not provided</span>;
+    }
+
+    switch (field.type) {
+      case 'checkbox':
+        return (
+          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+            value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {value ? 'Yes' : 'No'}
+          </span>
+        );
+      case 'textarea':
+        return (
+          <div className="whitespace-pre-wrap bg-gray-50 p-3 rounded border">
+            {value}
+          </div>
+        );
+      case 'select':
+        return <span className="font-medium">{value}</span>;
+      case 'number':
+        return <span className="font-mono">{value}</span>;
+      default:
+        return <span>{value}</span>;
+    }
+  };
+
   const renderReportContent = () => {
     if (!selectedReport) return null;
 
@@ -148,18 +217,108 @@ export default function SICReports() {
 
           <div>
             <h4 className="font-medium text-gray-900 mb-3">Report Responses</h4>
-            <div className="space-y-3">
-              {selectedReport.formTemplate?.fields?.map((field, index) => (
-                <div key={index} className="border-b border-gray-200 pb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {field.label}
-                    {field.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  <div className="text-sm text-gray-900">
-                    {selectedReport.responses[field.label] || 'No response provided'}
+            <div className="space-y-6">
+              {formTemplate && formTemplate.fields ? (
+                formTemplate.fields.map((field, index) => (
+                  <div key={field.id || index} className="border-b border-gray-200 pb-4 last:border-b-0">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {field.label}
+                      {field.required && <span className="text-red-500 ml-1">*</span>}
+                      {field.applicableToWards && (
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Ward-specific
+                        </span>
+                      )}
+                    </label>
+                  
+                    {/* Show ward data for ward-applicable questions - only ward answers, no main answer */}
+                    {field.applicableToWards && selectedReport.wardData && Object.keys(selectedReport.wardData).length > 0 ? (
+                      <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <h5 className="text-sm font-medium text-orange-800 mb-3 flex items-center">
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                          </svg>
+                          Ward-specific Answers
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {Object.entries(selectedReport.wardData).map(([wardId, wardResponses]) => {
+                            const fieldKey = `field_${index}`;
+                            const wardAnswer = wardResponses[fieldKey];
+                            return (
+                              <div key={wardId} className="bg-white border border-orange-200 rounded-md p-3">
+                                <div className="flex items-center mb-2">
+                                  <div className="w-4 h-4 bg-orange-100 rounded-full flex items-center justify-center mr-2">
+                                    <span className="text-xs font-medium text-orange-600">W</span>
+                                  </div>
+                                  <span className="text-xs font-medium text-orange-700">
+                                    {wardNames[wardId] || `Ward ${wardId.slice(-4)}`}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-900">
+                                  {wardAnswer !== undefined && wardAnswer !== null && wardAnswer !== '' ? (
+                                    renderFieldValue(field, wardAnswer)
+                                  ) : (
+                                    <span className="text-gray-400 italic">No response</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : field.applicableToWards ? (
+                      <div className="text-sm text-gray-500 italic">No ward-specific data available</div>
+                    ) : (
+                      <div className="mt-1">
+                        {renderFieldValue(field, selectedReport.responses[field.label])}
+                      </div>
+                    )}
+                    
+                    {/* Handle sub-questions */}
+                    {field.subQuestions && field.subQuestions.length > 0 && (
+                      <div className="mt-4 ml-4 space-y-3">
+                        {field.subQuestions.map((subQuestion, subIndex) => {
+                          const subKey = `${field.label}_${subQuestion.label}`;
+                          const shouldShow = field.showSubQuestionsWhen ? 
+                            (selectedReport.responses[field.label]?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || 
+                             selectedReport.responses[field.label] === field.showSubQuestionsWhen) : true;
+                          
+                          if (!shouldShow) return null;
+                          
+                          return (
+                            <div key={subIndex} className="border-l-2 border-gray-200 pl-4">
+                              <label className="block text-sm font-medium text-gray-600 mb-1">
+                                {subQuestion.label}
+                                {subQuestion.required && <span className="text-red-500 ml-1">*</span>}
+                              </label>
+                              <div className="mt-1">
+                                {renderFieldValue(subQuestion, selectedReport.responses[subKey])}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
+                ))
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(selectedReport.responses || {}).map(([key, value]) => (
+                    <div key={key} className="border-b border-gray-200 pb-4 last:border-b-0">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {key}
+                      </label>
+                      <div className="mt-1">
+                        {value !== undefined && value !== null && value !== '' ? (
+                          <span>{String(value)}</span>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

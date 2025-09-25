@@ -1,42 +1,16 @@
-import { getSession } from 'next-auth/react';
 import * as XLSX from 'xlsx';
 import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
-import { logActivity, ACTIONS } from '../../../lib/logger';
 import { sendExcelResponse, prepareExcelData, generateExcelFilename } from '../../../utils/excelExport';
 
 export default async function handler(req, res) {
-  console.log('[Reports Export] Starting export request');
+  console.log('[Reports Export] Starting export request - No authentication required');
   console.log('[Reports Export] Request headers:', {
-    authorization: req.headers.authorization,
-    cookie: req.headers.cookie ? 'Present' : 'Missing',
     userAgent: req.headers['user-agent'],
     origin: req.headers.origin,
     referer: req.headers.referer
   });
-  
-  const session = await getSession({ req });
-  
-  console.log('[Reports Export] Session data:', {
-    hasSession: !!session,
-    userRole: session?.user?.role,
-    userId: session?.user?.id,
-    userEmail: session?.user?.email
-  });
-  
-  // Basic session check - if UI shows export button, user has permission
-  if (!session) {
-    console.log('[Reports Export] No session found:', {
-      cookies: req.headers.cookie,
-      userAgent: req.headers['user-agent']
-    });
-    
-    return res.status(401).json({ 
-      message: 'Session not found. Please log in again.',
-      error: 'NO_SESSION'
-    });
-  }
   
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -64,10 +38,7 @@ export default async function handler(req, res) {
       query.year = parseInt(year);
     }
     
-    // Filter by district if user is coordinator
-    if (session.user.role === 'coordinator') {
-      query.district = session.user.district;
-    }
+    // No district filtering - allow all data
     
     // Filter by coordinator if provided
     if (coordinatorId) {
@@ -216,26 +187,8 @@ export default async function handler(req, res) {
     // Prepare data for Excel export with UTF-8 encoding
     const excelData = prepareExcelData(data);
     
-    // Log the export activity
-    await logActivity({
-      userId: session.user.id,
-      action: ACTIONS.REPORT_EXPORT,
-      description: `Exported reports (${validResponses.length} records)${formType ? ` - ${formType}` : ''}${weekNumber ? ` - Week ${weekNumber}` : ''}${year ? ` - ${year}` : ''}`,
-      metadata: { 
-        formType: formType || 'all', 
-        weekNumber: weekNumber ? parseInt(weekNumber) : 'all', 
-        year: year ? parseInt(year) : 'all',
-        coordinatorId,
-        wardId,
-        recordCount: validResponses.length,
-        totalFound: responses.length,
-        filteredOut: responses.length - validResponses.length
-      },
-      district: session.user.district,
-      ward: session.user.ward,
-      ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
-      userAgent: req.headers['user-agent']
-    });
+    // Log the export activity (no user context needed)
+    console.log(`[Reports Export] Export completed: ${validResponses.length} records${formType ? ` - ${formType}` : ''}${weekNumber ? ` - Week ${weekNumber}` : ''}${year ? ` - ${year}` : ''}`);
     
     // Generate filename based on available filters
     let filename = 'reports';
@@ -249,8 +202,7 @@ export default async function handler(req, res) {
     console.error('[Reports Export] Error during export:', {
       message: error.message,
       stack: error.stack,
-      query: req.query,
-      userId: session?.user?.id
+      query: req.query
     });
     
     // Provide more specific error messages based on the error type
