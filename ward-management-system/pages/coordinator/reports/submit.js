@@ -18,6 +18,7 @@ export default function SubmitReport() {
   const [selectedForm, setSelectedForm] = useState(null);
   const [formData, setFormData] = useState({});
   const [wardData, setWardData] = useState({});
+  const [recurringData, setRecurringData] = useState({});
   const [recurringQuestions, setRecurringQuestions] = useState([]);
   const [submittedResponse, setSubmittedResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +121,7 @@ export default function SubmitReport() {
     setSelectedForm(form);
     setFormData({});
     setWardData({});
+    setRecurringData({});
     setSubmittedResponse(null);
     
     // Check if user has already submitted this form
@@ -236,13 +238,8 @@ export default function SubmitReport() {
       // Convert form data from field indexes to field labels for API
       const responseData = {};
       selectedForm.fields.forEach((field, fieldIndex) => {
-        // Skip ward-applicable fields as they are handled separately
-        if (field.applicableToWards) {
-          return;
-        }
-        
         const fieldKey = `field_${fieldIndex}`;
-        if (formData[fieldKey] !== undefined && formData[fieldKey] !== '') {
+        if (formData[fieldKey] !== undefined) {
           responseData[field.label] = formData[fieldKey];
         }
 
@@ -250,12 +247,48 @@ export default function SubmitReport() {
         if (field.subQuestions && field.subQuestions.length > 0) {
           field.subQuestions.forEach((subQuestion, subIndex) => {
             const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            if (formData[subKey] !== undefined && formData[subKey] !== '') {
+            if (formData[subKey] !== undefined) {
               responseData[`${field.label}_${subQuestion.label}`] = formData[subKey];
             }
           });
         }
       });
+
+      // Add ward-specific questions to the main responses object
+      if (wardData && Object.keys(wardData).length > 0) {
+        console.log('Adding ward-specific questions to responses:', wardData);
+        
+        // Process ward data and add to responses
+        Object.keys(wardData).forEach(wardId => {
+          const wardResponses = wardData[wardId];
+          Object.keys(wardResponses).forEach(questionId => {
+            const value = wardResponses[questionId];
+            if (value !== undefined && value !== null && value !== '') {
+              // Create a key that includes the ward ID for ward-specific questions
+              const responseKey = `${questionId}_ward_${wardId}`;
+              responseData[responseKey] = value;
+              console.log(`Added ward-specific response: ${responseKey} = ${value}`);
+            }
+          });
+        });
+      }
+
+      // Add recurring questions that are ward-specific
+      if (recurringData && Object.keys(recurringData).length > 0) {
+        console.log('Processing recurring questions for ward-specific data:', recurringData);
+        
+        Object.keys(recurringData).forEach(wardId => {
+          const wardRecurringResponses = recurringData[wardId];
+          Object.keys(wardRecurringResponses).forEach(questionId => {
+            const value = wardRecurringResponses[questionId];
+            if (value !== undefined && value !== null && value !== '') {
+              const responseKey = `recurring_${questionId}_ward_${wardId}`;
+              responseData[responseKey] = value;
+              console.log(`Added recurring ward-specific response: ${responseKey} = ${value}`);
+            }
+          });
+        });
+      }
 
       console.log('Submitting response data:', responseData);
       console.log('Submitting ward data:', wardData);
@@ -282,6 +315,7 @@ export default function SubmitReport() {
       
       setFormData({});
       setWardData({});
+      setRecurringData({});
       setSelectedForm(null);
       
       // Refresh the forms list to update submission status
@@ -744,6 +778,7 @@ export default function SubmitReport() {
                     weekNumber={selectedForm.weekNumber}
                     year={selectedForm.year}
                     onDataChange={setWardData}
+                    onRecurringDataChange={setRecurringData}
                     disabled={!!submittedResponse}
                   />
                 </div>
