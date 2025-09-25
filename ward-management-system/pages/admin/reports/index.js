@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -131,9 +131,60 @@ export default function Reports() {
     }
   };
 
+  const refreshSession = async () => {
+    try {
+      console.log('[Reports] Refreshing session...');
+      const refreshedSession = await getSession();
+      console.log('[Reports] Refreshed session:', {
+        hasSession: !!refreshedSession,
+        userRole: refreshedSession?.user?.role,
+        userId: refreshedSession?.user?.id
+      });
+      return refreshedSession;
+    } catch (error) {
+      console.error('[Reports] Failed to refresh session:', error);
+      return null;
+    }
+  };
+
+  const testSession = async () => {
+    try {
+      console.log('[Reports] Testing session...');
+      const response = await axios.get('/api/debug/session-test', {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      console.log('[Reports] Session test result:', response.data);
+      setError(`Session test: ${response.data.success ? 'SUCCESS' : 'FAILED'} - ${response.data.message}`);
+    } catch (error) {
+      console.error('[Reports] Session test failed:', error);
+      setError(`Session test failed: ${error.message}`);
+    }
+  };
+
   const exportToExcel = async () => {
     console.log('[Reports] Export requested with filters:', filter);
     console.log('[Reports] Current responses count:', responses.length);
+    console.log('[Reports] Session status:', { 
+      hasSession: !!session, 
+      userRole: session?.user?.role,
+      userId: session?.user?.id 
+    });
+    
+    // Check session first and refresh if needed
+    let currentSession = session;
+    if (!currentSession || currentSession.user.role !== 'stateAdmin') {
+      console.log('[Reports] Session invalid, attempting to refresh...');
+      currentSession = await refreshSession();
+      
+      if (!currentSession || currentSession.user.role !== 'stateAdmin') {
+        console.log('[Reports] Unauthorized export attempt after refresh');
+        setError('Unauthorized: Please ensure you are logged in as a state admin. If you are logged in, please try refreshing the page and logging in again.');
+        return;
+      }
+    }
     
     // Check if there are any responses to export
     if (responses.length === 0) {
@@ -156,9 +207,13 @@ export default function Reports() {
       const exportUrl = `/api/reports/export?${queryParams.toString()}`;
       console.log('[Reports] Making export request to:', exportUrl);
       
-      // Use axios with blob response type to maintain session context
+      // Use axios with blob response type and credentials to maintain session context
       const response = await axios.get(exportUrl, {
-        responseType: 'blob'
+        responseType: 'blob',
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
       
       console.log('[Reports] Export successful, creating download');
@@ -188,12 +243,35 @@ export default function Reports() {
       setError('');
     } catch (error) {
       console.error('[Reports] Export failed:', error);
+      console.error('[Reports] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        session: session?.user
+      });
+      
       if (error.response?.status === 401) {
-        setError('Unauthorized: Please ensure you are logged in as a state admin.');
+        const errorCode = error.response?.data?.error;
+        if (errorCode === 'NO_SESSION') {
+          setError('Session expired. Please refresh the page and log in again.');
+        } else {
+          setError('Unauthorized: Please ensure you are logged in as a state admin. If you are logged in, please try refreshing the page and logging in again.');
+        }
+      } else if (error.response?.status === 403) {
+        const errorCode = error.response?.data?.error;
+        if (errorCode === 'INSUFFICIENT_PERMISSIONS') {
+          setError('Access denied: Only state admins and coordinators can export reports.');
+        } else {
+          setError('Access denied: Insufficient permissions to export reports.');
+        }
       } else if (error.response?.status === 404) {
         setError('No reports found matching the current filters.');
+      } else if (error.response?.status === 500) {
+        const errorMessage = error.response?.data?.message || 'Server error occurred';
+        setError(`Export failed: ${errorMessage}. Please try again or contact support if the issue persists.`);
       } else {
-        setError('Failed to export reports. Please try again.');
+        setError(`Failed to export reports: ${error.message}. Please try again.`);
       }
     } finally {
       setIsExporting(false);
@@ -281,16 +359,28 @@ export default function Reports() {
             <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
             <p className="mt-1 text-sm text-gray-600">View and analyze submitted reports</p>
           </div>
-          <Button
-            onClick={exportToExcel}
-            variant="success"
-            disabled={responses.length === 0 || isExporting}
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            {isExporting ? 'Exporting...' : `Export to Excel (${totalItems} reports)`}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={exportToExcel}
+              variant="success"
+              disabled={responses.length === 0 || isExporting}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {isExporting ? 'Exporting...' : `Export to Excel (${totalItems} reports)`}
+            </Button>
+            
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                onClick={testSession}
+                variant="secondary"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Test Session
+              </Button>
+            )}
+          </div>
         </div>
 
         {error && (
