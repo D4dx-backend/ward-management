@@ -128,6 +128,7 @@ export default function Reports() {
   const exportToExcel = async () => {
     console.log('[Reports] Export requested with filters:', filter);
     console.log('[Reports] Current responses count:', responses.length);
+
     
     // Check if there are any responses to export
     if (responses.length === 0) {
@@ -194,7 +195,9 @@ export default function Reports() {
         session: session?.user
       });
       
+
       if (error.response?.status === 404) {
+
         setError('No reports found matching the current filters.');
       } else if (error.response?.status === 500) {
         const errorMessage = error.response?.data?.message || 'Server error occurred';
