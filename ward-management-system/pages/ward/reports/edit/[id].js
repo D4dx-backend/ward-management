@@ -16,6 +16,7 @@ export default function EditWardReport() {
   const { id } = router.query;
   const [report, setReport] = useState(null);
   const [formData, setFormData] = useState({});
+  const [clusters, setClusters] = useState([]);
   const [validationErrors, setValidationErrors] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,25 +54,58 @@ export default function EditWardReport() {
       }
       
       setReport(response.data);
+
+      // Fetch clusters for cluster-applicable questions
+      try {
+        const clustersResponse = await axios.get('/api/clusters');
+        setClusters(clustersResponse.data || []);
+        console.log('Fetched clusters for edit:', clustersResponse.data?.length || 0);
+      } catch (error) {
+        console.error('Error fetching clusters:', error);
+        setClusters([]);
+      }
       
       // Convert responses back to form field format
       const convertedData = {};
       if (response.data.formTemplate?.fields && response.data.responses) {
         response.data.formTemplate.fields.forEach((field, fieldIndex) => {
-          const fieldKey = `field_${fieldIndex}`;
-          if (response.data.responses[field.label] !== undefined) {
-            convertedData[fieldKey] = response.data.responses[field.label];
-          }
-          
-          // Handle sub-questions
-          if (field.subQuestions && field.subQuestions.length > 0) {
-            field.subQuestions.forEach((subQuestion, subIndex) => {
-              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-              const submittedKey = `${field.label}_${subQuestion.label}`;
-              if (response.data.responses[submittedKey] !== undefined) {
-                convertedData[subKey] = response.data.responses[submittedKey];
+          if (field.applicableToClusters) {
+            // Handle cluster-applicable fields
+            clusters.forEach(cluster => {
+              const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
+              const responseKey = `${field.label}_cluster_${cluster._id}`;
+              if (response.data.responses[responseKey] !== undefined) {
+                convertedData[fieldKey] = response.data.responses[responseKey];
+              }
+              
+              // Handle sub-questions for cluster fields
+              if (field.subQuestions && field.subQuestions.length > 0) {
+                field.subQuestions.forEach((subQuestion, subIndex) => {
+                  const subKey = `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                  const submittedKey = `${field.label}_cluster_${cluster._id}_${subQuestion.label}`;
+                  if (response.data.responses[submittedKey] !== undefined) {
+                    convertedData[subKey] = response.data.responses[submittedKey];
+                  }
+                });
               }
             });
+          } else {
+            // Handle regular fields
+            const fieldKey = `field_${fieldIndex}`;
+            if (response.data.responses[field.label] !== undefined) {
+              convertedData[fieldKey] = response.data.responses[field.label];
+            }
+            
+            // Handle sub-questions
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+                const submittedKey = `${field.label}_${subQuestion.label}`;
+                if (response.data.responses[submittedKey] !== undefined) {
+                  convertedData[subKey] = response.data.responses[submittedKey];
+                }
+              });
+            }
           }
         });
       }
@@ -236,23 +270,48 @@ export default function EditWardReport() {
       const apiResponses = {};
       
       report.formTemplate.fields.forEach((field, fieldIndex) => {
-        const fieldKey = `field_${fieldIndex}`;
-        const fieldValue = formData[fieldKey];
-        
-        if (fieldValue !== undefined) {
-          apiResponses[field.label] = fieldValue;
-        }
-        
-        // Handle sub-questions
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          field.subQuestions.forEach((subQuestion, subIndex) => {
-            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            const subValue = formData[subKey];
+        if (field.applicableToClusters) {
+          // Handle cluster-applicable fields
+          clusters.forEach(cluster => {
+            const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
+            const fieldValue = formData[fieldKey];
             
-            if (subValue !== undefined) {
-              apiResponses[`${field.label}_${subQuestion.label}`] = subValue;
+            if (fieldValue !== undefined) {
+              apiResponses[`${field.label}_cluster_${cluster._id}`] = fieldValue;
+            }
+            
+            // Handle sub-questions for cluster fields
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                const subValue = formData[subKey];
+                
+                if (subValue !== undefined) {
+                  apiResponses[`${field.label}_cluster_${cluster._id}_${subQuestion.label}`] = subValue;
+                }
+              });
             }
           });
+        } else {
+          // Handle regular fields
+          const fieldKey = `field_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
+          
+          if (fieldValue !== undefined) {
+            apiResponses[field.label] = fieldValue;
+          }
+          
+          // Handle sub-questions
+          if (field.subQuestions && field.subQuestions.length > 0) {
+            field.subQuestions.forEach((subQuestion, subIndex) => {
+              const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+              const subValue = formData[subKey];
+              
+              if (subValue !== undefined) {
+                apiResponses[`${field.label}_${subQuestion.label}`] = subValue;
+              }
+            });
+          }
         }
       });
       

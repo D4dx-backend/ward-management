@@ -98,10 +98,10 @@ async function exportWardStatus(res) {
         'Ward Number': ward.wardNumber,
         'Panchayath': ward.panchayath,
         'District': ward.district,
-        'Coordinator ID': ward.coordinator._id.toString(),
-        'Coordinator Name': ward.coordinator.name,
-        'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-        'Ward Incharge ID': ward.wardAdmin?._id.toString() || '',
+        'Coordinator ID': ward.coordinator?._id?.toString() || '',
+        'Coordinator Name': ward.coordinator?.name || 'Unknown Coordinator',
+        'Coordinator Mobile': ward.coordinator?.mobileNumber || '',
+        'Ward Incharge ID': ward.wardAdmin?._id?.toString() || '',
         'Ward Incharge Name': ward.wardAdmin?.name || '',
         'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
         'Last Login': lastLoginDate ? new Date(lastLoginDate).toLocaleString() : 'Never',
@@ -112,7 +112,7 @@ async function exportWardStatus(res) {
         'Completion Rate (%)': totalExpectedReports > 0 
           ? Math.round((submittedReports / totalExpectedReports) * 100) 
           : 0,
-        'Created At': ward.createdAt.toLocaleString()
+        'Created At': ward.createdAt ? ward.createdAt.toLocaleString() : 'Unknown'
       };
     })
   );
@@ -147,10 +147,10 @@ async function exportRelationships(res) {
           'Ward Number': ward.wardNumber,
           'Panchayath': ward.panchayath,
           'District': ward.district,
-          'Coordinator MongoDB ID': ward.coordinator._id.toString(),
-          'Coordinator Name': ward.coordinator.name,
-          'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-          'Ward Incharge MongoDB ID': ward.wardAdmin?._id.toString() || '',
+          'Coordinator MongoDB ID': ward.coordinator?._id?.toString() || '',
+          'Coordinator Name': ward.coordinator?.name || 'Unknown Coordinator',
+          'Coordinator Mobile': ward.coordinator?.mobileNumber || '',
+          'Ward Incharge MongoDB ID': ward.wardAdmin?._id?.toString() || '',
           'Ward Incharge Name': ward.wardAdmin?.name || '',
           'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
           'Cluster MongoDB ID': '',
@@ -167,17 +167,17 @@ async function exportRelationships(res) {
         'Ward Number': ward.wardNumber,
         'Panchayath': ward.panchayath,
         'District': ward.district,
-        'Coordinator MongoDB ID': ward.coordinator._id.toString(),
-        'Coordinator Name': ward.coordinator.name,
-        'Coordinator Mobile': ward.coordinator.mobileNumber || '',
-        'Ward Incharge MongoDB ID': ward.wardAdmin?._id.toString() || '',
+        'Coordinator MongoDB ID': ward.coordinator?._id?.toString() || '',
+        'Coordinator Name': ward.coordinator?.name || 'Unknown Coordinator',
+        'Coordinator Mobile': ward.coordinator?.mobileNumber || '',
+        'Ward Incharge MongoDB ID': ward.wardAdmin?._id?.toString() || '',
         'Ward Incharge Name': ward.wardAdmin?.name || '',
         'Ward Incharge Mobile': ward.wardAdmin?.mobileNumber || '',
         'Cluster MongoDB ID': cluster._id.toString(),
         'Cluster Name': cluster.name,
         'Cluster Number': cluster.clusterNumber,
-        'Cluster Coordinator Name': cluster.coordinator.name,
-        'Cluster Coordinator Mobile': cluster.coordinator.mobileNumber || ''
+        'Cluster Coordinator Name': cluster.coordinator?.name || 'Unknown Coordinator',
+        'Cluster Coordinator Mobile': cluster.coordinator?.mobileNumber || ''
       }));
     })
   );
@@ -203,15 +203,15 @@ async function exportForms(res) {
 
   const formData = responses.map(response => ({
     'Response MongoDB ID': response._id.toString(),
-    'Form Template ID': response.formTemplate._id.toString(),
-    'Form Title': response.formTemplate.title,
-    'Form Description': response.formTemplate.description || '',
-    'Respondent ID': response.respondent._id.toString(),
-    'Respondent Name': response.respondent.name,
-    'Respondent Email': response.respondent.email || '',
-    'Respondent Mobile': response.respondent.mobileNumber || '',
-    'Respondent Role': response.respondent.role,
-    'Ward MongoDB ID': response.ward?._id.toString() || '',
+    'Form Template ID': response.formTemplate?._id?.toString() || '',
+    'Form Title': response.formTemplate?.title || 'Unknown Form',
+    'Form Description': response.formTemplate?.description || '',
+    'Respondent ID': response.respondent?._id?.toString() || '',
+    'Respondent Name': response.respondent?.name || 'Unknown User',
+    'Respondent Email': response.respondent?.email || '',
+    'Respondent Mobile': response.respondent?.mobileNumber || '',
+    'Respondent Role': response.respondent?.role || 'Unknown',
+    'Ward MongoDB ID': response.ward?._id?.toString() || '',
     'Ward Name': response.ward?.name || '',
     'Ward Number': response.ward?.wardNumber || '',
     'Panchayath': response.ward?.panchayath || '',
@@ -219,7 +219,7 @@ async function exportForms(res) {
     'Form Type': response.formType,
     'Week Number': response.weekNumber,
     'Year': response.year,
-    'Submitted At': response.submittedAt.toLocaleString(),
+    'Submitted At': response.submittedAt ? response.submittedAt.toLocaleString() : 'Unknown',
     'Response Data': JSON.stringify(response.responses)
   }));
 

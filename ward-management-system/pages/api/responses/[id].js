@@ -135,9 +135,30 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Response not found' });
       }
 
-      // Check if user owns this response
-      if (response.respondent.toString() !== session.user.id) {
-        return res.status(403).json({ error: 'You can only edit your own responses' });
+      // Check permissions for editing
+      let canEdit = false;
+      
+      // User can edit their own responses
+      if (response.respondent.toString() === session.user.id) {
+        canEdit = true;
+      }
+      // Coordinators can edit ward admin submitted forms in their district
+      else if (session.user.role === 'coordinator' && response.formTemplate.formType === 'wardReport') {
+        // Check if the coordinator has access to this ward
+        const Ward = require('../../../models/Ward');
+        const ward = await Ward.findOne({ 
+          _id: response.ward, 
+          coordinator: session.user.id 
+        });
+        canEdit = !!ward;
+      }
+      // State admins can edit any response
+      else if (session.user.role === 'stateAdmin') {
+        canEdit = true;
+      }
+      
+      if (!canEdit) {
+        return res.status(403).json({ error: 'You do not have permission to edit this response' });
       }
 
       // Check if editing is allowed for this form
