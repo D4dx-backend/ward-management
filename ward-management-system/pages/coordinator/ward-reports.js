@@ -193,6 +193,11 @@ export default function CoordinatorWardReports() {
     setShowReportModal(true);
   };
 
+  const handleEditReport = (report) => {
+    console.log('Navigating to edit report:', report._id);
+    router.push(`/coordinator/ward-reports/edit/${report._id}`);
+  };
+
   const uniqueWards = (wardReports || [])
     .filter(report => report.ward)
     .reduce((acc, report) => {
@@ -376,13 +381,22 @@ export default function CoordinatorWardReports() {
                       {formatDate(report.submittedAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewReport(report)}
-                      >
-                        View Details
-                      </Button>
+                      <div className="flex items-center justify-end space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewReport(report)}
+                        >
+                          View Details
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleEditReport(report)}
+                        >
+                          Edit
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

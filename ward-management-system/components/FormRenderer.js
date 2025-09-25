@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
-export default function FormRenderer({ form, formData, setFormData, errors = {}, readOnly = false, ward = null }) {
+export default function FormRenderer({ form, formData, setFormData, errors = {}, readOnly = false, ward = null, clusters: externalClusters = null, isLoadingClusters: externalIsLoadingClusters = false }) {
   const [visibleSubQuestions, setVisibleSubQuestions] = useState({});
   const [clusters, setClusters] = useState([]);
   const [isLoadingClusters, setIsLoadingClusters] = useState(false);
 
-  // Fetch clusters for cluster-applicable questions
+  // Use external clusters if provided, otherwise fetch them
   useEffect(() => {
+    console.log('FormRenderer clusters effect:', { externalClusters, externalIsLoadingClusters, ward: ward?._id });
+    
+    if (externalClusters !== null) {
+      console.log('Using external clusters:', externalClusters.length);
+      setClusters(externalClusters);
+      setIsLoadingClusters(externalIsLoadingClusters);
+      return;
+    }
+
     const hasClusterQuestions = form.fields.some(field => field.applicableToClusters);
     
     if (hasClusterQuestions) {
       setIsLoadingClusters(true);
-      axios.get('/api/clusters')
+      axios.get('/api/clusters', {
+        params: ward ? { wardId: ward._id } : {}
+      })
         .then(response => {
           setClusters(response.data);
         })
@@ -24,7 +35,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
           setIsLoadingClusters(false);
         });
     }
-  }, [form]);
+  }, [form, externalClusters, externalIsLoadingClusters, ward]);
 
   useEffect(() => {
     // Initialize form data structure only if formData is empty or missing fields

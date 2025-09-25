@@ -19,6 +19,7 @@ export default function SubmitSpecificWardReport() {
   const [selectedWard, setSelectedWard] = useState('');
   const [formData, setFormData] = useState({});
   const [submittedResponse, setSubmittedResponse] = useState(null);
+  const [clusters, setClusters] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -70,6 +71,16 @@ export default function SubmitSpecificWardReport() {
       console.log('Fetching wards for ward admin...');
       const wardsResponse = await axios.get('/api/wards');
       console.log('Wards response:', wardsResponse.data);
+
+      // Fetch clusters for cluster-applicable questions
+      try {
+        const clustersResponse = await axios.get('/api/clusters');
+        setClusters(clustersResponse.data || []);
+        console.log('Fetched clusters:', clustersResponse.data?.length || 0);
+      } catch (error) {
+        console.error('Error fetching clusters:', error);
+        setClusters([]);
+      }
 
       // Get existing response to check submission status
       const responsesResponse = await axios.get('/api/responses', {
@@ -261,25 +272,52 @@ export default function SubmitSpecificWardReport() {
       // Helper function to process fields
       const processFields = (fields, fieldPrefix = '') => {
         fields.forEach((field, fieldIndex) => {
-          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
-          const fieldValue = formData[fieldKey];
+          if (field.applicableToClusters) {
+            // Handle cluster-applicable fields
+            clusters.forEach(cluster => {
+              const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_cluster_${cluster._id}` : `field_${fieldIndex}_cluster_${cluster._id}`;
+              const fieldValue = formData[fieldKey];
 
-          if (fieldValue !== undefined) {
-            const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
-            apiResponses[responseKey] = fieldValue;
-          }
+              if (fieldValue !== undefined) {
+                const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}` : `${field.label}_cluster_${cluster._id}`;
+                apiResponses[responseKey] = fieldValue;
+              }
 
-          // Handle sub-questions
-          if (field.subQuestions && field.subQuestions.length > 0) {
-            field.subQuestions.forEach((subQuestion, subIndex) => {
-              const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
-              const subValue = formData[subKey];
+              // Handle sub-questions for cluster fields
+              if (field.subQuestions && field.subQuestions.length > 0) {
+                field.subQuestions.forEach((subQuestion, subIndex) => {
+                  const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}` : `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
+                  const subValue = formData[subKey];
 
-              if (subValue !== undefined) {
-                const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
-                apiResponses[responseKey] = subValue;
+                  if (subValue !== undefined) {
+                    const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}_${subQuestion.label}` : `${field.label}_cluster_${cluster._id}_${subQuestion.label}`;
+                    apiResponses[responseKey] = subValue;
+                  }
+                });
               }
             });
+          } else {
+            // Handle regular fields
+            const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
+            const fieldValue = formData[fieldKey];
+
+            if (fieldValue !== undefined) {
+              const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
+              apiResponses[responseKey] = fieldValue;
+            }
+
+            // Handle sub-questions
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              field.subQuestions.forEach((subQuestion, subIndex) => {
+                const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
+                const subValue = formData[subKey];
+
+                if (subValue !== undefined) {
+                  const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
+                  apiResponses[responseKey] = subValue;
+                }
+              });
+            }
           }
         });
       };
