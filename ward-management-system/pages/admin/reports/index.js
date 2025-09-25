@@ -169,7 +169,9 @@ export default function Reports() {
     console.log('[Reports] Current responses count:', responses.length);
     console.log('[Reports] Export request - Session:', { 
       hasSession: !!session, 
-      userRole: session?.user?.role
+      userRole: session?.user?.role,
+      userId: session?.user?.id,
+      timestamp: new Date().toISOString()
     });
     
     // Session check - if button is visible, user has permission
@@ -251,10 +253,17 @@ export default function Reports() {
       
       if (error.response?.status === 401) {
         const errorCode = error.response?.data?.error;
+        console.log('[Reports] 401 Error details:', {
+          errorCode,
+          message: error.response?.data?.message,
+          timestamp: error.response?.data?.timestamp,
+          session: session?.user
+        });
+        
         if (errorCode === 'NO_SESSION') {
           setError('Session expired. Please refresh the page and log in again.');
         } else {
-          setError('Authentication failed. Please refresh the page and log in again.');
+          setError(`Authentication failed: ${error.response?.data?.message || 'Unknown error'}. Please refresh the page and log in again.`);
         }
       } else if (error.response?.status === 404) {
         setError('No reports found matching the current filters.');

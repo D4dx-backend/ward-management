@@ -29,14 +29,23 @@ export default async function handler(req, res) {
   if (!session) {
     console.log('[Reports Export] No session found:', {
       cookies: req.headers.cookie,
-      userAgent: req.headers['user-agent']
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString()
     });
     
     return res.status(401).json({ 
       message: 'Session not found. Please log in again.',
-      error: 'NO_SESSION'
+      error: 'NO_SESSION',
+      timestamp: new Date().toISOString()
     });
   }
+  
+  console.log('[Reports Export] Session validated successfully:', {
+    userId: session.user.id,
+    userRole: session.user.role,
+    userEmail: session.user.email,
+    timestamp: new Date().toISOString()
+  });
   
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
