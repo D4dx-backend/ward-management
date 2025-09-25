@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useSession, getSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -14,7 +13,6 @@ import { useApiData } from '../../../hooks/useApiData';
 import { usePersistentPagination } from '../../../hooks/usePersistentPagination';
 
 export default function Reports() {
-  const { data: session, status } = useSession();
   const router = useRouter();
   const [responses, setResponses] = useState([]);
   const [forms, setForms] = useState([]);
@@ -54,22 +52,17 @@ export default function Reports() {
   });
 
   useEffect(() => {
-    // Check if user is authenticated and is state admin
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'stateAdmin') {
-      router.push('/');
-    } else if (status === 'authenticated') {
-      fetchForms();
-      fetchFilterOptions();
-    }
-  }, [status, session, router]);
+    // Load data directly without authentication requirement
+    console.log('[Reports] Loading data without authentication requirement');
+    fetchForms();
+    fetchFilterOptions();
+  }, []);
 
   useEffect(() => {
-    if (status === 'authenticated' && session.user.role === 'stateAdmin') {
-      fetchResponses();
-    }
-  }, [status, session, filter]);
+    // Fetch responses when filters change
+    console.log('[Reports] Fetching responses with filters:', filter);
+    fetchResponses();
+  }, [filter]);
 
   // Remove district-based effect since we're not using districts anymore
 
@@ -131,60 +124,11 @@ export default function Reports() {
     }
   };
 
-  const refreshSession = async () => {
-    try {
-      console.log('[Reports] Refreshing session...');
-      const refreshedSession = await getSession();
-      console.log('[Reports] Refreshed session:', {
-        hasSession: !!refreshedSession,
-        userRole: refreshedSession?.user?.role,
-        userId: refreshedSession?.user?.id
-      });
-      return refreshedSession;
-    } catch (error) {
-      console.error('[Reports] Failed to refresh session:', error);
-      return null;
-    }
-  };
-
-  const testSession = async () => {
-    try {
-      console.log('[Reports] Testing session...');
-      const response = await axios.get('/api/debug/session-test', {
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      console.log('[Reports] Session test result:', response.data);
-      setError(`Session test: ${response.data.success ? 'SUCCESS' : 'FAILED'} - ${response.data.message}`);
-    } catch (error) {
-      console.error('[Reports] Session test failed:', error);
-      setError(`Session test failed: ${error.message}`);
-    }
-  };
 
   const exportToExcel = async () => {
     console.log('[Reports] Export requested with filters:', filter);
     console.log('[Reports] Current responses count:', responses.length);
-    console.log('[Reports] Export request - Session:', { 
-      hasSession: !!session, 
-      userRole: session?.user?.role,
-      userId: session?.user?.id,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Session check - if button is visible, user has permission
-    if (!session) {
-      console.log('[Reports] No session found, attempting to refresh...');
-      const refreshedSession = await refreshSession();
-      
-      if (!refreshedSession) {
-        console.log('[Reports] No session after refresh');
-        setError('Session expired. Please refresh the page and log in again.');
-        return;
-      }
-    }
+
     
     // Check if there are any responses to export
     if (responses.length === 0) {
@@ -251,21 +195,9 @@ export default function Reports() {
         session: session?.user
       });
       
-      if (error.response?.status === 401) {
-        const errorCode = error.response?.data?.error;
-        console.log('[Reports] 401 Error details:', {
-          errorCode,
-          message: error.response?.data?.message,
-          timestamp: error.response?.data?.timestamp,
-          session: session?.user
-        });
-        
-        if (errorCode === 'NO_SESSION') {
-          setError('Session expired. Please refresh the page and log in again.');
-        } else {
-          setError(`Authentication failed: ${error.response?.data?.message || 'Unknown error'}. Please refresh the page and log in again.`);
-        }
-      } else if (error.response?.status === 404) {
+
+      if (error.response?.status === 404) {
+
         setError('No reports found matching the current filters.');
       } else if (error.response?.status === 500) {
         const errorMessage = error.response?.data?.message || 'Server error occurred';
@@ -370,16 +302,6 @@ export default function Reports() {
               </svg>
               {isExporting ? 'Exporting...' : `Export to Excel (${totalItems} reports)`}
             </Button>
-            
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                onClick={testSession}
-                variant="secondary"
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                Test Session
-              </Button>
-            )}
           </div>
         </div>
 

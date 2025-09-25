@@ -50,7 +50,8 @@ export default async function handler(req, res) {
       year: report.year,
       district: report.district,
       submittedAt: report.submittedAt,
-      responses: report.responses
+      responses: report.responses,
+      wardData: report.wardData
     };
 
     res.status(200).json(reportData);

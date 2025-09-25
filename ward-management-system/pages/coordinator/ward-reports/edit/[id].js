@@ -42,16 +42,51 @@ export default function EditWardReport() {
       setIsLoading(true);
       setError('');
       
-      const response = await axios.get(`/api/responses/${id}`);
-      console.log('Report data received:', response.data);
+      // First fetch the report to check if it has cluster questions
+      const reportResponse = await axios.get(`/api/responses/${id}`);
+      console.log('Report data received:', reportResponse.data);
       
-      setReport(response.data);
+      setReport(reportResponse.data);
+      
+      // Check if there are cluster questions and fetch clusters in parallel
+      const hasClusterQuestions = reportResponse.data.formTemplate?.fields?.some(field => field.applicableToClusters);
+      console.log('Has cluster questions:', hasClusterQuestions);
+      console.log('Ward data for cluster fetching:', { 
+        wardId: reportResponse.data.ward?._id, 
+        wardName: reportResponse.data.ward?.name,
+        wardCoordinator: reportResponse.data.ward?.coordinator 
+      });
+      
+      // Fetch clusters if there are cluster-based questions
+      if (hasClusterQuestions) {
+        try {
+          setIsLoadingClusters(true);
+          const startTime = Date.now();
+          console.log('Fetching clusters for ward report edit...', reportResponse.data.ward?._id);
+          
+          const clustersResponse = await axios.get('/api/clusters', {
+            params: {
+              wardId: reportResponse.data.ward?._id
+            }
+          });
+          
+          const loadTime = Date.now() - startTime;
+          setClusters(clustersResponse.data || []);
+          console.log(`Clusters loaded for ward: ${reportResponse.data.ward?.name} (${clustersResponse.data?.length || 0} clusters) in ${loadTime}ms`);
+          console.log('Clusters data:', clustersResponse.data);
+        } catch (error) {
+          console.error('Error fetching clusters:', error);
+          setClusters([]);
+        } finally {
+          setIsLoadingClusters(false);
+        }
+      }
       
       // Initialize form data from existing responses
       const initialFormData = {};
       
       // Process all responses and convert them to form data format
-      Object.entries(response.data.responses || {}).forEach(([responseKey, responseValue]) => {
+      Object.entries(reportResponse.data.responses || {}).forEach(([responseKey, responseValue]) => {
         // Handle regular field responses
         if (responseKey.includes('_cluster_')) {
           // Cluster-based response: fieldName_cluster_clusterId or fieldName_cluster_clusterId_sub_subIndex
@@ -66,7 +101,7 @@ export default function EditWardReport() {
               const subIndex = parseInt(subPart);
               
               // Find the field index for this field name
-              const fieldIndex = response.data.formTemplate.fields.findIndex(f => f.label === fieldName);
+              const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
               if (fieldIndex !== -1) {
                 const fieldKey = `field_${fieldIndex}_cluster_${clusterId}_sub_${subIndex}`;
                 initialFormData[fieldKey] = responseValue;
@@ -76,7 +111,7 @@ export default function EditWardReport() {
               const clusterId = clusterPart;
               
               // Find the field index for this field name
-              const fieldIndex = response.data.formTemplate.fields.findIndex(f => f.label === fieldName);
+              const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
               if (fieldIndex !== -1) {
                 const fieldKey = `field_${fieldIndex}_cluster_${clusterId}`;
                 initialFormData[fieldKey] = responseValue;
@@ -92,14 +127,14 @@ export default function EditWardReport() {
             const [actualFieldName, subPart] = fieldName.split('_sub_');
             const subIndex = parseInt(subPart);
             
-            const fieldIndex = response.data.formTemplate.sittingWardFields.findIndex(f => f.label === actualFieldName);
+            const fieldIndex = reportResponse.data.formTemplate.sittingWardFields.findIndex(f => f.label === actualFieldName);
             if (fieldIndex !== -1) {
               const fieldKey = `field_sitting_${fieldIndex}_sub_${subIndex}`;
               initialFormData[fieldKey] = responseValue;
             }
           } else {
             // Regular sitting ward field
-            const fieldIndex = response.data.formTemplate.sittingWardFields.findIndex(f => f.label === fieldName);
+            const fieldIndex = reportResponse.data.formTemplate.sittingWardFields.findIndex(f => f.label === fieldName);
             if (fieldIndex !== -1) {
               const fieldKey = `field_sitting_${fieldIndex}`;
               initialFormData[fieldKey] = responseValue;
@@ -110,14 +145,14 @@ export default function EditWardReport() {
           const [fieldName, subPart] = responseKey.split('_sub_');
           const subIndex = parseInt(subPart);
           
-          const fieldIndex = response.data.formTemplate.fields.findIndex(f => f.label === fieldName);
+          const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
           if (fieldIndex !== -1) {
             const fieldKey = `field_${fieldIndex}_sub_${subIndex}`;
             initialFormData[fieldKey] = responseValue;
           }
         } else {
           // Regular field
-          const fieldIndex = response.data.formTemplate.fields.findIndex(f => f.label === responseKey);
+          const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === responseKey);
           if (fieldIndex !== -1) {
             const fieldKey = `field_${fieldIndex}`;
             initialFormData[fieldKey] = responseValue;
@@ -128,19 +163,6 @@ export default function EditWardReport() {
       setFormData(initialFormData);
       console.log('Initialized form data:', initialFormData);
       
-      // Fetch clusters if there are cluster-based questions
-      const hasClusterQuestions = response.data.formTemplate?.fields?.some(field => field.applicableToClusters);
-      console.log('Has cluster questions:', hasClusterQuestions);
-      console.log('Ward data for cluster fetching:', { 
-        wardId: response.data.ward?._id, 
-        wardName: response.data.ward?.name,
-        wardCoordinator: response.data.ward?.coordinator 
-      });
-      
-      if (hasClusterQuestions) {
-        await fetchClusters();
-      }
-      
     } catch (error) {
       console.error('Error fetching report:', error);
       setError(error.response?.data?.message || error.message || 'Failed to load report');
@@ -149,32 +171,19 @@ export default function EditWardReport() {
     }
   };
 
-  const fetchClusters = async () => {
-    try {
-      setIsLoadingClusters(true);
-      console.log('Fetching clusters for ward report edit...', report.ward?._id);
-      
-      // Fetch clusters for the specific ward
-      const response = await axios.get('/api/clusters', {
-        params: {
-          wardId: report.ward?._id
-        }
-      });
-      
-      setClusters(response.data || []);
-      console.log('Clusters loaded for ward:', report.ward?.name, response.data?.length || 0);
-      console.log('Clusters data:', response.data);
-    } catch (error) {
-      console.error('Error fetching clusters:', error);
-      setClusters([]);
-    } finally {
-      setIsLoadingClusters(false);
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    console.log('Input changed:', { name, value, type, checked });
+    console.log('Ward report edit - Input changed:', { name, value, type, checked });
+    
+    // Special handling for cluster fields
+    if (name.includes('_cluster_')) {
+      console.log('Ward report edit - Cluster field changed:', { 
+        fieldName: name, 
+        value: type === 'checkbox' ? checked : value,
+        isClusterField: true 
+      });
+    }
     
     setFormData(prev => ({
       ...prev,
@@ -272,6 +281,11 @@ export default function EditWardReport() {
 
     try {
       console.log('Submitting ward report edit:', { id, formData });
+      console.log('Report data for submission:', { 
+        reportId: report?._id, 
+        formTemplate: report?.formTemplate?._id,
+        wardId: report?.ward?._id 
+      });
       
       // Convert form data from field_index format to field.label format for API
       const apiResponses = {};
@@ -361,11 +375,21 @@ export default function EditWardReport() {
       });
       
       console.log('API responses prepared:', apiResponses);
+      console.log('API responses count:', Object.keys(apiResponses).length);
+      console.log('Sample API responses:', Object.entries(apiResponses).slice(0, 5));
+      
+      // Debug cluster responses specifically
+      const clusterResponses = Object.entries(apiResponses).filter(([key]) => key.includes('_cluster_'));
+      console.log('Cluster responses count:', clusterResponses.length);
+      console.log('Cluster responses sample:', clusterResponses.slice(0, 3));
       
       // Update response
-      await axios.put(`/api/responses/${id}`, {
+      console.log('Sending PUT request to:', `/api/responses/${id}`);
+      const updateResponse = await axios.put(`/api/responses/${id}`, {
         responses: apiResponses,
       });
+      
+      console.log('Update response received:', updateResponse.data);
       
       setSuccess('Report updated successfully');
       setShowPreview(false);
@@ -377,7 +401,28 @@ export default function EditWardReport() {
       console.log('Ward report updated successfully');
     } catch (error) {
       console.error('Error updating ward report:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'An error occurred while updating the report';
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'An error occurred while updating the report';
+      
+      if (error.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again or contact support.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to edit this report.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Report not found.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);

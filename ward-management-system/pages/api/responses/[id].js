@@ -126,10 +126,28 @@ export default async function handler(req, res) {
     const { id } = req.query;
     const { responses: updatedResponses } = req.body;
 
+    console.log('PUT /api/responses/[id] - Request details:', {
+      id,
+      hasResponses: !!updatedResponses,
+      responsesKeys: updatedResponses ? Object.keys(updatedResponses) : [],
+      userRole: session.user.role,
+      userId: session.user.id
+    });
+
     try {
       // Find the response
+      console.log('Looking for response with ID:', id);
       const response = await Response.findById(id)
         .populate('formTemplate', 'title fields sittingWardFields formType allowEditAfterSubmission closeDateTime');
+      
+      console.log('Response found:', {
+        found: !!response,
+        responseId: response?._id,
+        formTemplateId: response?.formTemplate?._id,
+        formType: response?.formTemplate?.formType,
+        respondent: response?.respondent?.toString(),
+        ward: response?.ward?.toString()
+      });
 
       if (!response) {
         return res.status(404).json({ error: 'Response not found' });
@@ -138,9 +156,18 @@ export default async function handler(req, res) {
       // Check permissions for editing
       let canEdit = false;
       
+      console.log('Checking edit permissions:', {
+        respondentId: response.respondent.toString(),
+        currentUserId: session.user.id,
+        userRole: session.user.role,
+        formType: response.formTemplate.formType,
+        wardId: response.ward?.toString()
+      });
+      
       // User can edit their own responses
       if (response.respondent.toString() === session.user.id) {
         canEdit = true;
+        console.log('Permission granted: User owns this response');
       }
       // Coordinators can edit ward admin submitted forms in their district
       else if (session.user.role === 'coordinator' && response.formTemplate.formType === 'wardReport') {
@@ -151,60 +178,139 @@ export default async function handler(req, res) {
           coordinator: session.user.id 
         });
         canEdit = !!ward;
+        console.log('Coordinator ward check:', { wardFound: !!ward, wardId: ward?._id });
       }
       // State admins can edit any response
       else if (session.user.role === 'stateAdmin') {
         canEdit = true;
+        console.log('Permission granted: State admin');
       }
+      
+      console.log('Final permission result:', { canEdit });
       
       if (!canEdit) {
         return res.status(403).json({ error: 'You do not have permission to edit this response' });
       }
 
       // Check if editing is allowed for this form
+      console.log('Checking if editing is allowed:', { 
+        allowEditAfterSubmission: response.formTemplate.allowEditAfterSubmission 
+      });
+      
       if (!response.formTemplate.allowEditAfterSubmission) {
         return res.status(403).json({ error: 'Editing is not allowed for this form' });
       }
 
       // Validate updated responses against form fields
+      console.log('Starting field validation...');
+      console.log('Form fields count:', response.formTemplate.fields?.length || 0);
+      
+      // Fetch clusters if there are cluster-applicable fields for validation
+      let clusters = [];
+      const hasClusterFields = response.formTemplate.fields.some(field => field.applicableToClusters);
+      if (hasClusterFields && response.ward) {
+        try {
+          const Cluster = require('../../../models/Cluster');
+          clusters = await Cluster.find({ ward: response.ward }).lean();
+          console.log('Loaded clusters for validation:', clusters.length);
+        } catch (error) {
+          console.error('Error loading clusters for validation:', error);
+        }
+      }
+      
       for (const field of response.formTemplate.fields) {
         if (field.required) {
-          const fieldValue = updatedResponses[field.label];
-          
-          if (field.type === 'checkbox') {
-            if (fieldValue === undefined || fieldValue === null) {
-              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+          if (field.applicableToClusters && clusters.length > 0) {
+            // Validate cluster-applicable fields for each cluster
+            console.log(`Validating cluster field: ${field.label} for ${clusters.length} clusters`);
+            for (const cluster of clusters) {
+              const clusterFieldKey = `${field.label}_cluster_${cluster._id}`;
+              const clusterFieldValue = updatedResponses[clusterFieldKey];
+              
+              console.log(`Checking cluster field: ${clusterFieldKey}, value: ${clusterFieldValue}`);
+              
+              if (field.type === 'checkbox') {
+                if (clusterFieldValue === undefined || clusterFieldValue === null) {
+                  return res.status(400).json({ message: `Missing required field: ${field.label} for cluster ${cluster.name}` });
+                }
+              } else {
+                const trimmedValue = typeof clusterFieldValue === 'string' ? clusterFieldValue.trim() : clusterFieldValue;
+                if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+                  return res.status(400).json({ message: `Missing required field: ${field.label} for cluster ${cluster.name}` });
+                }
+              }
+              
+              // Validate sub-questions for cluster fields
+              if (field.subQuestions && field.subQuestions.length > 0) {
+                const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+                  (clusterFieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || clusterFieldValue === field.showSubQuestionsWhen) : true;
+                
+                if (shouldShowSubQuestions) {
+                  for (let subIndex = 0; subIndex < field.subQuestions.length; subIndex++) {
+                    const subQuestion = field.subQuestions[subIndex];
+                    if (subQuestion.required) {
+                      const subKey = `${field.label}_cluster_${cluster._id}_sub_${subIndex}`;
+                      const subValue = updatedResponses[subKey];
+                      
+                      console.log(`Checking cluster sub-question: ${subKey}, value: ${subValue}`);
+                      
+                      if (subQuestion.type === 'checkbox') {
+                        if (subValue === undefined || subValue === null) {
+                          return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label} for cluster ${cluster.name}` });
+                        }
+                      } else {
+                        const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                        if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                          return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label} for cluster ${cluster.name}` });
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           } else {
-            const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
-            if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
-              return res.status(400).json({ message: `Missing required field: ${field.label}` });
+            // Regular field validation (not cluster-applicable)
+            const fieldValue = updatedResponses[field.label];
+            
+            console.log(`Checking regular field: ${field.label}, value: ${fieldValue}`);
+            
+            if (field.type === 'checkbox') {
+              if (fieldValue === undefined || fieldValue === null) {
+                return res.status(400).json({ message: `Missing required field: ${field.label}` });
+              }
+            } else {
+              const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+              if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+                return res.status(400).json({ message: `Missing required field: ${field.label}` });
+              }
             }
-          }
-        }
-        
-        // Validate sub-questions if they exist and should be visible
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          const fieldValue = updatedResponses[field.label];
-          
-          // Check if sub-questions should be visible
-          const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
-            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
-          
-          if (shouldShowSubQuestions) {
-            for (const subQuestion of field.subQuestions) {
-              if (subQuestion.required) {
-                const subKey = `${field.label}_${subQuestion.label}`;
-                const subValue = updatedResponses[subKey];
-                
-                if (subQuestion.type === 'checkbox') {
-                  if (subValue === undefined || subValue === null) {
-                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
-                  }
-                } else {
-                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
-                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
-                    return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+            
+            // Validate sub-questions for regular fields
+            if (field.subQuestions && field.subQuestions.length > 0) {
+              const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
+                (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
+              
+              if (shouldShowSubQuestions) {
+                for (const subQuestion of field.subQuestions) {
+                  if (subQuestion.required) {
+                    // Try both key formats for backward compatibility
+                    const subKey1 = `${field.label}_${subQuestion.label}`;
+                    const subKey2 = `${field.label}_sub_${field.subQuestions.indexOf(subQuestion)}`;
+                    const subValue = updatedResponses[subKey1] || updatedResponses[subKey2];
+                    
+                    console.log(`Checking regular sub-question: ${subKey2}, value: ${subValue}`);
+                    
+                    if (subQuestion.type === 'checkbox') {
+                      if (subValue === undefined || subValue === null) {
+                        return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                      }
+                    } else {
+                      const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                      if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                        return res.status(400).json({ message: `Missing required sub-question: ${subQuestion.label}` });
+                      }
+                    }
                   }
                 }
               }
@@ -214,13 +320,53 @@ export default async function handler(req, res) {
       }
 
       // Update the response
+      console.log('Updating response with new data...');
+      console.log('Original responses count:', Object.keys(response.responses || {}).length);
+      console.log('New responses count:', Object.keys(updatedResponses).length);
+      
       response.responses = updatedResponses;
       response.updatedAt = new Date();
       
+      console.log('Saving updated response...');
+      console.log('Response object before save:', {
+        id: response._id,
+        responsesCount: Object.keys(response.responses).length,
+        updatedAt: response.updatedAt,
+        formTemplate: response.formTemplate?._id,
+        respondent: response.respondent?._id,
+        ward: response.ward?._id,
+        formType: response.formType,
+        weekNumber: response.weekNumber,
+        year: response.year,
+        district: response.district
+      });
+      
+      // Validate required fields before saving
+      if (!response.formTemplate) {
+        throw new Error('Form template is required');
+      }
+      if (!response.respondent) {
+        throw new Error('Respondent is required');
+      }
+      if (!response.formType) {
+        throw new Error('Form type is required');
+      }
+      if (!response.weekNumber) {
+        throw new Error('Week number is required');
+      }
+      if (!response.year) {
+        throw new Error('Year is required');
+      }
+      if (!response.district) {
+        throw new Error('District is required');
+      }
+      
       const updatedResponse = await response.save();
+      console.log('Response saved successfully:', updatedResponse._id);
 
       // Log the edit activity
       try {
+        console.log('Logging edit activity...');
         await logActivity({
           userId: session.user.id,
           action: ACTIONS.FORM_EDIT,
@@ -237,11 +383,14 @@ export default async function handler(req, res) {
           ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress,
           userAgent: req.headers['user-agent']
         });
+        console.log('Edit activity logged successfully');
       } catch (logError) {
         console.error('Failed to log edit activity:', logError);
+        // Don't fail the entire request if logging fails
       }
 
       // Return updated response with populated data
+      console.log('Populating response data for return...');
       const populatedResponse = await Response.findById(updatedResponse._id)
         .populate('respondent', 'name email role')
         .populate({
@@ -254,15 +403,35 @@ export default async function handler(req, res) {
         })
         .populate('formTemplate', 'title fields sittingWardFields formType allowEditAfterSubmission closeDateTime');
 
+      console.log('Response populated successfully, returning data...');
       return res.status(200).json(populatedResponse);
     } catch (error) {
       console.error('Error updating response:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        keyPattern: error.keyPattern,
+        keyValue: error.keyValue
+      });
       
       if (error.name === 'CastError') {
         return res.status(404).json({ error: 'Response not found' });
       }
       
-      return res.status(500).json({ error: 'Failed to update response' });
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({ 
+          error: 'Validation error', 
+          details: error.message,
+          errors: error.errors 
+        });
+      }
+      
+      return res.status(500).json({ 
+        error: 'Failed to update response',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
     }
   } else if (req.method === 'DELETE') {
     const { id } = req.query;

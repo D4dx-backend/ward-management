@@ -4,6 +4,7 @@ import connectToDatabase from '../../../lib/mongodb';
 import Cluster from '../../../models/Cluster';
 import Ward from '../../../models/Ward';
 import { logActivity, ACTIONS } from '../../../lib/logger';
+import { getServerCache, setServerCache } from '../../../lib/serverCache';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -18,6 +19,16 @@ export default async function handler(req, res) {
     try {
       const { wardId, isActive } = req.query;
       
+      // Create cache key based on user role and query parameters
+      const cacheKey = `clusters_${session.user.role}_${session.user.id}_${wardId || 'all'}_${isActive || 'all'}`;
+      
+      // Check cache first
+      const cachedData = getServerCache(cacheKey);
+      if (cachedData) {
+        console.log('Returning cached clusters data for key:', cacheKey);
+        return res.status(200).json(cachedData);
+      }
+      
       // Build query
       const query = {};
       if (wardId) query.ward = wardId;
@@ -29,7 +40,9 @@ export default async function handler(req, res) {
         const ward = await Ward.findOne({ wardAdmin: session.user.id });
         if (!ward) {
           console.log('Ward Incharge has no ward assigned:', session.user.id);
-          return res.status(200).json([]); // Return empty array instead of error
+          const emptyResult = [];
+          setServerCache(cacheKey, emptyResult, 5 * 60 * 1000); // Cache for 5 minutes
+          return res.status(200).json(emptyResult); // Return empty array instead of error
         }
         query.ward = ward._id;
       } else if (session.user.role === 'coordinator') {
@@ -40,7 +53,9 @@ export default async function handler(req, res) {
           console.log('Ward found:', ward ? { id: ward._id, name: ward.name, coordinator: ward.coordinator } : null);
           if (!ward) {
             console.log('Coordinator does not have access to ward:', wardId);
-            return res.status(200).json([]); // Return empty array instead of error
+            const emptyResult = [];
+            setServerCache(cacheKey, emptyResult, 5 * 60 * 1000); // Cache for 5 minutes
+            return res.status(200).json(emptyResult); // Return empty array instead of error
           }
           query.ward = wardId;
         } else {
@@ -64,6 +79,10 @@ export default async function handler(req, res) {
         .populate('ward', 'name district panchayath')
         .populate('createdBy', 'name')
         .sort({ 'ward.name': 1, clusterNumber: 1 });
+      
+      // Cache the result for 10 minutes
+      setServerCache(cacheKey, clusters, 10 * 60 * 1000);
+      console.log('Cached clusters data for key:', cacheKey, 'Count:', clusters.length);
       
       return res.status(200).json(clusters);
     } catch (error) {
