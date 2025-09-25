@@ -130,6 +130,13 @@ export default function EditWardReport() {
       
       // Fetch clusters if there are cluster-based questions
       const hasClusterQuestions = response.data.formTemplate?.fields?.some(field => field.applicableToClusters);
+      console.log('Has cluster questions:', hasClusterQuestions);
+      console.log('Ward data for cluster fetching:', { 
+        wardId: response.data.ward?._id, 
+        wardName: response.data.ward?.name,
+        wardCoordinator: response.data.ward?.coordinator 
+      });
+      
       if (hasClusterQuestions) {
         await fetchClusters();
       }

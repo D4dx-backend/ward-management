@@ -8,20 +8,47 @@ import { sendExcelResponse, prepareExcelData, generateExcelFilename } from '../.
 
 export default async function handler(req, res) {
   console.log('[Reports Export] Starting export request');
+  console.log('[Reports Export] Request headers:', {
+    authorization: req.headers.authorization,
+    cookie: req.headers.cookie ? 'Present' : 'Missing',
+    userAgent: req.headers['user-agent'],
+    origin: req.headers.origin,
+    referer: req.headers.referer
+  });
+  
   const session = await getSession({ req });
   
   console.log('[Reports Export] Session data:', {
     hasSession: !!session,
     userRole: session?.user?.role,
-    userId: session?.user?.id
+    userId: session?.user?.id,
+    userEmail: session?.user?.email,
+    sessionExpires: session?.expires
   });
   
   // Only state admin and coordinators can export reports
   if (!session || (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator')) {
     console.log('[Reports Export] Unauthorized access attempt:', {
       hasSession: !!session,
-      userRole: session?.user?.role
+      userRole: session?.user?.role,
+      cookies: req.headers.cookie,
+      sessionExpires: session?.expires
     });
+    
+    // Provide more specific error message
+    if (!session) {
+      return res.status(401).json({ 
+        message: 'Session not found. Please log in again.',
+        error: 'NO_SESSION'
+      });
+    } else if (session.user.role !== 'stateAdmin' && session.user.role !== 'coordinator') {
+      return res.status(403).json({ 
+        message: 'Insufficient permissions. Only state admins and coordinators can export reports.',
+        error: 'INSUFFICIENT_PERMISSIONS',
+        userRole: session.user.role
+      });
+    }
+    
     return res.status(401).json({ message: 'Unauthorized' });
   }
   

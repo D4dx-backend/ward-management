@@ -33,9 +33,21 @@ export default async function handler(req, res) {
         }
         query.ward = ward._id;
       } else if (session.user.role === 'coordinator') {
-        // Coordinators can see clusters in their district
-        const wards = await Ward.find({ district: session.user.district });
-        query.ward = { $in: wards.map(w => w._id) };
+        // If specific wardId is requested, verify coordinator has access to that ward
+        if (wardId) {
+          console.log('Checking coordinator access to ward:', { wardId, coordinatorId: session.user.id });
+          const ward = await Ward.findOne({ _id: wardId, coordinator: session.user.id });
+          console.log('Ward found:', ward ? { id: ward._id, name: ward.name, coordinator: ward.coordinator } : null);
+          if (!ward) {
+            console.log('Coordinator does not have access to ward:', wardId);
+            return res.status(200).json([]); // Return empty array instead of error
+          }
+          query.ward = wardId;
+        } else {
+          // Coordinators can see clusters in their district
+          const wards = await Ward.find({ district: session.user.district });
+          query.ward = { $in: wards.map(w => w._id) };
+        }
       }
       // State admins can see all clusters
       
