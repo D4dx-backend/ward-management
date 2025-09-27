@@ -7,7 +7,7 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import ClusterVisitStatus from '../../components/ClusterVisitStatus';
 import AdminWardReportStatus from '../../components/AdminWardReportStatus';
-import AdminWardClusterVisitStatus from '../../components/AdminWardClusterVisitStatus';
+import AdminCoordinatorReportStatus from '../../components/AdminCoordinatorReportStatus';
 import { useDashboardData } from '../../hooks/useApiData';
 
 export default function AdminDashboard() {
@@ -272,8 +272,8 @@ export default function AdminDashboard() {
           {/* Ward Report Status Table */}
           <AdminWardReportStatus />
 
-          {/* Ward House Visit Status */}
-          <AdminWardClusterVisitStatus />
+          {/* Coordinator Report Status */}
+          <AdminCoordinatorReportStatus />
         </div>
 
         {/* Quick Actions */}

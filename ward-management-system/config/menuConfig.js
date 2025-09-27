@@ -23,6 +23,7 @@ export const menuConfig = {
         { name: 'Wards', href: '/admin/wards', icon: '🏘️' },
         { name: 'Ward Status', href: '/admin/ward-status', icon: '🔍' },
         { name: 'Ward Visits', href: '/admin/ward-visits', icon: '🚶' },
+        { name: 'Ward House Visit Status', href: '/admin/ward-house-visit-status', icon: '🏠' },
         { name: 'Ward Advance Data', href: '/admin/ward-basic-forms', icon: '📋' }
       ]
     },
