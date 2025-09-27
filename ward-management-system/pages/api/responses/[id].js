@@ -4,6 +4,8 @@ import dbConnect from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
 import { logActivity, ACTIONS } from '../../../lib/logger';
+import Ward from '../../../models/Ward';
+import Cluster from '../../../models/Cluster';
 
 export default async function handler(req, res) {
   const session = await getServerSession(req, res, authOptions);
@@ -172,7 +174,6 @@ export default async function handler(req, res) {
       // Coordinators can edit ward admin submitted forms in their district
       else if (session.user.role === 'coordinator' && response.formTemplate.formType === 'wardReport') {
         // Check if the coordinator has access to this ward
-        const Ward = require('../../../models/Ward');
         const ward = await Ward.findOne({ 
           _id: response.ward, 
           coordinator: session.user.id 
@@ -210,7 +211,6 @@ export default async function handler(req, res) {
       const hasClusterFields = response.formTemplate.fields.some(field => field.applicableToClusters);
       if (hasClusterFields && response.ward) {
         try {
-          const Cluster = require('../../../models/Cluster');
           clusters = await Cluster.find({ ward: response.ward }).lean();
           console.log('Loaded clusters for validation:', clusters.length);
         } catch (error) {
