@@ -31,6 +31,8 @@ export default function EditForm() {
     isSittingWardForm: false,
     allowMultipleSubmissions: true,
     allowEditAfterSubmission: false,
+    enableDateTime: '',
+    closeDateTime: '',
     fields: [
       {
         label: '',
@@ -64,6 +66,8 @@ export default function EditForm() {
       const response = await axios.get(`/api/forms/${id}`);
       const formData = response.data;
 
+      console.log('Fetched form data:', formData);
+
       setForm(formData);
       setFormData({
         title: formData.title,
@@ -72,6 +76,8 @@ export default function EditForm() {
         isSittingWardForm: formData.isSittingWardForm || false,
         allowMultipleSubmissions: formData.allowMultipleSubmissions !== undefined ? formData.allowMultipleSubmissions : true,
         allowEditAfterSubmission: formData.allowEditAfterSubmission || false,
+        enableDateTime: formatDateTimeForInput(formData.enableDateTime),
+        closeDateTime: formatDateTimeForInput(formData.closeDateTime),
         fields: formData.fields ? formData.fields.map((field, index) => ({
           ...field,
           subQuestions: field.subQuestions || [],
@@ -111,6 +117,25 @@ export default function EditForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDateTimeForInput = (dateTime) => {
+    if (!dateTime) return '';
+    const d = new Date(dateTime);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
+  const getWeekNumber = (d) => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
   };
 
   const handleInputChange = (e) => {
@@ -513,6 +538,8 @@ export default function EditForm() {
         isSittingWardForm: formData.isSittingWardForm,
         allowMultipleSubmissions: formData.allowMultipleSubmissions,
         allowEditAfterSubmission: formData.allowEditAfterSubmission,
+        enableDateTime: formData.enableDateTime,
+        closeDateTime: formData.closeDateTime,
         fields: validFields.map((field, index) => {
           const processedField = {
             label: field.label.trim(),
@@ -748,6 +775,39 @@ export default function EditForm() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                     placeholder="Enter form description"
                   />
+                </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      When users can start filling this form *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="enableDateTime"
+                      value={formData.enableDateTime}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      required
+                    />
+                    {formData.enableDateTime && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Auto-calculated: Week {getWeekNumber(new Date(formData.enableDateTime))}, {new Date(formData.enableDateTime).getFullYear()}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Form Close Date & Time *
+                    </label>
+                    <input
+                      type="datetime-local"
+                      name="closeDateTime"
+                      value={formData.closeDateTime}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -126,7 +126,7 @@ export default async function handler(req, res) {
     }
   } else if (req.method === 'PUT') {
     const { id } = req.query;
-    const { responses: updatedResponses } = req.body;
+    const { responses: updatedResponses, status: newStatus } = req.body;
 
     console.log('PUT /api/responses/[id] - Request details:', {
       id,
@@ -326,6 +326,10 @@ export default async function handler(req, res) {
       
       response.responses = updatedResponses;
       response.updatedAt = new Date();
+      
+      if (newStatus) {
+        response.status = newStatus;
+      }
       
       console.log('Saving updated response...');
       console.log('Response object before save:', {

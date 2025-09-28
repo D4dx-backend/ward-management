@@ -93,10 +93,16 @@ export default function CoordinatorWards() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800 border-green-200';
-      case 'inactive': return 'bg-red-100 text-red-800 border-red-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'active':
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'inactive':
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -258,6 +264,22 @@ export default function CoordinatorWards() {
                       </div>
                     )}
                   </div>
+
+                  {ward.latestReport && (
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <div className="text-sm">
+                        <span className="text-gray-500">Latest Report:</span>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-900">
+                            Week {ward.latestReport.weekNumber}, {ward.latestReport.year}
+                          </span>
+                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(ward.latestReport.status)}`}>
+                            {ward.latestReport.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-4 flex justify-between items-center">
                     <div className="text-xs text-gray-500">

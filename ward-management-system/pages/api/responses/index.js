@@ -187,15 +187,17 @@ export default async function handler(req, res) {
       }
       
       // Check permissions based on form type
-      if (formTemplate.formType === 'coordinatorReport') {
+      const submissionFormType = req.body.formType || formTemplate.formType;
+
+      if (submissionFormType === 'coordinatorReport') {
         // Only coordinators can submit coordinator reports
         if (session.user.role !== 'coordinator') {
           return res.status(403).json({ message: 'Only coordinators can submit coordinator reports' });
         }
-      } else if (formTemplate.formType === 'wardReport') {
-        // Only Ward Incharges can submit ward reports
-        if (session.user.role !== 'wardAdmin') {
-          return res.status(403).json({ message: 'Only Ward Incharges can submit ward reports' });
+      } else if (submissionFormType === 'wardReport') {
+        // Ward Incharges and Coordinators can submit ward reports
+        if (!['wardAdmin', 'coordinator'].includes(session.user.role)) {
+          return res.status(403).json({ message: 'You are not authorized to submit ward reports' });
         }
         
         // Validate ward ID
@@ -203,15 +205,20 @@ export default async function handler(req, res) {
           return res.status(400).json({ message: 'Ward ID is required for ward reports' });
         }
         
-        // Check if ward exists and user is the Ward Incharge
+        // Check if ward exists
         const ward = await Ward.findById(wardId);
         
         if (!ward) {
           return res.status(404).json({ message: 'Ward not found' });
         }
-        
-        if (ward.wardAdmin && ward.wardAdmin.toString() !== session.user.id) {
+
+        // Check user's authorization for the ward
+        if (session.user.role === 'wardAdmin' && ward.wardAdmin && ward.wardAdmin.toString() !== session.user.id) {
           return res.status(403).json({ message: 'You are not authorized to submit reports for this ward' });
+        }
+
+        if (session.user.role === 'coordinator' && ward.coordinator && ward.coordinator.toString() !== session.user.id) {
+          return res.status(403).json({ message: 'You are not authorized to submit reports for this ward as a coordinator' });
         }
       }
       
@@ -283,11 +290,12 @@ export default async function handler(req, res) {
       const responseData = {
         formTemplate: formTemplateId,
         respondent: session.user.id,
-        formType: formTemplate.formType,
+        formType: submissionFormType,
         responses: responses,
         weekNumber: formTemplate.weekNumber,
         year: formTemplate.year,
         district: session.user.district || 'Unknown',
+        status: 'submitted',
       };
       
       // Debug logging for response data
@@ -305,7 +313,7 @@ export default async function handler(req, res) {
       }
       
       // Add ward only for ward reports
-      if (formTemplate.formType === 'wardReport' && wardId) {
+      if (submissionFormType === 'wardReport' && wardId) {
         responseData.ward = wardId;
       }
       
