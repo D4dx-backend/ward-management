@@ -3,6 +3,7 @@ import dbConnect from '../../../lib/mongodb';
 import User from '../../../models/User';
 import Ward from '../../../models/Ward';
 import WardVisit from '../../../models/WardVisit';
+import Response from '../../../models/Response';
 
 export default async function handler(req, res) {
   const session = await getSession({ req });
@@ -60,11 +61,14 @@ export default async function handler(req, res) {
 
           const stats = visitStats[0] || { totalVisits: 0, lastVisitDate: null };
 
+          const latestReport = await Response.findOne({ ward: ward._id }).sort({ submittedAt: -1 }).lean();
+
           return {
             ...ward.toObject(),
             totalVisits: stats.totalVisits,
             lastVisitDate: stats.lastVisitDate,
-            reportsSubmitted: 0 // This would need to be calculated from actual reports
+            reportsSubmitted: 0, // This would need to be calculated from actual reports
+            latestReport,
           };
         } catch (error) {
           console.error(`Error getting stats for ward ${ward._id}:`, error);
@@ -72,7 +76,8 @@ export default async function handler(req, res) {
             ...ward.toObject(),
             totalVisits: 0,
             lastVisitDate: null,
-            reportsSubmitted: 0
+            reportsSubmitted: 0,
+            latestReport: null,
           };
         }
       })

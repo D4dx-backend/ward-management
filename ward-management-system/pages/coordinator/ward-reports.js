@@ -50,7 +50,7 @@ export default function CoordinatorWardReports() {
           type: report.formType,
           weekNumber: report.weekNumber,
           year: report.year,
-          status: 'submitted', // All fetched reports are submitted
+          status: report.status,
           submittedBy: report.respondent,
           ward: report.ward,
           submittedAt: report.submittedAt,
@@ -121,10 +121,7 @@ export default function CoordinatorWardReports() {
     }
 
     if (filter.status) {
-      // Since all fetched reports are submitted, only show them if status filter is 'submitted' or empty
-      if (filter.status !== 'submitted') {
-        filtered = [];
-      }
+      filtered = filtered.filter(report => report.status === filter.status);
     }
 
     return filtered;
@@ -172,10 +169,12 @@ export default function CoordinatorWardReports() {
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case 'submitted':
+      case 'approved':
         return 'bg-green-100 text-green-800';
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'overdue':
+      case 'rejected':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -195,7 +194,13 @@ export default function CoordinatorWardReports() {
 
   const handleEditReport = (report) => {
     console.log('Navigating to edit report:', report._id);
-    router.push(`/coordinator/ward-reports/edit/${report._id}`);
+    // For coordinator reports, go to create page with pre-filled data
+    // For ward reports, go to edit page
+    if (report.type === 'coordinatorReport') {
+      router.push(`/coordinator/ward-reports/create?wardId=${report.ward?._id}&formId=${report.formTemplate?._id}`);
+    } else {
+      router.push(`/coordinator/ward-reports/edit/${report._id}`);
+    }
   };
 
   const uniqueWards = (wardReports || [])
@@ -307,6 +312,8 @@ export default function CoordinatorWardReports() {
                   <option value="submitted">Submitted</option>
                   <option value="pending">Pending</option>
                   <option value="overdue">Overdue</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
                 </select>
               </div>
             </div>

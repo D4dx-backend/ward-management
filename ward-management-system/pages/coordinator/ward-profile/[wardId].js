@@ -13,6 +13,7 @@ export default function CoordinatorWardProfile() {
   const [ward, setWard] = useState(null);
   const [clusters, setClusters] = useState([]);
   const [advancedData, setAdvancedData] = useState(null);
+  const [latestReport, setLatestReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -39,6 +40,7 @@ export default function CoordinatorWardProfile() {
       setWard(profileData.ward);
       setClusters(profileData.clusters || []);
       setAdvancedData(profileData.advancedData);
+      setLatestReport(profileData.latestReport);
       setError('');
     } catch (error) {
       console.error('Error fetching ward data:', error);
@@ -330,6 +332,36 @@ export default function CoordinatorWardProfile() {
             )}
           </div>
         </Card>
+
+        {latestReport && (
+          <Card>
+            <div className="p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Latest Report</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Week</label>
+                  <div className="text-sm text-gray-900">{latestReport.weekNumber}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                  <div className="text-sm text-gray-900">{latestReport.year}</div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <div className="text-sm text-gray-900">
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      latestReport.status === 'approved' ? 'bg-green-100 text-green-800' :
+                      latestReport.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {latestReport.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Ward Incharge Information */}
         {ward?.wardAdmin && (

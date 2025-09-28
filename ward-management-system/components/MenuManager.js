@@ -111,6 +111,20 @@ const MenuManager = memo(({ userRole, onItemClick }) => {
                     {item.name}
                   </Link>
                 ))}
+                {menuKey === 'Ward Monitor' && (
+                  <Link
+                    href="/coordinator/ward-reports/create"
+                    onClick={() => handleItemClick({ name: 'Create Report', href: '/coordinator/ward-reports/create' })}
+                    className={`flex items-center px-12 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-gray-100 hover:text-green-600 ${
+                      isCurrentPath('/coordinator/ward-reports/create')
+                        ? 'bg-green-100 text-green-600 border-r-2 border-green-600'
+                        : 'text-gray-600'
+                    }`}
+                  >
+                    <span className="mr-3 text-xs"></span>
+                    Create Report
+                  </Link>
+                )}
               </div>
             )}
           </div>

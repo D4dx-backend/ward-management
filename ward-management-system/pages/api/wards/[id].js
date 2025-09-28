@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
+import Response from '../../../models/Response';
 
 export default async function handler(req, res) {
   // Set CORS headers for production
@@ -74,7 +75,9 @@ export default async function handler(req, res) {
       }
       // stateAdmin can access all wards
       
-      return res.status(200).json(ward);
+      const latestReport = await Response.findOne({ ward: id }).sort({ submittedAt: -1 }).lean();
+      
+      return res.status(200).json({ ...ward, latestReport });
       
     } catch (error) {
       console.error('Error fetching ward:', error);

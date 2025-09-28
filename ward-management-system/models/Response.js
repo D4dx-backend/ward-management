@@ -47,6 +47,11 @@ const ResponseSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', 'submitted'],
+    default: 'pending',
+  },
 });
 
 export default mongoose.models.Response || mongoose.model('Response', ResponseSchema);

@@ -35,39 +35,6 @@ export default function WardReportDetail() {
       setError('');
     } catch (error) {
       console.error('Error fetching report detail:', error);
-      console.error('Error response:', error.response?.data);
-      
-      // Try fallback: fetch from general responses API with filters
-      if (week && year && ward) {
-        try {
-          console.log('Trying fallback with filters:', { ward, week, year });
-          const fallbackResponse = await axios.get('/api/responses', {
-            params: {
-              formType: 'wardReport',
-              weekNumber: week,
-              year: year,
-              coordinatorOnly: 'true'
-            }
-          });
-          
-          // Find the specific report by ward name and other criteria
-          const matchingReport = fallbackResponse.data.find(report => 
-            report.ward?.name === decodeURIComponent(ward) &&
-            report.weekNumber === parseInt(week) &&
-            report.year === parseInt(year)
-          );
-          
-          if (matchingReport) {
-            console.log('Found matching report via fallback:', matchingReport);
-            setReport(matchingReport);
-            setError('');
-            return;
-          }
-        } catch (fallbackError) {
-          console.error('Fallback also failed:', fallbackError);
-        }
-      }
-      
       let errorMessage = 'Failed to fetch report details';
       if (error.response?.status === 403) {
         errorMessage = 'Access denied. You do not have permission to view this report.';
@@ -76,17 +43,7 @@ export default function WardReportDetail() {
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error;
       }
-      
       setError(errorMessage);
-      
-      // Try debug endpoint for more information
-      try {
-        console.log('Trying debug endpoint...');
-        const debugResponse = await axios.get(`/api/debug-response?id=${id}`);
-        console.log('Debug response:', debugResponse.data);
-      } catch (debugError) {
-        console.error('Debug endpoint also failed:', debugError);
-      }
     } finally {
       setLoading(false);
     }
@@ -109,6 +66,14 @@ export default function WardReportDetail() {
       );
     }
     
+    if (typeof value === 'object' && value !== null) {
+      return (
+        <div className="bg-gray-50 p-3 rounded border">
+          <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(value, null, 2)}</pre>
+        </div>
+      );
+    }
+
     if (typeof value === 'string' && value.length > 100) {
       return (
         <div className="bg-gray-50 p-3 rounded border">
@@ -248,18 +213,21 @@ export default function WardReportDetail() {
             
             {report.responses && Object.keys(report.responses).length > 0 ? (
               <div className="space-y-6">
-                {Object.entries(report.responses).map(([question, answer], index) => (
-                  <div key={index} className="border-l-4 border-blue-500 pl-6 py-3">
-                    <div className="flex flex-col space-y-2">
-                      <h4 className="text-sm font-medium text-gray-900 leading-relaxed">
-                        {question}
-                      </h4>
-                      <div className="text-sm text-gray-700">
-                        {renderResponseValue(answer)}
+                {Object.entries(report.responses).map(([question, answer], index) => {
+                  const displayQuestion = question.replace(/_sub_\d+$/, '').replace(/_/g, ' ');
+                  return (
+                    <div key={index} className="border-l-4 border-blue-500 pl-6 py-3">
+                      <div className="flex flex-col space-y-2">
+                        <h4 className="text-sm font-medium text-gray-900 leading-relaxed">
+                          {displayQuestion}
+                        </h4>
+                        <div className="text-sm text-gray-700">
+                          {renderResponseValue(answer)}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">

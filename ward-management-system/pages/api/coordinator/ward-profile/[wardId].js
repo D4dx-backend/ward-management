@@ -5,6 +5,7 @@ import Ward from '../../../../models/Ward';
 import Cluster from '../../../../models/Cluster';
 import WardBasicData from '../../../../models/WardBasicData';
 import FormTemplate from '../../../../models/FormTemplate';
+import Response from '../../../../models/Response';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -79,6 +80,8 @@ export default async function handler(req, res) {
       // Continue without advanced data
     }
 
+    const latestReport = await Response.findOne({ ward: wardId }).sort({ submittedAt: -1 }).lean();
+
     const profileData = {
       ward: {
         _id: ward._id,
@@ -96,7 +99,8 @@ export default async function handler(req, res) {
         updatedAt: ward.updatedAt
       },
       clusters,
-      advancedData
+      advancedData,
+      latestReport,
     };
 
     res.status(200).json(profileData);

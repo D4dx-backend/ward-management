@@ -202,3 +202,4 @@ export default function AdminCoordinatorReportStatus({ compact = false }) {
     </Card>
   );
 }
+

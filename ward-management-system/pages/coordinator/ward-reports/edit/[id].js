@@ -38,42 +38,23 @@ export default function EditWardReport() {
 
   const fetchReport = async () => {
     try {
-      console.log('Fetching ward report for editing:', id);
       setIsLoading(true);
       setError('');
       
-      // First fetch the report to check if it has cluster questions
       const reportResponse = await axios.get(`/api/responses/${id}`);
-      console.log('Report data received:', reportResponse.data);
-      
       setReport(reportResponse.data);
       
-      // Check if there are cluster questions and fetch clusters in parallel
       const hasClusterQuestions = reportResponse.data.formTemplate?.fields?.some(field => field.applicableToClusters);
-      console.log('Has cluster questions:', hasClusterQuestions);
-      console.log('Ward data for cluster fetching:', { 
-        wardId: reportResponse.data.ward?._id, 
-        wardName: reportResponse.data.ward?.name,
-        wardCoordinator: reportResponse.data.ward?.coordinator 
-      });
       
-      // Fetch clusters if there are cluster-based questions
       if (hasClusterQuestions) {
         try {
           setIsLoadingClusters(true);
-          const startTime = Date.now();
-          console.log('Fetching clusters for ward report edit...', reportResponse.data.ward?._id);
-          
           const clustersResponse = await axios.get('/api/clusters', {
             params: {
               wardId: reportResponse.data.ward?._id
             }
           });
-          
-          const loadTime = Date.now() - startTime;
           setClusters(clustersResponse.data || []);
-          console.log(`Clusters loaded for ward: ${reportResponse.data.ward?.name} (${clustersResponse.data?.length || 0} clusters) in ${loadTime}ms`);
-          console.log('Clusters data:', clustersResponse.data);
         } catch (error) {
           console.error('Error fetching clusters:', error);
           setClusters([]);
@@ -82,86 +63,10 @@ export default function EditWardReport() {
         }
       }
       
-      // Initialize form data from existing responses
-      const initialFormData = {};
-      
-      // Process all responses and convert them to form data format
-      Object.entries(reportResponse.data.responses || {}).forEach(([responseKey, responseValue]) => {
-        // Handle regular field responses
-        if (responseKey.includes('_cluster_')) {
-          // Cluster-based response: fieldName_cluster_clusterId or fieldName_cluster_clusterId_sub_subIndex
-          const parts = responseKey.split('_cluster_');
-          if (parts.length === 2) {
-            const fieldName = parts[0];
-            const clusterPart = parts[1];
-            
-            if (clusterPart.includes('_sub_')) {
-              // Sub-question for cluster: fieldName_cluster_clusterId_sub_subIndex
-              const [clusterId, subPart] = clusterPart.split('_sub_');
-              const subIndex = parseInt(subPart);
-              
-              // Find the field index for this field name
-              const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
-              if (fieldIndex !== -1) {
-                const fieldKey = `field_${fieldIndex}_cluster_${clusterId}_sub_${subIndex}`;
-                initialFormData[fieldKey] = responseValue;
-              }
-            } else {
-              // Regular cluster field: fieldName_cluster_clusterId
-              const clusterId = clusterPart;
-              
-              // Find the field index for this field name
-              const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
-              if (fieldIndex !== -1) {
-                const fieldKey = `field_${fieldIndex}_cluster_${clusterId}`;
-                initialFormData[fieldKey] = responseValue;
-              }
-            }
-          }
-        } else if (responseKey.startsWith('sitting_')) {
-          // Sitting ward field: sitting_fieldName or sitting_fieldName_sub_subIndex
-          const fieldName = responseKey.replace('sitting_', '');
-          
-          if (fieldName.includes('_sub_')) {
-            // Sub-question for sitting ward
-            const [actualFieldName, subPart] = fieldName.split('_sub_');
-            const subIndex = parseInt(subPart);
-            
-            const fieldIndex = reportResponse.data.formTemplate.sittingWardFields.findIndex(f => f.label === actualFieldName);
-            if (fieldIndex !== -1) {
-              const fieldKey = `field_sitting_${fieldIndex}_sub_${subIndex}`;
-              initialFormData[fieldKey] = responseValue;
-            }
-          } else {
-            // Regular sitting ward field
-            const fieldIndex = reportResponse.data.formTemplate.sittingWardFields.findIndex(f => f.label === fieldName);
-            if (fieldIndex !== -1) {
-              const fieldKey = `field_sitting_${fieldIndex}`;
-              initialFormData[fieldKey] = responseValue;
-            }
-          }
-        } else if (responseKey.includes('_sub_')) {
-          // Regular sub-question: fieldName_sub_subIndex
-          const [fieldName, subPart] = responseKey.split('_sub_');
-          const subIndex = parseInt(subPart);
-          
-          const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === fieldName);
-          if (fieldIndex !== -1) {
-            const fieldKey = `field_${fieldIndex}_sub_${subIndex}`;
-            initialFormData[fieldKey] = responseValue;
-          }
-        } else {
-          // Regular field
-          const fieldIndex = reportResponse.data.formTemplate.fields.findIndex(f => f.label === responseKey);
-          if (fieldIndex !== -1) {
-            const fieldKey = `field_${fieldIndex}`;
-            initialFormData[fieldKey] = responseValue;
-          }
-        }
-      });
-      
-      setFormData(initialFormData);
-      console.log('Initialized form data:', initialFormData);
+      if (reportResponse.data.responses && reportResponse.data.formTemplate) {
+        const transformedData = transformResponsesToFormData(reportResponse.data.responses, reportResponse.data.formTemplate);
+        setFormData(transformedData);
+      }
       
     } catch (error) {
       console.error('Error fetching report:', error);
@@ -169,6 +74,48 @@ export default function EditWardReport() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const transformResponsesToFormData = (responses, formTemplate) => {
+    if (!responses || !formTemplate || !formTemplate.fields) {
+      return {};
+    }
+
+    const formData = {};
+    const fields = formTemplate.fields;
+
+    for (const responseKey in responses) {
+      const responseValue = responses[responseKey];
+      
+      if (responseKey.includes('_sub_')) {
+        const [fieldLabel, subPart] = responseKey.split('_sub_');
+        const subIndex = parseInt(subPart);
+        const fieldIndex = fields.findIndex(f => f.label === fieldLabel);
+        
+        if (fieldIndex !== -1) {
+          formData[`field_${fieldIndex}_sub_${subIndex}`] = responseValue;
+        }
+      } else if (responseKey.includes('_')) {
+        // Fallback for old format, can be removed later
+        const [fieldLabel, subQuestionLabel] = responseKey.split('_');
+        const fieldIndex = fields.findIndex(f => f.label === fieldLabel);
+        if (fieldIndex !== -1) {
+          const field = fields[fieldIndex];
+          if (field.subQuestions) {
+            const subIndex = field.subQuestions.findIndex(sq => sq.label === subQuestionLabel);
+            if (subIndex !== -1) {
+              formData[`field_${fieldIndex}_sub_${subIndex}`] = responseValue;
+            }
+          }
+        }
+      } else {
+        const fieldIndex = fields.findIndex(f => f.label === responseKey);
+        if (fieldIndex !== -1) {
+          formData[`field_${fieldIndex}`] = responseValue;
+        }
+      }
+    }
+    return formData;
   };
 
 
@@ -264,6 +211,15 @@ export default function EditWardReport() {
   const handlePreview = () => {
     if (validateForm()) {
       setShowPreview(true);
+    }
+  };
+
+  const handleStatusChange = async (newStatus) => {
+    try {
+      await axios.put(`/api/responses/${id}`, { status: newStatus });
+      fetchReport();
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -495,6 +451,25 @@ export default function EditWardReport() {
             <Button variant="outline">Back to Reports</Button>
           </Link>
         </div>
+
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Report Status</h2>
+              <div className="flex items-center space-x-2">
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                  report.status === 'approved' ? 'bg-green-100 text-green-800' :
+                  report.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {report.status}
+                </span>
+                <Button onClick={() => handleStatusChange('approved')} variant="primary" size="sm">Approve</Button>
+                <Button onClick={() => handleStatusChange('rejected')} variant="danger" size="sm">Reject</Button>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Error Message */}
         {error && (
