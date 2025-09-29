@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     session = await getServerSession(req, res, authOptions);
   } catch (sessionError) {
     console.error('Session error:', sessionError);
-    return res.status(401).json({ 
+    return res.status(401).json({
       message: 'Session authentication failed',
       error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
     });
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
     if (session.user.role === 'coordinator') {
       const assignedWards = await Ward.find({ coordinator: session.user.id }).select('_id');
       const wardIds = assignedWards.map(ward => ward._id);
-      
+
       if (wardIds.length > 0) {
         query.ward = { $in: wardIds };
       } else {
@@ -178,16 +178,16 @@ export default async function handler(req, res) {
         // Look for the specific recurring question in the form responses
         const questionFieldId = selectedQuestion.fieldId;
         const questionText = selectedQuestion.question;
-        
+
         // Check if this form response contains the selected recurring question
         let hasSelectedQuestion = false;
         let questionAnswer = null;
-        
+
         // Look through form responses for the question
         for (const [responseKey, responseValue] of Object.entries(formResponse.responses || {})) {
-          if (responseKey === questionText || 
-              responseKey.includes(questionText.substring(0, 30)) ||
-              responseKey.toLowerCase().includes(questionText.toLowerCase().substring(0, 20))) {
+          if (responseKey === questionText ||
+            responseKey.includes(questionText.substring(0, 30)) ||
+            responseKey.toLowerCase().includes(questionText.toLowerCase().substring(0, 20))) {
             hasSelectedQuestion = true;
             questionAnswer = responseValue;
             console.log('Found question answer by text match:', responseKey, '=', responseValue);
@@ -198,9 +198,9 @@ export default async function handler(req, res) {
         // Also check form fields for matching fieldId or recurringQuestionId
         if (!hasSelectedQuestion) {
           for (const field of formResponse.formTemplate.fields) {
-            if (field.fieldId === questionFieldId || 
-                field.recurringQuestionId?.toString() === questionId ||
-                field.label === questionText) {
+            if (field.fieldId === questionFieldId ||
+              field.recurringQuestionId?.toString() === questionId ||
+              field.label === questionText) {
               const fieldAnswer = formResponse.responses[field.label];
               if (fieldAnswer !== undefined) {
                 hasSelectedQuestion = true;
@@ -229,7 +229,7 @@ export default async function handler(req, res) {
       } else {
         // Show all recurring questions from this form response
         // Find recurring questions in the form template
-        const recurringFields = formResponse.formTemplate.fields.filter(field => 
+        const recurringFields = formResponse.formTemplate.fields.filter(field =>
           field.isRecurring || field.recurringQuestionId
         );
 
@@ -334,7 +334,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Error fetching recurring question responses:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Failed to fetch responses',
       error: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
