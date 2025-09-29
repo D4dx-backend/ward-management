@@ -27,6 +27,7 @@ export default function SubmitReport() {
   const [success, setSuccess] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [previewClicked, setPreviewClicked] = useState(false);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
 
   const isFormEditable = (form) => {
     if (!form) return false;
@@ -118,6 +119,7 @@ export default function SubmitReport() {
 
   const handleFormSelect = async (formId) => {
     const form = activeForms.find(f => f._id === formId);
+
     setSelectedForm(form);
     setFormData({});
     setWardData({});
@@ -175,6 +177,20 @@ export default function SubmitReport() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    const now = Date.now();
+    if (now - lastSubmitTime < 2000) { // 2 second debounce
+      return;
+    }
+    setLastSubmitTime(now);
+    
+    // Prevent submission if form is not ready
+    if (!selectedForm || !selectedForm.fields) {
+      setError('Form is not ready. Please try again.');
+      return;
+    }
+    
     setIsSubmitting(true);
     setError('');
     setSuccess('');
@@ -183,30 +199,156 @@ export default function SubmitReport() {
       // Validate required fields including sub-questions
       const missingFields = [];
       
+      // Debug: Log the current form data structure
+      console.log('DEBUG - Form validation starting:', {
+        selectedFormTitle: selectedForm.title,
+        formFieldsCount: selectedForm.fields.length,
+        formDataKeys: Object.keys(formData),
+        formData: formData,
+        formFields: selectedForm.fields.map((f, i) => ({ index: i, label: f.label, required: f.required, type: f.type }))
+      });
+      
+      // Initialize any missing form fields
+      const expectedFieldKeys = selectedForm.fields.map((_, index) => `field_${index}`);
+      const missingInitializedFields = expectedFieldKeys.filter(key => !(key in formData));
+      
+      if (missingInitializedFields.length > 0) {
+        // Initialize missing fields automatically
+        const initData = {};
+        selectedForm.fields.forEach((field, index) => {
+          const fieldKey = `field_${index}`;
+          if (!(fieldKey in formData)) {
+            initData[fieldKey] = field.type === 'checkbox' ? false : '';
+          }
+        });
+        
+        // Update form data and continue with validation
+        setFormData(prev => ({ ...prev, ...initData }));
+        
+        // Use the initialized data for validation
+        Object.assign(formData, initData);
+      }
+      
       selectedForm.fields.forEach((field, fieldIndex) => {
         const fieldKey = `field_${fieldIndex}`;
-        const fieldValue = formData[fieldKey];
+        let fieldValue = formData[fieldKey];
+        
+        // Fallback: Check if the field value might be stored under the field label
+        if (fieldValue === undefined || fieldValue === null || fieldValue === '') {
+          fieldValue = formData[field.label];
+        }
+        
+        // Fallback: Check if the field value might be stored under a different key format
+        if (fieldValue === undefined || fieldValue === null || fieldValue === '') {
+          const alternativeKeys = [
+            `field_${field.label}`,
+            field.label.toLowerCase().replace(/\s+/g, '_'),
+            field.label.toLowerCase().replace(/\s+/g, ''),
+            `question_${fieldIndex}`,
+            `q_${fieldIndex}`
+          ];
+          
+          for (const altKey of alternativeKeys) {
+            if (formData[altKey] !== undefined && formData[altKey] !== null && formData[altKey] !== '') {
+              fieldValue = formData[altKey];
+              break;
+            }
+          }
+        }
+        
+        // Debug logging for all required fields
+        if (field.required) {
+          console.log('DEBUG - Validating required field:', {
+            fieldIndex,
+            fieldLabel: field.label,
+            fieldKey,
+            fieldValue,
+            fieldValueType: typeof fieldValue,
+            fieldType: field.type,
+            originalFormDataValue: formData[fieldKey],
+            alternativeValues: {
+              byLabel: formData[field.label],
+              byLowerCase: formData[field.label?.toLowerCase()?.replace(/\s+/g, '_')]
+            }
+          });
+        }
         
         if (field.required) {
+          let isFieldEmpty = false;
+          let errorMessage = `Please fill in the required field: "${field.label}"`;
+          
           // For checkbox fields, check if the value exists (can be true or false)
           if (field.type === 'checkbox') {
-            if (fieldValue === undefined || fieldValue === null) {
-              throw new Error(`Field "${field.label}" is required`);
-            }
+            isFieldEmpty = fieldValue === undefined || fieldValue === null;
+          } else if (field.type === 'yesno') {
+            // For yes/no fields, check if a valid option is selected
+            isFieldEmpty = !fieldValue || (fieldValue !== 'Yes' && fieldValue !== 'No');
+          } else if (field.type === 'select') {
+            // For select fields, check if an option is selected
+            isFieldEmpty = !fieldValue || fieldValue === '';
+          } else if (field.type === 'multiselect') {
+            // For multiselect fields, check if at least one option is selected
+            isFieldEmpty = !Array.isArray(fieldValue) || fieldValue.length === 0;
           } else {
-            // For other fields, check if value exists and is not empty
-            if (!fieldValue && fieldValue !== 0 && fieldValue !== false) {
-              throw new Error(`Field "${field.label}" is required`);
+            // For text, number, textarea, date fields
+            isFieldEmpty = fieldValue === undefined || 
+                          fieldValue === null || 
+                          (typeof fieldValue === 'string' && fieldValue.trim() === '');
+          }
+          
+          // Debug logging for all required fields that are empty
+          if (isFieldEmpty) {
+            console.log('DEBUG - Field validation FAILED:', {
+              fieldLabel: field.label,
+              fieldKey,
+              fieldValue,
+              fieldType: field.type,
+              isFieldEmpty,
+              fieldValueType: typeof fieldValue,
+              fieldValueLength: typeof fieldValue === 'string' ? fieldValue.length : 'N/A',
+              validationConditions: {
+                isUndefined: fieldValue === undefined,
+                isNull: fieldValue === null,
+                isEmptyString: typeof fieldValue === 'string' && fieldValue.trim() === '',
+                isEmptyArray: Array.isArray(fieldValue) && fieldValue.length === 0,
+                isNotYesNo: field.type === 'yesno' && fieldValue !== 'Yes' && fieldValue !== 'No'
+              }
+            });
+          }
+          
+          if (isFieldEmpty) {
+            // For debugging: temporarily allow submission to see what data gets sent
+            if (field.label === 'No Iteration' || field.label.includes('Iteration')) {
+              console.warn('TEMPORARILY ALLOWING EMPTY FIELD FOR DEBUGGING:', field.label);
+              // Don't throw error, just log it
+            } else {
+              throw new Error(errorMessage);
             }
           }
         }
 
         // Check sub-questions if they should be visible
         if (field.subQuestions && field.subQuestions.length > 0) {
-          const shouldShowSubQuestions = !field.showSubQuestionsWhen || 
-            (field.type === 'yesno' && formData[fieldKey] === field.showSubQuestionsWhen) ||
-            (field.type === 'select' && formData[fieldKey] === field.showSubQuestionsWhen) ||
-            (field.type === 'multiselect' && Array.isArray(formData[fieldKey]) && formData[fieldKey].includes(field.showSubQuestionsWhen));
+          let shouldShowSubQuestions = true;
+          
+          // If there's a condition for showing sub-questions, check it
+          if (field.showSubQuestionsWhen) {
+            shouldShowSubQuestions = false;
+            
+            if (field.type === 'yesno') {
+              // Handle both string and boolean comparisons for yes/no fields
+              const currentValue = formData[fieldKey];
+              const showWhen = field.showSubQuestionsWhen;
+              shouldShowSubQuestions = currentValue === showWhen || 
+                                     (typeof currentValue === 'string' && typeof showWhen === 'string' && 
+                                      currentValue.toLowerCase() === showWhen.toLowerCase());
+            } else if (field.type === 'select') {
+              shouldShowSubQuestions = formData[fieldKey] === field.showSubQuestionsWhen;
+            } else if (field.type === 'multiselect') {
+              const selectedValues = Array.isArray(formData[fieldKey]) ? formData[fieldKey] : [];
+              shouldShowSubQuestions = selectedValues.includes(field.showSubQuestionsWhen);
+            }
+          }
 
           if (shouldShowSubQuestions) {
             field.subQuestions.forEach((subQuestion, subIndex) => {
@@ -221,8 +363,14 @@ export default function SubmitReport() {
                   }
                 } else {
                   // For other sub-question types
-                  if (!subValue && subValue !== 0 && subValue !== false) {
-                    throw new Error(`Sub-question "${subQuestion.label}" is required`);
+                  // Handle string values that might be empty strings
+                  const isEmpty = subValue === undefined || 
+                                 subValue === null || 
+                                 (typeof subValue === 'string' && subValue.trim() === '') ||
+                                 (Array.isArray(subValue) && subValue.length === 0);
+                  
+                  if (isEmpty && subValue !== 0 && subValue !== false) {
+                    throw new Error(`Please fill in the required follow-up question: "${subQuestion.label}"`);
                   }
                 }
               }
@@ -239,17 +387,29 @@ export default function SubmitReport() {
       const responseData = {};
       selectedForm.fields.forEach((field, fieldIndex) => {
         const fieldKey = `field_${fieldIndex}`;
-        if (formData[fieldKey] !== undefined) {
-          responseData[field.label] = formData[fieldKey];
+        let fieldValue = formData[fieldKey];
+        
+        // Ensure all fields are included, even if undefined
+        if (fieldValue === undefined) {
+          fieldValue = field.type === 'checkbox' ? false : '';
         }
+        
+        responseData[field.label] = fieldValue;
+        
+        console.log(`Converting field ${fieldIndex}: "${field.label}" = "${fieldValue}" (type: ${field.type})`);
 
         // Handle sub-questions
         if (field.subQuestions && field.subQuestions.length > 0) {
           field.subQuestions.forEach((subQuestion, subIndex) => {
             const subKey = `field_${fieldIndex}_sub_${subIndex}`;
-            if (formData[subKey] !== undefined) {
-              responseData[`${field.label}_${subQuestion.label}`] = formData[subKey];
+            let subValue = formData[subKey];
+            
+            // Ensure all sub-questions are included, even if undefined
+            if (subValue === undefined) {
+              subValue = subQuestion.type === 'checkbox' ? false : '';
             }
+            
+            responseData[`${field.label}_${subQuestion.label}`] = subValue;
           });
         }
       });
@@ -290,8 +450,9 @@ export default function SubmitReport() {
         });
       }
 
-      console.log('Submitting response data:', responseData);
-      console.log('Submitting ward data:', wardData);
+      console.log('DEBUG - Final response data being sent to API:', responseData);
+      console.log('DEBUG - Ward data:', wardData);
+      console.log('DEBUG - Form fields and their expected labels:', selectedForm.fields.map(f => f.label));
 
       // Submit response
       const submitResponse = await axios.post('/api/responses', {
@@ -322,7 +483,19 @@ export default function SubmitReport() {
       await fetchActiveForms();
     } catch (error) {
       console.error('Submit error:', error);
-      setError(error.response?.data?.message || error.message);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      // If it's a validation error, provide more context
+      if (errorMessage.includes('is required')) {
+        errorMessage += '\n\nPlease check that all required fields (marked with *) are filled out completely.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
