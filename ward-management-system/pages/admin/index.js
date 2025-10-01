@@ -37,16 +37,27 @@ export default function AdminDashboard() {
     }
   }, [dataError]);
 
-  // Debug logging
+  // Log only if there's an issue
   useEffect(() => {
-    console.log('Admin dashboard state:', {
-      loading,
-      error: dataError,
-      hasStats: !!stats,
-      statsKeys: Object.keys(stats || {}),
-      session: session?.user?.role
-    });
-  }, [loading, dataError, stats, session]);
+    if (dataError) {
+      console.error('Admin dashboard error:', dataError);
+    }
+  }, [dataError]);
+
+  // Clear cache and force refresh on mount to ensure fresh data
+  useEffect(() => {
+    if (typeof window !== 'undefined' && session?.user?.role === 'stateAdmin') {
+      // Clear dashboard cache on mount
+      const { clearCache } = require('../../lib/simpleCache');
+      clearCache('dashboard-stateAdmin');
+      
+      // Clear server cache and force refresh
+      fetch('/api/admin/clear-cache', { method: 'POST' })
+        .then(() => refetch())
+        .catch(err => console.error('Error clearing cache:', err));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.role]); // Only run when role changes, not on every refetch
 
   // Show loading only on initial load
   if (loading && !stats) {

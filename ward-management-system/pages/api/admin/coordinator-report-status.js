@@ -54,8 +54,8 @@ export default async function handler(req, res) {
       const coordinatorIds = coordinators.map(c => c._id);
 
       const reports = await Response.find({
-        formType: 'wardReport',
-        user: { $in: coordinatorIds },
+        formType: 'coordinatorReport',
+        respondent: { $in: coordinatorIds },
         $or: weeks.map(({ week, year }) => ({ weekNumber: week, year }))
       });
 
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
         weeks.forEach(({ week, year }) => {
           const weekKey = `week_${week}_${year}`;
           const report = reports.find(r => 
-            r.user.toString() === coordinator._id.toString() && 
+            r.respondent.toString() === coordinator._id.toString() && 
             r.weekNumber === week && 
             r.year === year
           );
