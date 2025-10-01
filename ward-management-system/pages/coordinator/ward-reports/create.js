@@ -90,6 +90,7 @@ export default function CreateWardReport() {
       console.log('Fetching initial data for coordinator report creation...');
       const wardsResponse = await axios.get('/api/coordinator/wards');
       console.log('Fetched wards:', wardsResponse.data);
+      console.log('Wards with isSittingWard property:', wardsResponse.data.map(w => ({ name: w.name, isSittingWard: w.isSittingWard })));
       setWards(wardsResponse.data);
     } catch (error) {
       setError('Failed to load initial data');
@@ -101,6 +102,12 @@ export default function CreateWardReport() {
   const fetchFormsForWard = async () => {
     try {
       const formsResponse = await axios.get('/api/forms', { params: { userType: 'wardAdmin' } });
+      console.log('Fetched forms:', formsResponse.data);
+      console.log('Forms with sittingWardFields:', formsResponse.data.map(f => ({ 
+        title: f.title, 
+        hasSittingWardFields: f.sittingWardFields && f.sittingWardFields.length > 0,
+        sittingWardFieldsCount: f.sittingWardFields?.length || 0
+      })));
       setFormTemplates(formsResponse.data || []);
     } catch (error) {
       setError('Failed to load forms for the ward.');
@@ -352,29 +359,42 @@ export default function CreateWardReport() {
             )}
 
             {selectedFormTemplate && (
-              <form onSubmit={handleSubmit}>
-                <FormRenderer
-                  form={selectedFormTemplate}
-                  formData={formData}
-                  setFormData={setFormData}
-                  errors={validationErrors}
-                  readOnly={false}
-                  ward={wards.find(w => w._id === selectedWard)}
-                  clusters={clusters}
-                  isLoadingClusters={isLoadingClusters}
-                />
-                <div className="flex justify-end pt-6 border-t border-gray-200">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting
-                      ? existingResponse ? 'Updating...' : 'Creating...'
-                      : existingResponse ? 'Update Report' : 'Create Report'}
-                  </Button>
-                </div>
-              </form>
+              <>
+                {/* Debug info for sitting ward */}
+                {(() => {
+                  const selectedWardData = wards.find(w => w._id === selectedWard);
+                  console.log('Selected ward for FormRenderer:', selectedWardData);
+                  console.log('Selected form template:', {
+                    title: selectedFormTemplate.title,
+                    hasSittingWardFields: selectedFormTemplate.sittingWardFields && selectedFormTemplate.sittingWardFields.length > 0,
+                    sittingWardFieldsCount: selectedFormTemplate.sittingWardFields?.length || 0
+                  });
+                  return null;
+                })()}
+                <form onSubmit={handleSubmit}>
+                  <FormRenderer
+                    form={selectedFormTemplate}
+                    formData={formData}
+                    setFormData={setFormData}
+                    errors={validationErrors}
+                    readOnly={false}
+                    ward={wards.find(w => w._id === selectedWard)}
+                    clusters={clusters}
+                    isLoadingClusters={isLoadingClusters}
+                  />
+                  <div className="flex justify-end pt-6 border-t border-gray-200">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting
+                        ? existingResponse ? 'Updating...' : 'Creating...'
+                        : existingResponse ? 'Update Report' : 'Create Report'}
+                    </Button>
+                  </div>
+                </form>
+              </>
             )}
           
         </Card>

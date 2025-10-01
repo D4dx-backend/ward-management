@@ -425,6 +425,11 @@ export default function FormResponses() {
   };
 
   const generateResponsesCSV = () => {
+    // Check if any response has sitting ward fields
+    const hasSittingWards = filteredResponses.some(response => 
+      response.ward?.isSittingWard || hasSittingWardResponses(response)
+    );
+    
     const headers = [
       'Response ID',
       'Respondent Name',
@@ -434,7 +439,7 @@ export default function FormResponses() {
       'Coordinator',
       'Submitted At',
       ...form.fields.map(field => field.label),
-      ...(form.sittingWardFields && (response.ward?.isSittingWard || hasSittingWardResponses(response)) ? form.sittingWardFields.map(field => `[Sitting Ward] ${field.label}`) : [])
+      ...(form.sittingWardFields && hasSittingWards ? form.sittingWardFields.map(field => `[Sitting Ward] ${field.label}`) : [])
     ];
     
     const rows = filteredResponses.map(response => [
@@ -480,6 +485,174 @@ export default function FormResponses() {
     return [headers, ...rows].map(row => 
       row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
+  };
+
+  const generateJSONData = () => {
+    const jsonData = filteredResponses.map(response => {
+      const responseData = {
+        responseId: response._id,
+        respondent: {
+          name: response.respondent?.name || 'Unknown',
+          role: response.respondent?.role || 'Unknown',
+          id: response.respondent?._id
+        },
+        ward: {
+          name: response.ward?.name || 'Unknown',
+          district: response.ward?.district || 'Unknown',
+          id: response.ward?._id,
+          isSittingWard: response.ward?.isSittingWard || false,
+          coordinator: response.ward?.coordinator?.name || response.respondent?.name || 'Unknown'
+        },
+        submittedAt: response.submittedAt,
+        formFields: {},
+        wardSpecificFields: {},
+        clusterFields: {},
+        sittingWardFields: {}
+      };
+
+      // Process regular form fields
+      form.fields?.forEach((field, index) => {
+        if (field.applicableToClusters) {
+          // Extract cluster responses
+          const clusterResponses = {};
+          Object.keys(response.responses || {}).forEach(key => {
+            if (key.startsWith(`${field.label}_cluster_`)) {
+              const clusterId = key.replace(`${field.label}_cluster_`, '');
+              const cluster = clusters.find(c => c._id === clusterId);
+              clusterResponses[cluster?.name || clusterId] = response.responses[key];
+            }
+          });
+          responseData.clusterFields[field.label] = {
+            fieldType: field.type,
+            required: field.required,
+            clusterResponses: clusterResponses
+          };
+        } else if (field.applicableToWards && response.wardData) {
+          // Extract ward-specific responses
+          const wardResponses = {};
+          Object.entries(response.wardData).forEach(([wardId, wardData]) => {
+            const fieldKey = `field_${index}`;
+            const wardAnswer = wardData[fieldKey];
+            if (wardAnswer !== undefined && wardAnswer !== null && wardAnswer !== '') {
+              wardResponses[wardNames[wardId] || wardId] = wardAnswer;
+            }
+          });
+          responseData.wardSpecificFields[field.label] = {
+            fieldType: field.type,
+            required: field.required,
+            wardResponses: wardResponses
+          };
+        } else {
+          // Regular field
+          responseData.formFields[field.label] = {
+            fieldType: field.type,
+            required: field.required,
+            value: response.responses?.[field.label] || null
+          };
+        }
+      });
+
+      // Process sitting ward fields
+      if (form.sittingWardFields && (response.ward?.isSittingWard || hasSittingWardResponses(response))) {
+        form.sittingWardFields.forEach((field, index) => {
+          // Try different key formats for sitting ward fields
+          let fieldValue = response.responses?.[`sittingWard_${field.label}`];
+          
+          if (fieldValue === undefined) {
+            const possibleKeys = [
+              `sittingWard_field_${index}`,
+              `sittingWard_${index}`,
+              field.label,
+              `field_${form.fields.length + index}`
+            ];
+
+            for (const key of possibleKeys) {
+              if (response.responses?.[key] !== undefined) {
+                fieldValue = response.responses[key];
+                break;
+              }
+            }
+          }
+
+          responseData.sittingWardFields[field.label] = {
+            fieldType: field.type,
+            required: field.required,
+            value: fieldValue || null
+          };
+
+          // Handle sub-questions for sitting ward fields
+          if (field.subQuestions && field.subQuestions.length > 0) {
+            const subQuestionData = {};
+            field.subQuestions.forEach((subQuestion, subIndex) => {
+              let subValue = null;
+              const possibleKeys = [
+                `sittingWard_${field.label}_${subQuestion.label}`,
+                `sittingWard_field_${index}_sub_${subIndex}`,
+                `sittingWard_${index}_sub_${subIndex}`,
+                `${field.label}_sub_${subQuestion.label}`,
+                `field_${form.fields.length + index}_sub_${subIndex}`
+              ];
+
+              for (const key of possibleKeys) {
+                if (response.responses?.[key] !== undefined) {
+                  subValue = response.responses[key];
+                  break;
+                }
+              }
+
+              subQuestionData[subQuestion.label] = {
+                fieldType: subQuestion.type,
+                required: subQuestion.required,
+                value: subValue
+              };
+            });
+
+            if (Object.keys(subQuestionData).length > 0) {
+              responseData.sittingWardFields[field.label].subQuestions = subQuestionData;
+            }
+          }
+        });
+      }
+
+      // Add notes if available
+      if (response.notes) {
+        responseData.notes = response.notes;
+      }
+
+      return responseData;
+    });
+
+    return jsonData;
+  };
+
+  const copyAsJSON = () => {
+    if (!filteredResponses.length || !form) return;
+    
+    const jsonData = generateJSONData();
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    
+    navigator.clipboard.writeText(jsonString).then(() => {
+      alert(`Copied ${filteredResponses.length} responses as JSON to clipboard!`);
+    }).catch(err => {
+      console.error('Failed to copy to clipboard:', err);
+      alert('Failed to copy to clipboard. Check console for details.');
+    });
+  };
+
+  const downloadJSON = () => {
+    if (!filteredResponses.length || !form) return;
+    
+    const jsonData = generateJSONData();
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    
+    // Create blob and download
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${form.title}_responses_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const downloadCSV = (content, filename) => {
@@ -582,7 +755,19 @@ export default function FormResponses() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Export Filtered ({filteredResponses.length})
+              Export CSV ({filteredResponses.length})
+            </Button>
+            <Button onClick={downloadJSON} variant="outline">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Download JSON ({filteredResponses.length})
+            </Button>
+            <Button onClick={copyAsJSON} variant="outline">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+              </svg>
+              Copy JSON ({filteredResponses.length})
             </Button>
           </div>
         </div>

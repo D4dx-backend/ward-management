@@ -173,93 +173,18 @@ export default function SubmitSpecificWardReport() {
   };
 
   const validateForm = () => {
-    const errors = {};
-    let isValid = true;
-
-    // Validate ward selection
-    if (!selectedWard) {
-      errors.ward = 'Please select a ward';
-      isValid = false;
-    }
-
-    // Helper function to validate fields
-    const validateFields = (fields, fieldPrefix = '') => {
-      for (let fieldIndex = 0; fieldIndex < fields.length; fieldIndex++) {
-        const field = fields[fieldIndex];
-        if (field.required) {
-          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
-          const fieldValue = formData[fieldKey];
-
-          if (field.type === 'checkbox') {
-            if (fieldValue === undefined || fieldValue === null) {
-              errors[fieldKey] = `${field.label} is required`;
-              isValid = false;
-            }
-          } else {
-            const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
-            if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
-              errors[fieldKey] = `${field.label} is required`;
-              isValid = false;
-            }
-          }
-        }
-
-        // Validate required sub-questions
-        if (field.subQuestions && field.subQuestions.length > 0) {
-          const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
-          const fieldValue = formData[fieldKey];
-
-          const shouldShowSubQuestions = field.showSubQuestionsWhen ?
-            (field.type === 'multiselect' && Array.isArray(fieldValue) && fieldValue.includes(field.showSubQuestionsWhen)) ||
-            (fieldValue?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || fieldValue === field.showSubQuestionsWhen) : true;
-
-          if (shouldShowSubQuestions) {
-            for (let subIndex = 0; subIndex < field.subQuestions.length; subIndex++) {
-              const subQuestion = field.subQuestions[subIndex];
-              if (subQuestion.required) {
-                const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
-                const subValue = formData[subKey];
-
-                if (subQuestion.type === 'checkbox') {
-                  if (subValue === undefined || subValue === null) {
-                    errors[subKey] = `${subQuestion.label} is required`;
-                    isValid = false;
-                  }
-                } else {
-                  const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
-                  if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
-                    errors[subKey] = `${subQuestion.label} is required`;
-                    isValid = false;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    };
-
-    // Validate regular form fields
-    if (form.fields && form.fields.length > 0) {
-      validateFields(form.fields);
-    }
-
-    // Validate sitting ward fields - only for sitting wards
-    if (form.sittingWardFields && form.sittingWardFields.length > 0 && userWards[0]?.isSittingWard) {
-      validateFields(form.sittingWardFields, 'sitting');
-    }
-
-    setValidationErrors(errors);
-    return isValid;
+    // VALIDATION DISABLED - All frontend validation has been removed
+    console.log('Ward form - Validation disabled, proceeding with submission');
+    console.log('Ward form - Form data:', formData);
+    return true; // Always return true to allow submission
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      setError('Please fill in all required fields');
-      return;
-    }
+    console.log('DEBUG - Starting form submission');
+    console.log('DEBUG - Form data:', formData);
+    console.log('DEBUG - Selected ward:', selectedWard);
 
     setIsSubmitting(true);
     setError('');
@@ -276,46 +201,58 @@ export default function SubmitSpecificWardReport() {
             // Handle cluster-applicable fields
             clusters.forEach(cluster => {
               const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_cluster_${cluster._id}` : `field_${fieldIndex}_cluster_${cluster._id}`;
-              const fieldValue = formData[fieldKey];
+              let fieldValue = formData[fieldKey];
 
-              if (fieldValue !== undefined) {
-                const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}` : `${field.label}_cluster_${cluster._id}`;
-                apiResponses[responseKey] = fieldValue;
+              // Ensure all cluster fields are included, even if undefined
+              if (fieldValue === undefined) {
+                fieldValue = field.type === 'checkbox' ? false : '';
               }
+
+              const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}` : `${field.label}_cluster_${cluster._id}`;
+              apiResponses[responseKey] = fieldValue;
 
               // Handle sub-questions for cluster fields
               if (field.subQuestions && field.subQuestions.length > 0) {
                 field.subQuestions.forEach((subQuestion, subIndex) => {
                   const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}` : `field_${fieldIndex}_cluster_${cluster._id}_sub_${subIndex}`;
-                  const subValue = formData[subKey];
+                  let subValue = formData[subKey];
 
-                  if (subValue !== undefined) {
-                    const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}_${subQuestion.label}` : `${field.label}_cluster_${cluster._id}_${subQuestion.label}`;
-                    apiResponses[responseKey] = subValue;
+                  // Ensure all cluster sub-questions are included, even if undefined
+                  if (subValue === undefined) {
+                    subValue = subQuestion.type === 'checkbox' ? false : '';
                   }
+
+                  const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_cluster_${cluster._id}_${subQuestion.label}` : `${field.label}_cluster_${cluster._id}_${subQuestion.label}`;
+                  apiResponses[responseKey] = subValue;
                 });
               }
             });
           } else {
             // Handle regular fields
             const fieldKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}` : `field_${fieldIndex}`;
-            const fieldValue = formData[fieldKey];
+            let fieldValue = formData[fieldKey];
 
-            if (fieldValue !== undefined) {
-              const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
-              apiResponses[responseKey] = fieldValue;
+            // Ensure all fields are included, even if undefined
+            if (fieldValue === undefined) {
+              fieldValue = field.type === 'checkbox' ? false : '';
             }
+
+            const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}` : field.label;
+            apiResponses[responseKey] = fieldValue;
 
             // Handle sub-questions
             if (field.subQuestions && field.subQuestions.length > 0) {
               field.subQuestions.forEach((subQuestion, subIndex) => {
                 const subKey = fieldPrefix ? `field_${fieldPrefix}_${fieldIndex}_sub_${subIndex}` : `field_${fieldIndex}_sub_${subIndex}`;
-                const subValue = formData[subKey];
+                let subValue = formData[subKey];
 
-                if (subValue !== undefined) {
-                  const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
-                  apiResponses[responseKey] = subValue;
+                // Ensure all sub-questions are included, even if undefined
+                if (subValue === undefined) {
+                  subValue = subQuestion.type === 'checkbox' ? false : '';
                 }
+
+                const responseKey = fieldPrefix ? `${fieldPrefix}_${field.label}_${subQuestion.label}` : `${field.label}_${subQuestion.label}`;
+                apiResponses[responseKey] = subValue;
               });
             }
           }

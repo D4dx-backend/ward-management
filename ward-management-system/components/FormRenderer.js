@@ -236,7 +236,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               fieldError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
             placeholder={`Enter ${field.label.toLowerCase()}`}
-            required={field.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -263,7 +263,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               fieldError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
             placeholder={`Enter ${field.label.toLowerCase()}`}
-            required={field.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -278,7 +278,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             }`}
             rows={4}
             placeholder={`Enter ${field.label.toLowerCase()}`}
-            required={field.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -291,7 +291,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               fieldError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
-            required={field.required}
+            required={false}
             disabled={readOnly}
           >
             <option value="">Select an option</option>
@@ -345,7 +345,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
                 checked={fieldValue === 'Yes'}
                 onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                required={field.required}
+                required={false}
                 disabled={readOnly}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
@@ -358,7 +358,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
                 checked={fieldValue === 'No'}
                 onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                required={field.required}
+                required={false}
                 disabled={readOnly}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">No</span>
@@ -374,7 +374,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               checked={fieldValue === 'true' || fieldValue === true}
               onChange={(e) => handleFieldChange(fieldIndex, e.target.checked, field)}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              required={field.required && !fieldValue}
+              required={false}
             />
             <span className="ml-2 text-sm text-gray-700">Check if applicable</span>
           </div>
@@ -389,7 +389,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               fieldError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
-            required={field.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -417,7 +417,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               subError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
             placeholder={`Enter ${subQuestion.label.toLowerCase()}`}
-            required={subQuestion.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -444,7 +444,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               subError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
             placeholder={`Enter ${subQuestion.label.toLowerCase()}`}
-            required={subQuestion.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -459,7 +459,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             }`}
             rows={3}
             placeholder={`Enter ${subQuestion.label.toLowerCase()}`}
-            required={subQuestion.required}
+            required={false}
             disabled={readOnly}
           />
         );
@@ -472,7 +472,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               subError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
-            required={subQuestion.required}
+            required={false}
             disabled={readOnly}
           >
             <option value="">Select an option</option>
@@ -495,7 +495,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
                 checked={subValue === 'Yes'}
                 onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                required={subQuestion.required}
+                required={false}
                 disabled={readOnly}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
@@ -508,7 +508,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
                 checked={subValue === 'No'}
                 onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
                 className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                required={subQuestion.required}
+                required={false}
                 disabled={readOnly}
               />
               <span className="ml-2 text-sm font-medium text-gray-700">No</span>
@@ -524,7 +524,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               checked={subValue === 'true' || subValue === true}
               onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.checked)}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              required={subQuestion.required && !subValue}
+              required={false}
             />
             <span className="ml-2 text-sm text-gray-700">Check if applicable</span>
           </div>
@@ -539,7 +539,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               subError ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
             }`}
-            required={subQuestion.required}
+            required={false}
             disabled={readOnly}
           />
         );

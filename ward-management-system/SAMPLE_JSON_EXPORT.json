@@ -1,0 +1,156 @@
+[
+  {
+    "responseId": "68d93f07eb7ae751bf084ecc",
+    "respondent": {
+      "name": "John Doe",
+      "role": "coordinator",
+      "id": "user_123456"
+    },
+    "ward": {
+      "name": "Kadakkal",
+      "district": "Kollam",
+      "id": "ward_789012",
+      "isSittingWard": true,
+      "coordinator": "John Doe"
+    },
+    "submittedAt": "2025-10-01T10:30:45.123Z",
+    "formFields": {
+      "Number of families visited": {
+        "fieldType": "number",
+        "required": true,
+        "value": 150
+      },
+      "Main issues identified": {
+        "fieldType": "multiselect",
+        "required": true,
+        "value": ["Health", "Education", "Housing"]
+      },
+      "Detailed description": {
+        "fieldType": "textarea",
+        "required": false,
+        "value": "During the visits, we identified several families requiring immediate assistance..."
+      }
+    },
+    "wardSpecificFields": {
+      "Number of beneficiaries per ward": {
+        "fieldType": "number",
+        "required": true,
+        "wardResponses": {
+          "Kadakkal": 50,
+          "Kottarakkara": 35,
+          "Kollam": 65
+        }
+      },
+      "Ward-specific issues": {
+        "fieldType": "text",
+        "required": false,
+        "wardResponses": {
+          "Kadakkal": "Water supply shortage",
+          "Kottarakkara": "Road maintenance needed",
+          "Kollam": "Healthcare facility required"
+        }
+      }
+    },
+    "clusterFields": {
+      "Cluster participation rate": {
+        "fieldType": "number",
+        "required": true,
+        "clusterResponses": {
+          "North Cluster": 85,
+          "South Cluster": 92,
+          "East Cluster": 78
+        }
+      },
+      "Cluster feedback": {
+        "fieldType": "text",
+        "required": false,
+        "clusterResponses": {
+          "North Cluster": "Good participation from all members",
+          "South Cluster": "Excellent coordination",
+          "East Cluster": "Need more awareness programs"
+        }
+      }
+    },
+    "sittingWardFields": {
+      "Are there pending welfare schemes?": {
+        "fieldType": "yesno",
+        "required": true,
+        "value": "yes",
+        "subQuestions": {
+          "Which schemes are pending?": {
+            "fieldType": "text",
+            "required": true,
+            "value": "Pension scheme, Housing assistance"
+          },
+          "Number of pending applications": {
+            "fieldType": "number",
+            "required": false,
+            "value": 12
+          }
+        }
+      },
+      "Meeting attendance": {
+        "fieldType": "number",
+        "required": true,
+        "value": 45
+      }
+    },
+    "notes": "All visits completed successfully. Follow-up required for housing issues in Kadakkal ward."
+  },
+  {
+    "responseId": "68d93f07eb7ae751bf084ecd",
+    "respondent": {
+      "name": "Jane Smith",
+      "role": "coordinator",
+      "id": "user_234567"
+    },
+    "ward": {
+      "name": "Punalur",
+      "district": "Kollam",
+      "id": "ward_890123",
+      "isSittingWard": false,
+      "coordinator": "Jane Smith"
+    },
+    "submittedAt": "2025-10-01T14:15:30.456Z",
+    "formFields": {
+      "Number of families visited": {
+        "fieldType": "number",
+        "required": true,
+        "value": 125
+      },
+      "Main issues identified": {
+        "fieldType": "multiselect",
+        "required": true,
+        "value": ["Health", "Employment"]
+      },
+      "Detailed description": {
+        "fieldType": "textarea",
+        "required": false,
+        "value": "Focus areas were health screening and employment assistance programs."
+      }
+    },
+    "wardSpecificFields": {
+      "Number of beneficiaries per ward": {
+        "fieldType": "number",
+        "required": true,
+        "wardResponses": {
+          "Punalur": 75,
+          "Anchal": 50
+        }
+      }
+    },
+    "clusterFields": {
+      "Cluster participation rate": {
+        "fieldType": "number",
+        "required": true,
+        "clusterResponses": {
+          "West Cluster": 88,
+          "Central Cluster": 91
+        }
+      }
+    },
+    "sittingWardFields": {},
+    "notes": "Excellent coordination from all team members."
+  }
+]
+

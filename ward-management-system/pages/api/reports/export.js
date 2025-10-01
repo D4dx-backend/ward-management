@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import connectToDatabase from '../../../lib/mongodb';
 import Response from '../../../models/Response';
 import FormTemplate from '../../../models/FormTemplate';
+import Cluster from '../../../models/Cluster';
 import { sendExcelResponse, prepareExcelData, generateExcelFilename } from '../../../utils/excelExport';
 
 export default async function handler(req, res) {
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
     const responses = await Response.find(query)
       .populate('respondent', 'name email')
       .populate('ward', 'name district')
-      .populate('formTemplate', 'title fields formType')
+      .populate('formTemplate')
       .sort({ district: 1, submittedAt: 1 });
     
     console.log('[Reports Export] Found responses:', responses.length);
@@ -109,11 +110,47 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'No valid reports found for export' });
     }
     
-    // Get all unique fields from all valid responses
+    // Get all unique ward IDs from responses to fetch clusters
+    const wardIds = [...new Set(validResponses.map(r => r.ward?._id).filter(Boolean))];
+    
+    // Fetch clusters for all wards
+    const clusters = await Cluster.find({ 
+      ward: { $in: wardIds },
+      isActive: true 
+    });
+    
+    // Create a map of cluster ID to cluster info
+    const clusterMap = {};
+    clusters.forEach(cluster => {
+      clusterMap[cluster._id.toString()] = {
+        name: cluster.name,
+        clusterNumber: cluster.clusterNumber
+      };
+    });
+    
+    console.log('[Reports Export] Found clusters for export:', clusters.length);
+    
+    // Get all unique fields from all valid responses including cluster and ward data
     const allFields = new Set();
+    const hasClusterData = new Set();
+    const hasWardData = new Set();
+    
     validResponses.forEach(response => {
       if (response.formTemplate && response.formTemplate.fields) {
         response.formTemplate.fields.forEach(field => {
+          allFields.add(field.label);
+          // Track if this is a cluster or ward applicable field
+          if (field.applicableToClusters) {
+            hasClusterData.add(field.label);
+          }
+          if (field.applicableToWards) {
+            hasWardData.add(field.label);
+          }
+        });
+      }
+      // Also add sitting ward fields
+      if (response.formTemplate && response.formTemplate.sittingWardFields) {
+        response.formTemplate.sittingWardFields.forEach(field => {
           allFields.add(field.label);
         });
       }
@@ -135,14 +172,18 @@ export default async function handler(req, res) {
           respondentName: response.respondent?.name,
           hasWard: !!response.ward,
           wardName: response.ward?.name,
-          formType: response.formType
+          formType: response.formType,
+          hasWardData: response.wardData ? response.wardData.size : 0
         });
 
         const row = {
           'Submitted Date': response.submittedAt ? response.submittedAt.toLocaleDateString() : 'Unknown',
+          'Week': response.weekNumber || '',
+          'Year': response.year || '',
           'District': response.district || 'Unknown',
           'Respondent': response.respondent?.name || 'Unknown User',
           'Email': response.respondent?.email || 'No email',
+          'Form Type': response.formType === 'coordinatorReport' ? 'Coordinator Report' : 'Ward Report',
         };
         
         // Add ward information if it's a ward report
@@ -150,26 +191,89 @@ export default async function handler(req, res) {
           row['Ward'] = response.ward.name || 'Unknown Ward';
         }
         
-        // Add responses for each field
+        // Separate cluster responses and regular responses
+        const clusterResponses = {};
+        const regularFieldResponses = {};
+        
+        Object.entries(response.responses || {}).forEach(([key, value]) => {
+          if (key.includes('_cluster_')) {
+            // Store cluster responses separately
+            clusterResponses[key] = value;
+          } else {
+            // Store regular responses
+            regularFieldResponses[key] = value;
+          }
+        });
+        
+        // Add responses for each regular field
         fields.forEach(field => {
           try {
-            // Try to get the value from responses Map or object
-            let value = '';
-            if (response.responses) {
-              if (typeof response.responses.get === 'function') {
-                // It's a Map
-                value = response.responses.get(field) || '';
+            // Try to get the value from regularFieldResponses
+            let value = regularFieldResponses[field] || '';
+            
+            // Handle complex values (arrays, objects)
+            if (typeof value === 'object' && value !== null) {
+              if (Array.isArray(value)) {
+                value = value.join(', ');
               } else {
-                // It's a regular object
-                value = response.responses[field] || '';
+                value = JSON.stringify(value);
               }
             }
+            
             row[field] = value;
           } catch (fieldError) {
             console.warn(`[Reports Export] Error processing field ${field} for response ${response._id}:`, fieldError.message);
             row[field] = 'Error loading field';
           }
         });
+        
+        // Add cluster-based responses with cluster names
+        Object.entries(clusterResponses).forEach(([key, value]) => {
+          try {
+            // Parse cluster response key: ${field.label}_cluster_${clusterId} or ${field.label}_cluster_${clusterId}_${subQuestion}
+            const match = key.match(/^(.+)_cluster_([a-f0-9]+)(?:_(.+))?$/);
+            if (match) {
+              const [, fieldLabel, clusterId, subQuestionLabel] = match;
+              const clusterInfo = clusterMap[clusterId];
+              const clusterName = clusterInfo ? clusterInfo.name : `Cluster ${clusterId.slice(-4)}`;
+              
+              // Create column name with cluster name
+              let columnName;
+              if (subQuestionLabel) {
+                columnName = `${fieldLabel} [${clusterName}] - ${subQuestionLabel}`;
+              } else {
+                columnName = `${fieldLabel} [${clusterName}]`;
+              }
+              
+              // Handle complex values
+              let displayValue = value;
+              if (typeof displayValue === 'object' && displayValue !== null) {
+                if (Array.isArray(displayValue)) {
+                  displayValue = displayValue.join(', ');
+                } else {
+                  displayValue = JSON.stringify(displayValue);
+                }
+              }
+              
+              row[columnName] = displayValue;
+            }
+          } catch (clusterError) {
+            console.warn(`[Reports Export] Error processing cluster response ${key}:`, clusterError.message);
+          }
+        });
+        
+        // Add ward-wise data if available (for coordinator reports)
+        if (response.wardData && response.wardData.size > 0) {
+          const wardDataArray = [];
+          for (const [wardId, wardResponses] of response.wardData.entries()) {
+            const wardDataObj = { wardId };
+            if (typeof wardResponses === 'object') {
+              Object.assign(wardDataObj, wardResponses);
+            }
+            wardDataArray.push(wardDataObj);
+          }
+          row['Ward Data'] = JSON.stringify(wardDataArray);
+        }
         
         return row;
       } catch (responseError) {
