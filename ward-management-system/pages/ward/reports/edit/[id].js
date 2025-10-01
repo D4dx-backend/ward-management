@@ -245,21 +245,17 @@ export default function EditWardReport() {
   };
 
   const handlePreview = () => {
-    if (validateForm()) {
-      setShowPreview(true);
-      setError('');
-    } else {
-      setError('Please fill in all required fields before previewing');
-    }
+    // VALIDATION DISABLED - Always allow preview
+    setShowPreview(true);
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      setError('Please fill in all required fields');
-      return;
-    }
+    // VALIDATION DISABLED - All validation has been removed
+    console.log('Edit form - Validation disabled, proceeding with submission');
+    console.log('Edit form - Form data:', formData);
 
     setIsSubmitting(true);
     setError('');

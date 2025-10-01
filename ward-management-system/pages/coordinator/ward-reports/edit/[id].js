@@ -226,10 +226,9 @@ export default function EditWardReport() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      setError('Please fill in all required fields');
-      return;
-    }
+    // VALIDATION DISABLED - All validation has been removed
+    console.log('Coordinator edit form - Validation disabled, proceeding with submission');
+    console.log('Coordinator edit form - Form data:', formData);
 
     setIsSubmitting(true);
     setError('');

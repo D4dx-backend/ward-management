@@ -20,7 +20,9 @@ export default function Reports() {
   const [wards, setWards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCopyingJson, setIsCopyingJson] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     responseId: null,
@@ -139,6 +141,7 @@ export default function Reports() {
     
     try {
       setIsExporting(true);
+      setSuccessMessage('');
       
       // Build query string with current filters
       const queryParams = new URLSearchParams();
@@ -207,6 +210,65 @@ export default function Reports() {
       }
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const copyAsJson = async () => {
+    console.log('[Reports] Copy as JSON requested with filters:', filter);
+    console.log('[Reports] Current responses count:', responses.length);
+
+    // Check if there are any responses to copy
+    if (responses.length === 0) {
+      console.log('[Reports] No responses to copy, showing error');
+      setError('No reports available to copy. Please adjust your filters or wait for reports to be submitted.');
+      return;
+    }
+
+    try {
+      setIsCopyingJson(true);
+      setSuccessMessage('');
+      setError('');
+
+      // Build query string with current filters
+      const queryParams = new URLSearchParams();
+      if (filter.formType) queryParams.append('formType', filter.formType);
+      if (filter.weekNumber) queryParams.append('weekNumber', filter.weekNumber);
+      if (filter.year) queryParams.append('year', filter.year);
+      if (filter.coordinatorId) queryParams.append('coordinatorId', filter.coordinatorId);
+      if (filter.wardId) queryParams.append('wardId', filter.wardId);
+
+      const jsonUrl = `/api/reports/export-json?${queryParams.toString()}`;
+      console.log('[Reports] Making JSON request to:', jsonUrl);
+
+      const response = await axios.get(jsonUrl);
+      console.log('[Reports] JSON fetch successful');
+
+      // Copy to clipboard
+      const jsonString = JSON.stringify(response.data, null, 2);
+      await navigator.clipboard.writeText(jsonString);
+
+      setSuccessMessage(`Successfully copied ${response.data.count} reports to clipboard as JSON!`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
+      
+    } catch (error) {
+      console.error('[Reports] Copy as JSON failed:', error);
+      
+      if (error.response?.status === 404) {
+        setError('No reports found matching the current filters.');
+      } else if (error.response?.status === 500) {
+        const errorMessage = error.response?.data?.message || 'Server error occurred';
+        setError(`Copy failed: ${errorMessage}. Please try again or contact support if the issue persists.`);
+      } else if (error.name === 'NotAllowedError') {
+        setError('Clipboard access denied. Please allow clipboard access and try again.');
+      } else {
+        setError(`Failed to copy reports: ${error.message}. Please try again.`);
+      }
+    } finally {
+      setIsCopyingJson(false);
     }
   };
 
@@ -293,6 +355,16 @@ export default function Reports() {
           </div>
           <div className="flex gap-2">
             <Button
+              onClick={copyAsJson}
+              variant="secondary"
+              disabled={responses.length === 0 || isCopyingJson}
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              {isCopyingJson ? 'Copying...' : `Copy as JSON (${totalItems} reports)`}
+            </Button>
+            <Button
               onClick={exportToExcel}
               variant="success"
               disabled={responses.length === 0 || isExporting}
@@ -315,6 +387,21 @@ export default function Reports() {
               </div>
               <div className="ml-3">
                 <p className="text-sm">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">{successMessage}</p>
               </div>
             </div>
           </div>

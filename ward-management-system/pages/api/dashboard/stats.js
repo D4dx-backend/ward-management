@@ -9,6 +9,7 @@ import ActivityLog from '../../../models/ActivityLog';
 import LoginHistory from '../../../models/LoginHistory';
 import Instruction from '../../../models/Instruction';
 import Cluster from '../../../models/Cluster';
+import WardVisit from '../../../models/WardVisit';
 import { getServerCache, setServerCache } from '../../../lib/serverCache';
 
 export default async function handler(req, res) {
@@ -230,7 +231,6 @@ export default async function handler(req, res) {
         .lean();
 
       // Get cluster counts for each ward
-      const Cluster = require('../../../models/Cluster').default;
       const wardIds = coordinatorWards.map(w => w._id);
       const clusterCountAgg = await Cluster.aggregate([
         { $match: { ward: { $in: wardIds }, isActive: true } },
@@ -337,7 +337,6 @@ export default async function handler(req, res) {
       const wardIds = userWards.map(ward => ward._id);
       
       // Get clusters count for the Ward Incharge's wards
-      const Cluster = require('../../../models/Cluster').default;
       const totalClusters = await Cluster.countDocuments({ 
         ward: { $in: wardIds } 
       });

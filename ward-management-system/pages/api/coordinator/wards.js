@@ -39,7 +39,7 @@ export default async function handler(req, res) {
       coordinator: session.user.id,
       isActive: true
     })
-    .select('name district wardNumber _id')
+    .select('name district wardNumber _id isSittingWard')
     .sort({ name: 1 });
 
     console.log(`Basic wards API - Found ${wards.length} wards for coordinator ${session.user.id}`);
