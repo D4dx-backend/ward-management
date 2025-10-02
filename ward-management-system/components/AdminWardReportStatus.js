@@ -103,23 +103,20 @@ export default function AdminWardReportStatus({ compact = false }) {
     setSelectedCoordinator(coordinatorValue);
   };
 
-  const coordinatorOptions = [
-    { value: '', label: 'All Coordinators' },
-    ...coordinators.map(coordinator => {
-      const coordId = coordinator._id ? String(coordinator._id) : '';
-      console.log('Mapping coordinator:', coordinator.name);
-      console.log('  Original ID:', coordinator._id);
-      console.log('  ID type:', typeof coordinator._id);
-      console.log('  ID constructor:', coordinator._id?.constructor?.name);
-      console.log('  String conversion:', coordId);
-      console.log('  String length:', coordId.length);
-      return {
-        value: coordId,
-        label: `${coordinator.name} ${coordinator.district ? `(${coordinator.district})` : ''}`,
-        searchText: `${coordinator.name} ${coordinator.email} ${coordinator.district || ''}`
-      };
-    })
-  ];
+  const coordinatorOptions = coordinators.map(coordinator => {
+    const coordId = coordinator._id ? String(coordinator._id) : '';
+    console.log('Mapping coordinator:', coordinator.name);
+    console.log('  Original ID:', coordinator._id);
+    console.log('  ID type:', typeof coordinator._id);
+    console.log('  ID constructor:', coordinator._id?.constructor?.name);
+    console.log('  String conversion:', coordId);
+    console.log('  String length:', coordId.length);
+    return {
+      value: coordId,
+      label: `${coordinator.name} ${coordinator.district ? `(${coordinator.district})` : ''}`,
+      searchText: `${coordinator.name} ${coordinator.email} ${coordinator.district || ''}`
+    };
+  });
 
   if (loading) {
     return (
@@ -185,7 +182,7 @@ export default function AdminWardReportStatus({ compact = false }) {
               </svg>
             </div>
             <p className="text-sm text-gray-500">
-              {selectedCoordinator ? 'No wards found for selected coordinator' : 'No wards found'}
+              {selectedCoordinator ? 'No wards found for selected coordinator' : 'Please select a coordinator to view ward report status'}
             </p>
           </div>
         </div>

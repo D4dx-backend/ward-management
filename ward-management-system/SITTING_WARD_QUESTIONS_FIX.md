@@ -74,3 +74,4 @@ Added console logging to help verify:
 - This fix ensures consistency across all coordinator ward endpoints
 - The fix applies to both creating new reports and editing existing reports
 
+
