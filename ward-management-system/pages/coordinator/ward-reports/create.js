@@ -30,6 +30,7 @@ export default function CreateWardReport() {
   const [clusters, setClusters] = useState([]);
   const [isLoadingClusters, setIsLoadingClusters] = useState(false);
   const [existingResponse, setExistingResponse] = useState(null);
+  const [isLoadingForms, setIsLoadingForms] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -100,18 +101,89 @@ export default function CreateWardReport() {
   };
 
   const fetchFormsForWard = async () => {
+    if (!selectedWard) {
+      setFormTemplates([]);
+      return;
+    }
+
     try {
-      const formsResponse = await axios.get('/api/forms', { params: { userType: 'wardAdmin' } });
+      setIsLoadingForms(true);
+      setError('');
+      
+      // Fetch all ward report forms
+      const formsResponse = await axios.get('/api/forms', { params: { formType: 'wardReport' } });
       console.log('Fetched forms:', formsResponse.data);
       console.log('Forms with sittingWardFields:', formsResponse.data.map(f => ({ 
         title: f.title, 
         hasSittingWardFields: f.sittingWardFields && f.sittingWardFields.length > 0,
         sittingWardFieldsCount: f.sittingWardFields?.length || 0
       })));
-      setFormTemplates(formsResponse.data || []);
+      
+      // Fetch all responses for the selected ward (only wardReport type)
+      const responsesResponse = await axios.get('/api/responses', { 
+        params: { 
+          wardId: selectedWard,
+          formType: 'wardReport'
+        } 
+      });
+      console.log('Fetched responses for ward:', responsesResponse.data);
+      console.log('Number of responses:', responsesResponse.data.length);
+      
+      // Create a set of filled form identifiers (formId + weekNumber + year)
+      // This allows the same form to be submitted for different weeks
+      const filledFormKeys = new Set(
+        responsesResponse.data
+          .filter(response => {
+            const hasFormTemplate = response.formTemplate && response.formTemplate._id;
+            if (!hasFormTemplate) {
+              console.log('Response missing formTemplate:', response);
+            }
+            return hasFormTemplate;
+          })
+          .map(response => {
+            const formId = response.formTemplate._id;
+            const weekNumber = response.weekNumber;
+            const year = response.year;
+            const key = `${formId}-${weekNumber}-${year}`;
+            console.log('Creating key from response:', {
+              formTitle: response.formTemplate.title,
+              formId,
+              weekNumber,
+              year,
+              key
+            });
+            return key;
+          })
+      );
+      
+      console.log('Filled form keys (formId-week-year):', Array.from(filledFormKeys));
+      
+      // Filter out forms that already have responses for the same week and year
+      const unfilledForms = formsResponse.data.filter(form => {
+        const formKey = `${form._id}-${form.weekNumber}-${form.year}`;
+        const isFilled = filledFormKeys.has(formKey);
+        console.log(`Checking form "${form.title}":`, {
+          formId: form._id,
+          weekNumber: form.weekNumber,
+          year: form.year,
+          formKey,
+          isFilled,
+          willShow: !isFilled
+        });
+        return !isFilled;
+      });
+      
+      console.log('Total forms fetched:', formsResponse.data.length);
+      console.log('Total responses (filled):', responsesResponse.data.length);
+      console.log('Unfilled forms count:', unfilledForms.length);
+      console.log('Unfilled forms:', unfilledForms.map(f => `${f.title} (Week ${f.weekNumber}, ${f.year})`));
+      
+      setFormTemplates(unfilledForms || []);
     } catch (error) {
       setError('Failed to load forms for the ward.');
       console.error('Error fetching forms:', error);
+    } finally {
+      setIsLoadingForms(false);
     }
   };
 
@@ -325,6 +397,18 @@ export default function CreateWardReport() {
           </Link>
         </div>
 
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
+            {success}
+          </div>
+        )}
+
         <Card>
           
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -341,16 +425,24 @@ export default function CreateWardReport() {
               </div>
               <div>
                 <label htmlFor="form-select" className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Form
+                  Select Form {isLoadingForms && <span className="text-xs text-gray-500">(Loading...)</span>}
                 </label>
                 <SearchableSelect
                   options={formTemplates.map(form => ({ value: form._id, label: form.title }))}
                   value={selectedForm}
                   onChange={handleFormChange}
-                  placeholder="Search for a form..."
+                  placeholder={isLoadingForms ? "Loading forms..." : "Search for a form..."}
+                  disabled={!selectedWard || isLoadingForms}
                 />
               </div>
             </div>
+
+            {selectedWard && !isLoadingForms && formTemplates.length === 0 && (
+              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                <p className="font-medium">No unfilled forms available</p>
+                <p className="mt-1">All forms for this ward have already been filled by the ward admin or coordinator. Please check back when new forms are published.</p>
+              </div>
+            )}
 
             {existingResponse && (
               <div className="mb-4 p-4 bg-blue-100 border border-blue-200 rounded-lg text-sm text-blue-800">

@@ -100,7 +100,8 @@ export default async function handler(req, res) {
       // Get wards with pagination (either by coordinator filter or all)
       const wards = await Ward.find(wardQuery)
         .populate('coordinator', 'name email')
-        .select('name district coordinator')
+        .populate('wardAdmin', 'name email mobileNumber')
+        .select('name district coordinator wardAdmin')
         .skip(skip)
         .limit(limitNum)
         .sort({ name: 1 });
@@ -147,7 +148,8 @@ export default async function handler(req, res) {
             _id: ward._id,
             name: ward.name,
             district: ward.district,
-            coordinator: ward.coordinator
+            coordinator: ward.coordinator,
+            wardAdmin: ward.wardAdmin
           },
           weeks: {}
         };

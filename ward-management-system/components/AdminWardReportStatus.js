@@ -225,7 +225,7 @@ export default function AdminWardReportStatus({ compact = false }) {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-medium text-gray-900">Ward</th>
-                <th className="text-left py-3 px-2 font-medium text-gray-900">Coordinator</th>
+                <th className="text-left py-3 px-2 font-medium text-gray-900">Ward Coordinator</th>
                 {statusData.weeks.map(({ week, year }) => (
                   <th key={`${week}-${year}`} className="text-center py-3 px-2 font-medium text-gray-900">
                     Week {week}
@@ -247,10 +247,10 @@ export default function AdminWardReportStatus({ compact = false }) {
                   </td>
                   <td className="py-3 px-2">
                     <div className="text-sm font-medium text-gray-900">
-                      {wardData.ward.coordinator?.name || 'Not Assigned'}
+                      {wardData.ward.wardAdmin?.name || 'Not Assigned'}
                     </div>
-                    {wardData.ward.coordinator?.email && (
-                      <div className="text-xs text-gray-500">{wardData.ward.coordinator.email}</div>
+                    {wardData.ward.wardAdmin?.mobileNumber && (
+                      <div className="text-xs text-gray-500">{wardData.ward.wardAdmin.mobileNumber}</div>
                     )}
                   </td>
                   {statusData.weeks.map(({ week, year }) => {

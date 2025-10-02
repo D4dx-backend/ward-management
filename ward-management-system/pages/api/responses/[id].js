@@ -126,12 +126,14 @@ export default async function handler(req, res) {
     }
   } else if (req.method === 'PUT') {
     const { id } = req.query;
-    const { responses: updatedResponses, status: newStatus } = req.body;
+    const { responses: updatedResponses, wardData: updatedWardData, status: newStatus } = req.body;
 
     console.log('PUT /api/responses/[id] - Request details:', {
       id,
       hasResponses: !!updatedResponses,
       responsesKeys: updatedResponses ? Object.keys(updatedResponses) : [],
+      hasWardData: !!updatedWardData,
+      wardDataKeys: updatedWardData ? Object.keys(updatedWardData) : [],
       userRole: session.user.role,
       userId: session.user.id
     });
@@ -220,6 +222,12 @@ export default async function handler(req, res) {
       
       for (const field of response.formTemplate.fields) {
         if (field.required) {
+          // Skip ward-applicable fields - they're in wardData, not responses
+          if (field.applicableToWards) {
+            console.log(`Skipping validation for ward-applicable field: ${field.label} (stored in wardData)`);
+            continue;
+          }
+          
           if (field.applicableToClusters && clusters.length > 0) {
             // Validate cluster-applicable fields for each cluster
             console.log(`Validating cluster field: ${field.label} for ${clusters.length} clusters`);
@@ -323,8 +331,16 @@ export default async function handler(req, res) {
       console.log('Updating response with new data...');
       console.log('Original responses count:', Object.keys(response.responses || {}).length);
       console.log('New responses count:', Object.keys(updatedResponses).length);
+      console.log('Original wardData count:', Object.keys(response.wardData || {}).length);
+      console.log('New wardData count:', updatedWardData ? Object.keys(updatedWardData).length : 0);
       
       response.responses = updatedResponses;
+      
+      // Update wardData if provided
+      if (updatedWardData) {
+        response.wardData = updatedWardData;
+      }
+      
       response.updatedAt = new Date();
       
       if (newStatus) {
