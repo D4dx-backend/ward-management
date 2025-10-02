@@ -21,6 +21,7 @@ export default function SICReports() {
   const [showReportModal, setShowReportModal] = useState(false);
   const [wardNames, setWardNames] = useState({});
   const [formTemplate, setFormTemplate] = useState(null);
+  const [formTemplates, setFormTemplates] = useState([]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -38,6 +39,14 @@ export default function SICReports() {
     }
   }, [status, session, router]);
 
+  // Check if report can be edited based on form template settings
+  const canEditReport = (report) => {
+    if (!report || !report.formTemplate) return false;
+    // Find the full template from formTemplates array
+    const template = formTemplates.find(t => t._id === report.formTemplate._id || t._id === report.formTemplate);
+    return template?.allowEditAfterSubmission || false;
+  };
+
   const fetchReports = async () => {
     try {
       setIsLoading(true);
@@ -45,14 +54,39 @@ export default function SICReports() {
 
       console.log('Fetching SIC reports...');
       
-      const [pendingResponse, submittedResponse] = await Promise.all([
+      const [pendingResponse, submittedResponse, templatesResponse] = await Promise.all([
         axios.get('/api/coordinator/reports?type=pending&limit=20'),
-        axios.get('/api/coordinator/reports?type=submitted&limit=20')
+        axios.get('/api/coordinator/reports?type=submitted&limit=20'),
+        axios.get('/api/forms', {
+          params: {
+            formType: 'coordinatorReport',
+            isActive: true
+          }
+        })
       ]);
 
       console.log('SIC reports fetched successfully');
+      console.log('Form templates fetched:', templatesResponse.data?.length || 0);
+      
+      const templates = templatesResponse.data || [];
+      const submittedReportsData = submittedResponse.data.reports || [];
+      
+      // Debug: Log form templates with edit permissions
+      templates.forEach(template => {
+        console.log('Template:', template.title, 'allowEditAfterSubmission:', template.allowEditAfterSubmission);
+      });
+      
+      // Debug: Log submitted reports and their edit status
+      submittedReportsData.forEach(report => {
+        const template = templates.find(t => t._id === report.formTemplate?._id || t._id === report.formTemplate);
+        console.log('Report:', report.formTemplate?.title || report._id, 
+                    'Template found:', !!template, 
+                    'Can edit:', template?.allowEditAfterSubmission || false);
+      });
+      
       setPendingReports(pendingResponse.data.reports || []);
-      setSubmittedReports(submittedResponse.data.reports || []);
+      setSubmittedReports(submittedReportsData);
+      setFormTemplates(templates);
     } catch (error) {
       console.error('Error fetching SIC reports:', error);
       console.error('Error details:', {
@@ -579,8 +613,7 @@ export default function SICReports() {
                     submittedReports.map((report) => (
                       <div
                         key={report._id}
-                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => handleViewReport(report, 'submitted')}
+                        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -591,6 +624,14 @@ export default function SICReports() {
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                 submitted
                               </span>
+                              {canEditReport(report) && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Editable
+                                </span>
+                              )}
                             </div>
                             
                             <div className="text-sm text-gray-600">
@@ -599,10 +640,35 @@ export default function SICReports() {
                             </div>
                           </div>
                           
-                          <div className="ml-4">
-                            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                          <div className="ml-4 flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewReport(report, 'submitted');
+                              }}
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </Button>
+                            {canEditReport(report) && (
+                              <Button
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/coordinator/reports/edit/${report._id}`);
+                                }}
+                              >
+                                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -625,6 +691,31 @@ export default function SICReports() {
           size="lg"
         >
           {renderReportContent()}
+          
+          {/* Action buttons in modal footer */}
+          {selectedReport?.reportType === 'submitted' && canEditReport(selectedReport) && (
+            <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReportModal(false);
+                  setSelectedReport(null);
+                }}
+              >
+                Close
+              </Button>
+              <Button
+                onClick={() => {
+                  router.push(`/coordinator/reports/edit/${selectedReport._id}`);
+                }}
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Report
+              </Button>
+            </div>
+          )}
         </Modal>
       </div>
     </Layout>

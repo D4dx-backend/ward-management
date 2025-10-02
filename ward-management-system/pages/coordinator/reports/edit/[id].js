@@ -18,6 +18,7 @@ export default function EditCoordinatorReport() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
@@ -144,18 +145,33 @@ export default function EditCoordinatorReport() {
     
     if (!formTemplate || !formTemplate.fields) return errors;
     
+    console.log('Starting validation...');
+    console.log('Responses:', responses);
+    console.log('WardData:', wardData);
+    
     formTemplate.fields.forEach(field => {
+      console.log(`Validating field: ${field.label}, required: ${field.required}, applicableToWards: ${field.applicableToWards}`);
+      
+      // Skip validation for ward-applicable fields - they're stored in wardData
+      if (field.applicableToWards) {
+        console.log(`Skipping validation for ward-applicable field: ${field.label}`);
+        return; // Skip ward-applicable fields in responses validation
+      }
+      
       const value = responses[field.label];
+      console.log(`Field "${field.label}" value:`, value);
       
       // Check required fields
       if (field.required) {
         if (field.type === 'checkbox') {
           if (value === undefined || value === null) {
+            console.log(`Validation error: ${field.label} is required (checkbox)`);
             errors[field.label] = `${field.label} is required`;
           }
         } else {
           const trimmedValue = typeof value === 'string' ? value.trim() : value;
           if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+            console.log(`Validation error: ${field.label} is required`);
             errors[field.label] = `${field.label} is required`;
           }
         }
@@ -166,19 +182,25 @@ export default function EditCoordinatorReport() {
         const shouldShowSubQuestions = field.showSubQuestionsWhen ? 
           (value?.toLowerCase() === field.showSubQuestionsWhen.toLowerCase() || value === field.showSubQuestionsWhen) : true;
         
+        console.log(`Field "${field.label}" has sub-questions, shouldShow: ${shouldShowSubQuestions}`);
+        
         if (shouldShowSubQuestions) {
           field.subQuestions.forEach(subQuestion => {
             if (subQuestion.required) {
               const subKey = `${field.label}_${subQuestion.label}`;
               const subValue = responses[subKey];
               
+              console.log(`Sub-question "${subKey}" value:`, subValue);
+              
               if (subQuestion.type === 'checkbox') {
                 if (subValue === undefined || subValue === null) {
+                  console.log(`Validation error: ${subKey} is required (checkbox)`);
                   errors[subKey] = `${subQuestion.label} is required`;
                 }
               } else {
                 const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
                 if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                  console.log(`Validation error: ${subKey} is required`);
                   errors[subKey] = `${subQuestion.label} is required`;
                 }
               }
@@ -188,32 +210,60 @@ export default function EditCoordinatorReport() {
       }
     });
     
+    console.log('Validation complete. Errors:', errors);
     return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('Form submission started...');
+    
     const errors = validateForm();
     if (Object.keys(errors).length > 0) {
+      console.log('Validation errors:', errors);
       setValidationErrors(errors);
+      
+      // Create a detailed error message listing the fields
+      const errorFields = Object.keys(errors).join(', ');
+      setError(`Please fix the validation errors before submitting. Missing required fields: ${errorFields}`);
+      
+      // Scroll to top to show error
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     
     try {
       setIsSaving(true);
       setError('');
+      setSuccess('');
+      
+      console.log('Submitting update with responses:', Object.keys(responses).length, 'fields');
+      console.log('Ward data:', Object.keys(wardData).length, 'wards');
       
       // Update the existing response
-      await axios.put(`/api/responses/${id}`, {
+      const response = await axios.put(`/api/responses/${id}`, {
         responses: responses,
         wardData: wardData
       });
       
-      router.push('/coordinator/reports');
+      console.log('Update successful:', response.data);
+      setSuccess('Report updated successfully!');
+      setValidationErrors({});
+      
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Optional: redirect after a delay to let user see the success message
+      // setTimeout(() => {
+      //   router.push('/coordinator/reports');
+      // }, 2000);
     } catch (error) {
       console.error('Error updating report:', error);
+      console.error('Error details:', error.response?.data);
       setError(error.response?.data?.message || 'Failed to update report. Please try again.');
+      // Scroll to top to show error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSaving(false);
     }
@@ -618,13 +668,61 @@ export default function EditCoordinatorReport() {
               {formTemplate.title} - Week {report.weekNumber} ({report.year})
             </p>
           </div>
-          <Link
-            href="/coordinator/reports"
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back to Reports
-          </Link>
+          <div className="flex space-x-3">
+            <Link
+              href={`/coordinator/reports/view/${id}`}
+              className="text-gray-600 hover:text-gray-800 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              View Report
+            </Link>
+            <Link
+              href="/coordinator/reports"
+              className="text-blue-600 hover:text-blue-800 px-3 py-2 border border-blue-300 rounded-md hover:bg-blue-50"
+            >
+              ← All Reports
+            </Link>
+          </div>
         </div>
+
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center justify-between">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>{success}</p>
+            </div>
+            <div className="flex space-x-2">
+              <Link
+                href={`/coordinator/reports/view/${id}`}
+                className="text-green-700 hover:text-green-900 underline text-sm font-medium"
+              >
+                View Updated Report
+              </Link>
+              <Link
+                href="/coordinator/reports"
+                className="text-green-700 hover:text-green-900 underline text-sm font-medium"
+              >
+                Back to Reports
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p>{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
