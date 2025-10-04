@@ -8,6 +8,8 @@ import Layout from '../../../components/Layout';
 import Card from '../../../components/Card';
 import Button from '../../../components/Button';
 import Modal from '../../../components/Modal';
+import ClusterResponseSummary from '../../../components/ClusterResponseSummary';
+
 export default function CoordinatorWardReportReview() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -29,6 +31,8 @@ export default function CoordinatorWardReportReview() {
   // Modal states
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [formTemplate, setFormTemplate] = useState(null);
+  const [clusters, setClusters] = useState([]);
   const [showRecurringModal, setShowRecurringModal] = useState(false);
   const [recurringData, setRecurringData] = useState(null);
 
@@ -104,8 +108,36 @@ export default function CoordinatorWardReportReview() {
   const handleViewReport = async (report) => {
     try {
       const response = await axios.get(`/api/responses/${report._id}`);
-      setSelectedReport(response.data);
+      const reportData = response.data;
+      setSelectedReport(reportData);
       setShowDetailModal(true);
+
+      // Fetch the form template to get field definitions
+      if (reportData.formTemplate) {
+        try {
+          const templateResponse = await axios.get(`/api/forms/${reportData.formTemplate._id}`);
+          setFormTemplate(templateResponse.data);
+          console.log('Review - Fetched form template:', templateResponse.data);
+        } catch (error) {
+          console.error('Error fetching form template:', error);
+          setFormTemplate(null);
+        }
+      }
+
+      // Fetch clusters for the ward if there are cluster-applicable fields
+      const hasClusterFields = reportData.formTemplate?.fields?.some(field => field.applicableToClusters);
+      if (hasClusterFields && reportData.ward?._id) {
+        try {
+          const clustersResponse = await axios.get(`/api/clusters?wardId=${reportData.ward._id}`);
+          setClusters(clustersResponse.data || []);
+          console.log('Review - Fetched clusters:', clustersResponse.data?.length || 0);
+        } catch (error) {
+          console.error('Error fetching clusters:', error);
+          setClusters([]);
+        }
+      } else {
+        setClusters([]);
+      }
     } catch (error) {
       console.error('Error fetching report details:', error);
       setError('Failed to load report details');
@@ -417,6 +449,8 @@ export default function CoordinatorWardReportReview() {
           onClose={() => {
             setShowDetailModal(false);
             setSelectedReport(null);
+            setFormTemplate(null);
+            setClusters([]);
           }}
           title="Ward Report Details"
           size="xl"
@@ -448,11 +482,62 @@ export default function CoordinatorWardReportReview() {
               {/* Report Responses */}
               <div>
                 <h4 className="text-lg font-medium text-gray-900 mb-4">Report Responses</h4>
-                {selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
+                {formTemplate && formTemplate.fields ? (
+                  <div className="space-y-4">
+                    {formTemplate.fields.map((field, index) => {
+                      // Handle cluster-applicable fields
+                      if (field.applicableToClusters) {
+                        return (
+                          <ClusterResponseSummary
+                            key={field.id || index}
+                            field={field}
+                            responses={selectedReport.responses || {}}
+                            clusters={clusters}
+                            questionIndex={index}
+                            getClusterName={(clusterId) => {
+                              const cluster = clusters.find(c => c._id === clusterId);
+                              return cluster ? cluster.name : `Cluster ${clusterId.slice(-4)}`;
+                            }}
+                            renderFieldValue={(field, value) => {
+                              if (value === undefined || value === null || value === '') {
+                                return <span className="text-gray-400 italic">Not answered</span>;
+                              }
+                              return renderResponseValue(value);
+                            }}
+                          />
+                        );
+                      }
+
+                      // Handle regular fields
+                      const answer = selectedReport.responses?.[field.label];
+                      return (
+                        <div key={field.id || index} className="border-l-4 border-blue-500 pl-4 py-2">
+                          <div className="text-sm font-medium text-gray-900 mb-2">
+                            <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                              {index + 1}
+                            </span>
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                          </div>
+                          <div>
+                            {answer === undefined || answer === null || answer === '' ? (
+                              <span className="text-gray-400 italic">Not answered</span>
+                            ) : (
+                              renderResponseValue(answer)
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
                   <div className="space-y-4">
                     {Object.entries(selectedReport.responses).map(([question, answer], index) => (
                       <div key={index} className="border-l-4 border-blue-500 pl-4 py-2">
                         <div className="text-sm font-medium text-gray-900 mb-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                            {index + 1}
+                          </span>
                           {question}
                         </div>
                         <div>
@@ -503,6 +588,9 @@ export default function CoordinatorWardReportReview() {
                   {recurringData.responses.map((response, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg p-4">
                       <div className="text-sm font-medium text-gray-900 mb-2">
+                        <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                          {index + 1}
+                        </span>
                         {response.question}
                       </div>
                       <div className="text-sm text-gray-700">

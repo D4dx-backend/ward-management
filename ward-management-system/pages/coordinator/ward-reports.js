@@ -9,6 +9,7 @@ import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
 import Modal from '../../components/Modal';
+import ClusterResponseSummary from '../../components/ClusterResponseSummary';
 import { usePersistedData } from '../../lib/simpleCache';
 
 
@@ -19,11 +20,12 @@ export default function CoordinatorWardReports() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReport, setSelectedReport] = useState(null);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [formTemplate, setFormTemplate] = useState(null);
+  const [clusters, setClusters] = useState([]);
   const [filter, setFilter] = useState({
     ward: '',
     week: '',
-    year: new Date().getFullYear(),
-    status: ''
+    year: new Date().getFullYear()
   });
 
   // Use enhanced persistent data hook to prevent unnecessary reloading
@@ -120,10 +122,6 @@ export default function CoordinatorWardReports() {
       filtered = filtered.filter(report => report.year === parseInt(filter.year));
     }
 
-    if (filter.status) {
-      filtered = filtered.filter(report => report.status === filter.status);
-    }
-
     return filtered;
   }, [wardReports, searchTerm, filter]);
 
@@ -166,30 +164,46 @@ export default function CoordinatorWardReports() {
     setFilter({ ...filter, [name]: value });
   };
 
-  const getStatusBadgeColor = (status) => {
-    switch (status) {
-      case 'submitted':
-      case 'approved':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'overdue':
-      case 'rejected':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   const formatDate = (dateString) => {
     if (!dateString) return 'Not submitted';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
-  const handleViewReport = (report) => {
-    setSelectedReport(report);
-    setShowReportModal(true);
+  const handleViewReport = async (report) => {
+    try {
+      setSelectedReport(report);
+      setShowReportModal(true);
+
+      // Fetch the form template to get field definitions
+      if (report.formTemplate) {
+        try {
+          const templateResponse = await axios.get(`/api/forms/${report.formTemplate._id}`);
+          setFormTemplate(templateResponse.data);
+          console.log('Ward Reports - Fetched form template:', templateResponse.data);
+        } catch (error) {
+          console.error('Error fetching form template:', error);
+          setFormTemplate(null);
+        }
+      }
+
+      // Fetch clusters for the ward if there are cluster-applicable fields
+      const hasClusterFields = report.formTemplate?.fields?.some(field => field.applicableToClusters);
+      if (hasClusterFields && report.ward?._id) {
+        try {
+          const clustersResponse = await axios.get(`/api/clusters?wardId=${report.ward._id}`);
+          setClusters(clustersResponse.data || []);
+          console.log('Ward Reports - Fetched clusters:', clustersResponse.data?.length || 0);
+        } catch (error) {
+          console.error('Error fetching clusters:', error);
+          setClusters([]);
+        }
+      } else {
+        setClusters([]);
+      }
+    } catch (error) {
+      console.error('Error in handleViewReport:', error);
+    }
   };
 
   const handleEditReport = (report) => {
@@ -266,7 +280,7 @@ export default function CoordinatorWardReports() {
 
         <Card>
           <div className="p-6 border-b border-gray-200">
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <SearchInput
                 onSearch={setSearchTerm}
                 placeholder="Search ward reports..."
@@ -300,22 +314,6 @@ export default function CoordinatorWardReports() {
                   ))}
                 </select>
               </div>
-
-              <div>
-                <select
-                  name="status"
-                  value={filter.status}
-                  onChange={handleFilterChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Status</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="pending">Pending</option>
-                  <option value="overdue">Overdue</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -327,13 +325,13 @@ export default function CoordinatorWardReports() {
                       Ward Details
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Form Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Week/Year
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Submitted By
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Submitted At
@@ -345,11 +343,20 @@ export default function CoordinatorWardReports() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedReports.map((report) => (
-                  <tr key={report._id} className="hover:bg-gray-50">
+                  <tr 
+                    key={report._id} 
+                    className="hover:bg-gray-50 cursor-pointer"
+                    onClick={() => handleViewReport(report)}
+                  >
                     <td className="px-6 py-4">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{report.ward?.name}</div>
                         <div className="text-sm text-gray-500">{report.ward?.district}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {report.formTemplate?.title || report.title || 'Untitled Form'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -379,27 +386,18 @@ export default function CoordinatorWardReports() {
                         <span className="text-sm text-gray-500">Not assigned</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(report.status)}`}>
-                        {report.status}
-                      </span>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(report.submittedAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewReport(report)}
-                        >
-                          View Details
-                        </Button>
-                        <Button
                           variant="primary"
                           size="sm"
-                          onClick={() => handleEditReport(report)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditReport(report);
+                          }}
                         >
                           Edit
                         </Button>
@@ -415,7 +413,7 @@ export default function CoordinatorWardReports() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {searchTerm || filter.ward || filter.week || filter.status ? 'No ward reports found matching your criteria' : 'No ward reports have been submitted yet'}
+                          {searchTerm || filter.ward || filter.week ? 'No ward reports found matching your criteria' : 'No ward reports have been submitted yet'}
                         </p>
                       </div>
                     </td>
@@ -455,7 +453,11 @@ export default function CoordinatorWardReports() {
       {/* Report Details Modal */}
       <Modal
         isOpen={showReportModal}
-        onClose={() => setShowReportModal(false)}
+        onClose={() => {
+          setShowReportModal(false);
+          setFormTemplate(null);
+          setClusters([]);
+        }}
         title={selectedReport ? `Ward Report Details - ${selectedReport.ward?.name}` : 'Report Details'}
         size="lg"
       >
@@ -495,11 +497,90 @@ export default function CoordinatorWardReports() {
             <div>
               <h4 className="font-medium text-gray-900 mb-4">Report Responses</h4>
               <div className="space-y-4">
-                {selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
-                  Object.entries(selectedReport.responses).map(([question, answer]) => (
+                {formTemplate && formTemplate.fields ? (
+                  formTemplate.fields.map((field, index) => {
+                    // Handle cluster-applicable fields
+                    if (field.applicableToClusters) {
+                      return (
+                        <ClusterResponseSummary
+                          key={field.id || index}
+                          field={field}
+                          responses={selectedReport.responses || {}}
+                          clusters={clusters}
+                          questionIndex={index}
+                          getClusterName={(clusterId) => {
+                            const cluster = clusters.find(c => c._id === clusterId);
+                            return cluster ? cluster.name : `Cluster ${clusterId.slice(-4)}`;
+                          }}
+                          renderFieldValue={(field, value) => {
+                            if (value === undefined || value === null || value === '') {
+                              return <span className="text-gray-400 italic">Not answered</span>;
+                            }
+                            if (typeof value === 'boolean') {
+                              return (
+                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                  value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {value ? 'Yes' : 'No'}
+                                </span>
+                              );
+                            }
+                            if (typeof value === 'string' && value.length > 100) {
+                              return (
+                                <div className="bg-gray-50 p-3 rounded border">
+                                  <p className="whitespace-pre-wrap text-sm">{value}</p>
+                                </div>
+                              );
+                            }
+                            return <span>{String(value)}</span>;
+                          }}
+                        />
+                      );
+                    }
+
+                    // Handle regular fields
+                    const answer = selectedReport.responses?.[field.label];
+                    return (
+                      <div key={field.id || index} className="border-l-4 border-blue-500 pl-4 py-2">
+                        <div className="flex flex-col space-y-1">
+                          <h5 className="text-sm font-medium text-gray-900">
+                            <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                              {index + 1}
+                            </span>
+                            {field.label}
+                            {field.required && <span className="text-red-500 ml-1">*</span>}
+                          </h5>
+                          <div className="text-sm text-gray-700">
+                            {answer === undefined || answer === null || answer === '' ? (
+                              <span className="text-gray-400 italic">Not answered</span>
+                            ) : typeof answer === 'boolean' ? (
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                answer ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {answer ? 'Yes' : 'No'}
+                              </span>
+                            ) : typeof answer === 'string' && answer.length > 100 ? (
+                              <div className="bg-gray-50 p-3 rounded border">
+                                <p className="whitespace-pre-wrap">{answer}</p>
+                              </div>
+                            ) : (
+                              <span>{String(answer)}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
+                  Object.entries(selectedReport.responses).map(([question, answer], index) => (
                     <div key={question} className="border-l-4 border-blue-500 pl-4 py-2">
                       <div className="flex flex-col space-y-1">
-                        <h5 className="text-sm font-medium text-gray-900">{question}</h5>
+                        <h5 className="text-sm font-medium text-gray-900">
+                          <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                            {index + 1}
+                          </span>
+                          {question}
+                        </h5>
                         <div className="text-sm text-gray-700">
                           {typeof answer === 'boolean' ? (
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -531,7 +612,11 @@ export default function CoordinatorWardReports() {
 
             {/* Modal Actions */}
             <div className="flex justify-end pt-4 border-t border-gray-200">
-              <Button variant="outline" onClick={() => setShowReportModal(false)}>
+              <Button variant="outline" onClick={() => {
+                setShowReportModal(false);
+                setFormTemplate(null);
+                setClusters([]);
+              }}>
                 Close
               </Button>
             </div>

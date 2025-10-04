@@ -4,16 +4,18 @@ import { useSession } from 'next-auth/react';
 import axios from 'axios';
 import Card from './Card';
 import Button from './Button';
-import Modal from './Modal';
+// import Modal from './Modal'; // Removed - now using full page navigation
 
 export default function CoordinatorReportsList({ type = 'submitted', title = 'Reports' }) {
   const { data: session } = useSession();
   const router = useRouter();
   const [reports, setReports] = useState([]);
+  const [formTemplates, setFormTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(false);
+  // Removed modal states - now using full page navigation
+  // const [selectedReport, setSelectedReport] = useState(null);
+  // const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
     if (session?.user?.role === 'coordinator') {
@@ -26,8 +28,18 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
       setIsLoading(true);
       setError('');
 
-      const response = await axios.get(`/api/coordinator/reports?type=${type}&limit=10`);
-      setReports(response.data.reports || []);
+      const [reportsResponse, templatesResponse] = await Promise.all([
+        axios.get(`/api/coordinator/reports?type=${type}&limit=10`),
+        axios.get('/api/forms', {
+          params: {
+            formType: 'coordinatorReport',
+            isActive: true
+          }
+        })
+      ]);
+      
+      setReports(reportsResponse.data.reports || []);
+      setFormTemplates(templatesResponse.data || []);
     } catch (error) {
       console.error('Error fetching coordinator reports:', error);
       setError('Failed to load reports');
@@ -36,22 +48,30 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
     }
   };
 
-  const handleViewReport = async (report) => {
-    try {
-      if (type === 'submitted') {
-        // Fetch full report details for submitted reports
-        const response = await axios.get(`/api/coordinator/reports/${report._id}`);
-        setSelectedReport(response.data);
-      } else {
-        // For pending reports, just show the form details
-        setSelectedReport(report);
-      }
-      setShowReportModal(true);
-    } catch (error) {
-      console.error('Error fetching report details:', error);
-      alert('Failed to load report details');
-    }
+  const canEditReport = (report) => {
+    if (!report || !report.formTemplate) return false;
+    // Find the full template from formTemplates array
+    const template = formTemplates.find(t => t._id === report.formTemplate._id || t._id === report.formTemplate);
+    return template?.allowEditAfterSubmission || false;
   };
+
+  // Removed handleViewReport - now using full page navigation
+  // const handleViewReport = async (report) => {
+  //   try {
+  //     if (type === 'submitted') {
+  //       // Fetch full report details for submitted reports
+  //       const response = await axios.get(`/api/coordinator/reports/${report._id}`);
+  //       setSelectedReport(response.data);
+  //     } else {
+  //       // For pending reports, just show the form details
+  //       setSelectedReport(report);
+  //     }
+  //     setShowReportModal(true);
+  //   } catch (error) {
+  //     console.error('Error fetching report details:', error);
+  //     alert('Failed to load report details');
+  //   }
+  // };
 
   const getStatusBadge = (status) => {
     const badges = {
@@ -71,6 +91,8 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
     });
   };
 
+  // Removed renderReportContent - modal replaced with full page navigation
+  /*
   const renderReportContent = () => {
     if (!selectedReport) return null;
 
@@ -105,6 +127,9 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
               {selectedReport.formTemplate?.fields?.map((field, index) => (
                 <div key={index} className="border-b border-gray-200 pb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                      {index + 1}
+                    </span>
                     {field.label}
                     {field.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
@@ -163,6 +188,7 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
       );
     }
   };
+  */
 
   if (isLoading) {
     return (
@@ -212,8 +238,7 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
               reports.map((report) => (
                 <div
                   key={report._id}
-                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => handleViewReport(report)}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -227,6 +252,14 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(type)}`}>
                           {type}
                         </span>
+                        {type === 'submitted' && canEditReport(report) && (
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Editable
+                          </span>
+                        )}
                       </div>
                       
                       <div className="text-sm text-gray-600">
@@ -239,10 +272,45 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
                       </div>
                     </div>
                     
-                    <div className="ml-4">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    <div className="ml-4 flex items-center space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Navigate to full page view instead of modal
+                          if (type === 'submitted') {
+                            router.push(`/coordinator/reports/view/${report._id}`);
+                          } else if (type === 'pending') {
+                            router.push(`/coordinator/reports/submit?formId=${report._id}`);
+                          }
+                        }}
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View
+                      </Button>
+                      {type === 'submitted' && canEditReport(report) && (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/coordinator/reports/edit/${report._id}`);
+                          }}
+                        >
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </Button>
+                      )}
+                      {type === 'pending' && (
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -264,7 +332,8 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
         </div>
       </Card>
 
-      {/* Report Details Modal */}
+      {/* Modal removed - now using full page navigation */}
+      {/* 
       <Modal
         isOpen={showReportModal}
         onClose={() => {
@@ -276,6 +345,7 @@ export default function CoordinatorReportsList({ type = 'submitted', title = 'Re
       >
         {renderReportContent()}
       </Modal>
+      */}
     </>
   );
 }

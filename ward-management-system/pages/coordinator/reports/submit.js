@@ -28,6 +28,8 @@ export default function SubmitReport() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewClicked, setPreviewClicked] = useState(false);
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
+  const [validationErrors, setValidationErrors] = useState({});
+  const [successTimeout, setSuccessTimeout] = useState(null);
 
   const isFormEditable = (form) => {
     if (!form) return false;
@@ -57,6 +59,38 @@ export default function SubmitReport() {
       }
     }
   }, [router.query.formId, activeForms, selectedForm]);
+
+  // Clear validation errors when form data changes (user is typing)
+  useEffect(() => {
+    if (Object.keys(validationErrors).length > 0) {
+      // Clear errors for fields that now have values
+      const updatedErrors = { ...validationErrors };
+      let hasChanges = false;
+      
+      Object.keys(validationErrors).forEach(errorKey => {
+        if (formData[errorKey] !== undefined && formData[errorKey] !== '' && formData[errorKey] !== null) {
+          delete updatedErrors[errorKey];
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        setValidationErrors(updatedErrors);
+        if (Object.keys(updatedErrors).length === 0) {
+          setError('');
+        }
+      }
+    }
+  }, [formData]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeout) {
+        clearTimeout(successTimeout);
+      }
+    };
+  }, [successTimeout]);
 
   const fetchActiveForms = async () => {
     try {
@@ -125,6 +159,9 @@ export default function SubmitReport() {
     setWardData({});
     setRecurringData({});
     setSubmittedResponse(null);
+    setValidationErrors({});
+    setError('');
+    setSuccess('');
     
     // Check if user has already submitted this form
     try {
@@ -173,7 +210,180 @@ export default function SubmitReport() {
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!selectedForm || !selectedForm.fields) return errors;
+    
+    console.log('=== STARTING VALIDATION ===');
+    console.log('Total form fields:', selectedForm.fields.length);
+    console.log('FormData:', formData);
+    console.log('WardData:', wardData);
+    
+    selectedForm.fields.forEach((field, fieldIndex) => {
+      console.log(`\n--- Checking field ${fieldIndex}: "${field.label}" ---`);
+      console.log(`  Type: ${field.type}`);
+      console.log(`  Required: ${field.required}`);
+      console.log(`  ApplicableToWards: ${field.applicableToWards}`);
+      console.log(`  ApplicableToClusters: ${field.applicableToClusters}`);
+      
+      // Skip validation for ward-applicable fields - they're validated separately in wardData
+      if (field.applicableToWards) {
+        console.log(`  ✓ SKIPPING: Ward-applicable field (handled by WardDataCollector)`);
+        return;
+      }
+      
+      // Skip validation for cluster-applicable fields - they're handled differently
+      if (field.applicableToClusters) {
+        console.log(`  ✓ SKIPPING: Cluster-applicable field (handled by clusters)`);
+        return;
+      }
+      
+      // Only validate if field is actually required
+      if (!field.required) {
+        console.log(`  ✓ SKIPPING: Not a required field`);
+        return;
+      }
+      
+      // Warn about problematic field labels
+      if (!field.label || field.label.trim() === '' || field.label === 'text') {
+        console.warn(`  ⚠️ WARNING: Field ${fieldIndex} has problematic label: "${field.label}"`);
+        console.warn(`  Field data:`, JSON.stringify(field, null, 2));
+      }
+      
+      const fieldKey = `field_${fieldIndex}`;
+      const value = formData[fieldKey];
+      console.log(`  Field key: ${fieldKey}`);
+      console.log(`  Current value:`, value);
+      console.log(`  Value type:`, typeof value);
+      
+      // Check required fields based on type
+      let hasError = false;
+      let errorMessage = '';
+      
+      // Create a better field name for error messages
+      const fieldDisplayName = field.label || field.name || `Question ${fieldIndex + 1}` || 'Unnamed field';
+      
+      if (field.type === 'checkbox') {
+        // For checkbox, any boolean value (true/false) is valid
+        if (value === undefined || value === null) {
+          hasError = true;
+          errorMessage = `"${fieldDisplayName}" is required`;
+          console.log(`  ❌ ERROR: Checkbox is undefined/null`);
+        } else {
+          console.log(`  ✓ VALID: Checkbox has value:`, value);
+        }
+      } else if (field.type === 'multiselect') {
+        const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+        if (selectedValues.length === 0) {
+          hasError = true;
+          errorMessage = `"${fieldDisplayName}" requires at least one selection`;
+          console.log(`  ❌ ERROR: Multiselect has no selections`);
+        } else {
+          console.log(`  ✓ VALID: Multiselect has ${selectedValues.length} selections`);
+        }
+      } else if (field.type === 'yesno') {
+        // Yes/No fields must have either 'Yes' or 'No'
+        if (!value || (value !== 'Yes' && value !== 'No')) {
+          hasError = true;
+          errorMessage = `"${fieldDisplayName}" is required (please select Yes or No)`;
+          console.log(`  ❌ ERROR: Yes/No field missing or invalid:`, value);
+        } else {
+          console.log(`  ✓ VALID: Yes/No field has value:`, value);
+        }
+      } else {
+        // For text, number, textarea, select, date, etc.
+        const trimmedValue = typeof value === 'string' ? value.trim() : value;
+        if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+          hasError = true;
+          errorMessage = `"${fieldDisplayName}" is required`;
+          console.log(`  ❌ ERROR: Field is empty`);
+        } else {
+          console.log(`  ✓ VALID: Field has value:`, trimmedValue);
+        }
+      }
+      
+      if (hasError) {
+        errors[fieldKey] = errorMessage;
+        console.log(`  ⚠️ ADDING ERROR: ${errorMessage}`);
+      }
+      
+      // Validate sub-questions if they should be visible
+      if (field.subQuestions && field.subQuestions.length > 0) {
+        const shouldShowSubQuestions = checkSubQuestionVisibility(field, value);
+        console.log(`  Sub-questions visible: ${shouldShowSubQuestions}`);
+        
+        if (shouldShowSubQuestions) {
+          field.subQuestions.forEach((subQuestion, subIndex) => {
+            const subKey = `field_${fieldIndex}_sub_${subIndex}`;
+            const subValue = formData[subKey];
+            
+            console.log(`    Sub-question ${subIndex}: "${subQuestion.label}", required: ${subQuestion.required}, value:`, subValue);
+            
+            if (subQuestion.required) {
+              let subHasError = false;
+              let subErrorMessage = '';
+              
+              const subDisplayName = subQuestion.label || subQuestion.name || `Follow-up Question ${subIndex + 1}`;
+              
+              if (subQuestion.type === 'checkbox') {
+                if (subValue === undefined || subValue === null) {
+                  subHasError = true;
+                  subErrorMessage = `"${subDisplayName}" is required`;
+                  console.log(`    ❌ ERROR: Sub-question checkbox is undefined/null`);
+                }
+              } else if (subQuestion.type === 'yesno') {
+                if (!subValue || (subValue !== 'Yes' && subValue !== 'No')) {
+                  subHasError = true;
+                  subErrorMessage = `"${subDisplayName}" is required (please select Yes or No)`;
+                  console.log(`    ❌ ERROR: Sub-question Yes/No missing or invalid`);
+                }
+              } else {
+                const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                  subHasError = true;
+                  subErrorMessage = `"${subDisplayName}" is required`;
+                  console.log(`    ❌ ERROR: Sub-question is empty`);
+                }
+              }
+              
+              if (subHasError) {
+                errors[subKey] = subErrorMessage;
+                console.log(`    ⚠️ ADDING ERROR: ${subErrorMessage}`);
+              } else {
+                console.log(`    ✓ VALID: Sub-question passed validation`);
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    console.log('\n=== VALIDATION COMPLETE ===');
+    console.log('Total errors found:', Object.keys(errors).length);
+    if (Object.keys(errors).length > 0) {
+      console.log('Errors:', errors);
+    }
+    
+    return errors;
+  };
 
+  const checkSubQuestionVisibility = (field, value) => {
+    if (!field.showSubQuestionsWhen) return true;
+    
+    if (field.type === 'yesno') {
+      const showWhen = field.showSubQuestionsWhen.toLowerCase();
+      const currentValue = value?.toLowerCase();
+      return showWhen === currentValue || field.showSubQuestionsWhen === value;
+    } else if (field.type === 'select') {
+      return field.showSubQuestionsWhen === value;
+    } else if (field.type === 'multiselect') {
+      const selectedValues = Array.isArray(value) ? value : (value ? [value] : []);
+      return selectedValues.includes(field.showSubQuestionsWhen);
+    }
+    
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -194,11 +404,75 @@ export default function SubmitReport() {
     setIsSubmitting(true);
     setError('');
     setSuccess('');
+    setValidationErrors({});
 
     try {
-      // VALIDATION DISABLED - All frontend validation has been removed
-      console.log('Frontend - Validation disabled, proceeding with submission');
+      // Validate main form fields
+      const errors = validateForm();
+      
+      // Validate ward-specific questions
+      const wardApplicableFields = selectedForm.fields.filter(f => f.applicableToWards && f.required);
+      console.log('Ward-applicable fields to validate:', wardApplicableFields.length);
+      
+      if (wardApplicableFields.length > 0) {
+        // Get coordinator's wards
+        const wardsToValidate = Object.keys(wardData);
+        console.log('Wards to validate:', wardsToValidate.length);
+        
+        wardApplicableFields.forEach((field, fieldIndex) => {
+          const originalFieldIndex = selectedForm.fields.indexOf(field);
+          
+          wardsToValidate.forEach((wardId, wardIdx) => {
+            const wardValue = wardData[wardId]?.[`field_${originalFieldIndex}`];
+            console.log(`Checking ward ${wardIdx + 1}, field_${originalFieldIndex}: "${field.label}", value:`, wardValue);
+            
+            if (field.required) {
+              if (field.type === 'checkbox') {
+                if (wardValue === undefined || wardValue === null) {
+                  errors[`ward_${wardId}_field_${originalFieldIndex}`] = `"${field.label}" is required for ward ${wardIdx + 1}`;
+                  console.log(`❌ Ward ${wardIdx + 1} - ${field.label} is empty`);
+                }
+              } else {
+                const trimmedValue = typeof wardValue === 'string' ? wardValue.trim() : wardValue;
+                if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+                  errors[`ward_${wardId}_field_${originalFieldIndex}`] = `"${field.label}" is required for ward ${wardIdx + 1}`;
+                  console.log(`❌ Ward ${wardIdx + 1} - ${field.label} is empty`);
+                } else {
+                  console.log(`✓ Ward ${wardIdx + 1} - ${field.label} is valid`);
+                }
+              }
+            }
+          });
+        });
+      }
+      
+      if (Object.keys(errors).length > 0) {
+        console.log('Validation failed:', errors);
+        setValidationErrors(errors);
+        
+        // Create a detailed error message showing which fields need attention
+        const errorCount = Object.keys(errors).length;
+        const errorFieldNames = Object.values(errors).join(', ');
+        const errorMessage = `Please fill in all required fields. ${errorCount} field${errorCount > 1 ? 's' : ''} ${errorCount > 1 ? 'need' : 'needs'} attention:\n\n${errorFieldNames}`;
+        setError(errorMessage);
+        
+        console.log('📋 USER-FRIENDLY ERROR MESSAGE:', errorMessage);
+        
+        // Scroll to first error
+        const firstErrorKey = Object.keys(errors)[0];
+        const errorElement = document.querySelector(`[name="${firstErrorKey}"]`);
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          errorElement.focus();
+        }
+        
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log('Frontend - Validation passed (including ward data), proceeding with submission');
       console.log('Frontend - Form data:', formData);
+      console.log('Frontend - Ward data:', wardData);
 
       // Convert form data from field indexes to field labels for API
       const responseData = {};
@@ -280,24 +554,33 @@ export default function SubmitReport() {
       
       console.log('Submit response:', submitResponse.data);
 
-      setSuccess('Report submitted successfully');
+      // Store the success message and form title before clearing
+      const submittedFormTitle = selectedForm.title;
       
-      // Update the current form's submission status immediately
-      setActiveForms(prevForms => 
-        prevForms.map(form => 
-          form._id === selectedForm._id 
-            ? { ...form, isSubmitted: true }
-            : form
-        )
-      );
-      
+      // Clear form data and return to list view
       setFormData({});
       setWardData({});
       setRecurringData({});
+      setValidationErrors({});
       setSelectedForm(null);
       
       // Refresh the forms list to update submission status
       await fetchActiveForms();
+      
+      // Set success message AFTER clearing form (so it shows on the list page)
+      setSuccess(`Report "${submittedFormTitle}" submitted successfully! You can view it in "My Reports".`);
+      
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Auto-dismiss success message after 10 seconds
+      if (successTimeout) {
+        clearTimeout(successTimeout);
+      }
+      const timeout = setTimeout(() => {
+        setSuccess('');
+      }, 10000);
+      setSuccessTimeout(timeout);
     } catch (error) {
       console.error('Submit error:', error);
       
@@ -363,7 +646,7 @@ export default function SubmitReport() {
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm">{error}</p>
+                <p className="text-sm whitespace-pre-line">{error}</p>
               </div>
             </div>
           </div>
@@ -748,6 +1031,7 @@ export default function SubmitReport() {
                 form={selectedForm}
                 formData={formData}
                 setFormData={submittedResponse ? () => {} : setFormData}
+                errors={validationErrors}
                 readOnly={!!submittedResponse}
               />
               

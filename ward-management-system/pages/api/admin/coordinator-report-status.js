@@ -57,7 +57,7 @@ export default async function handler(req, res) {
         formType: 'coordinatorReport',
         respondent: { $in: coordinatorIds },
         $or: weeks.map(({ week, year }) => ({ weekNumber: week, year }))
-      });
+      }).populate('formTemplate', 'title');
 
       const coordinatorStatusData = coordinators.map(coordinator => {
         const coordinatorData = {
@@ -81,6 +81,7 @@ export default async function handler(req, res) {
             year,
             hasReport: !!report,
             reportId: report ? report._id : null,
+            formName: report?.formTemplate?.title || null
           };
         });
         return coordinatorData;

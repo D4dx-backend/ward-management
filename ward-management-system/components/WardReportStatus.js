@@ -120,9 +120,10 @@ export default function WardReportStatus({ compact = false }) {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-medium text-gray-900">Ward</th>
-                {statusData.weeks.map(({ week, year }) => (
+                {statusData.weeks.map(({ week, year, formTitle }) => (
                   <th key={`${week}-${year}`} className="text-center py-3 px-2 font-medium text-gray-900">
-                    Week {week}
+                    <div>{formTitle || `Week ${week} Report`}</div>
+                    <div className="text-xs font-normal text-gray-500">(Week {week})</div>
                   </th>
                 ))}
               </tr>

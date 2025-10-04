@@ -8,7 +8,6 @@ import Card from '../../components/Card';
 import StatsCard from '../../components/StatsCard';
 import CoordinatorFormTracker from '../../components/CoordinatorFormTracker';
 import WardReportStatus from '../../components/WardReportStatus';
-import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import CoordinatorReportsList from '../../components/CoordinatorReportsList';
 import { useApiData, useDashboardData } from '../../hooks/useApiData';
 import { useInstantDashboard } from '../../hooks/useInstantLoad';
@@ -144,17 +143,11 @@ export default function CoordinatorDashboard() {
         </div>
 
         {/* Ward Management Overview */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           {/* Ward Report Status Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Report Status</h2>
             <WardReportStatus />
-          </div>
-
-          {/* Ward House Visit Status */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ward Visit Status</h2>
-            <WardClusterVisitStatus />
           </div>
         </div>
 

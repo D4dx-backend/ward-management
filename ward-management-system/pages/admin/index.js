@@ -278,8 +278,8 @@ export default function AdminDashboard() {
         {/* House Visit Status - Recent 4 Weeks */}
         <ClusterVisitStatus />
 
-        {/* Ward Management Overview */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Ward Management Overview - Full Width Layout */}
+        <div className="space-y-6">
           {/* Ward Report Status Table */}
           <AdminWardReportStatus />
 

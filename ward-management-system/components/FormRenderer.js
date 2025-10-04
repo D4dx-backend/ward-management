@@ -230,6 +230,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="text"
+            name={fieldKey}
             value={fieldValue}
             onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -245,6 +246,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="text"
+            name={fieldKey}
             inputMode="numeric"
             pattern="[0-9]*"
             value={fieldValue}
@@ -271,6 +273,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'textarea':
         return (
           <textarea
+            name={fieldKey}
             value={fieldValue}
             onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -286,6 +289,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'select':
         return (
           <select
+            name={fieldKey}
             value={fieldValue}
             onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -312,6 +316,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
               <label key={optionIndex} className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
+                  name={`${fieldKey}_option_${optionIndex}`}
                   checked={selectedValues.includes(option)}
                   onChange={(e) => {
                     let newValues;
@@ -371,6 +376,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
           <div className="flex items-center">
             <input
               type="checkbox"
+              name={fieldKey}
               checked={fieldValue === 'true' || fieldValue === true}
               onChange={(e) => handleFieldChange(fieldIndex, e.target.checked, field)}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -384,6 +390,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="date"
+            name={fieldKey}
             value={fieldValue}
             onChange={(e) => handleFieldChange(fieldIndex, e.target.value, field, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -411,6 +418,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="text"
+            name={subKey}
             value={subValue}
             onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -426,6 +434,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="text"
+            name={subKey}
             inputMode="numeric"
             pattern="[0-9]*"
             value={subValue}
@@ -452,6 +461,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'textarea':
         return (
           <textarea
+            name={subKey}
             value={subValue}
             onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -467,6 +477,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
       case 'select':
         return (
           <select
+            name={subKey}
             value={subValue}
             onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -521,6 +532,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
           <div className="flex items-center">
             <input
               type="checkbox"
+              name={subKey}
               checked={subValue === 'true' || subValue === true}
               onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.checked)}
               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
@@ -534,6 +546,7 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
         return (
           <input
             type="date"
+            name={subKey}
             value={subValue}
             onChange={(e) => handleSubQuestionChange(fieldIndex, subIndex, e.target.value, clusterId)}
             className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -552,20 +565,26 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
   // Helper function to render fields grouped by sections
   const renderFieldsBySection = (fields, fieldPrefix = '') => {
     // Filter out ward-applicable questions as they should only appear in WardDataCollector
-    const filteredFields = fields.filter(field => !field.applicableToWards);
+    // BUT keep track of original indices before filtering!
+    const fieldsWithOriginalIndex = fields.map((field, originalIdx) => ({
+      ...field,
+      _originalArrayIndex: originalIdx  // Store the original index from form.fields array
+    }));
+    
+    const filteredFields = fieldsWithOriginalIndex.filter(field => !field.applicableToWards);
     
     // Group fields by section
     const sections = {};
     let questionCounter = 1;
     
-    filteredFields.forEach((field, index) => {
+    filteredFields.forEach((field) => {
       const sectionName = field.section || 'General Questions';
       if (!sections[sectionName]) {
         sections[sectionName] = [];
       }
       sections[sectionName].push({ 
         ...field, 
-        originalIndex: index, 
+        originalIndex: field._originalArrayIndex,  // Use the ACTUAL original index
         questionNumber: questionCounter++,
         fieldPrefix 
       });

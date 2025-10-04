@@ -226,11 +226,23 @@ export default function AdminWardReportStatus({ compact = false }) {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 font-medium text-gray-900">Ward</th>
                 <th className="text-left py-3 px-2 font-medium text-gray-900">Ward Coordinator</th>
-                {statusData.weeks.map(({ week, year }) => (
-                  <th key={`${week}-${year}`} className="text-center py-3 px-2 font-medium text-gray-900">
-                    Week {week}
-                  </th>
-                ))}
+                {statusData.weeks.map(({ week, year }) => {
+                  const weekKey = `week_${week}_${year}`;
+                  // Find the most common form name for this week
+                  const formNames = statusData.wardStatus
+                    .map(wd => wd.weeks[weekKey]?.formName)
+                    .filter(name => name != null);
+                  
+                  // Get the first form name found (most cases will have the same form for all wards)
+                  const formName = formNames.length > 0 ? formNames[0] : null;
+                  
+                  return (
+                    <th key={`${week}-${year}`} className="text-center py-3 px-2 font-medium text-gray-900 min-w-[150px]">
+                      <div className="line-clamp-2">{formName || 'Form'}</div>
+                      <div className="text-xs font-normal text-gray-600">(Week {week}, {year})</div>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
