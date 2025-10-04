@@ -8,6 +8,8 @@ import Layout from '../../components/Layout';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
+import Modal from '../../components/Modal';
+import WardClusterVisitStatus from '../../components/WardClusterVisitStatus';
 import { usePersistedData } from '../../lib/simpleCache';
 
 export default function WardVisits() {
@@ -24,6 +26,7 @@ export default function WardVisits() {
   const [selectedVisit, setSelectedVisit] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [visitToDelete, setVisitToDelete] = useState(null);
+  const [showVisitStatusModal, setShowVisitStatusModal] = useState(false);
   const [filter, setFilter] = useState({
     ward: '',
     month: '',
@@ -307,6 +310,12 @@ export default function WardVisits() {
             <p className="mt-1 text-sm text-gray-600">Record and manage visits to wards under your coordination</p>
           </div>
           <div className="flex space-x-3">
+            <Button onClick={() => setShowVisitStatusModal(true)} variant="outline">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Ward Visit Status
+            </Button>
             <Button onClick={() => setShowAddForm(true)}>
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -1104,6 +1113,21 @@ export default function WardVisits() {
             </div>
           </div>
         )}
+
+        {/* Ward Visit Status Modal */}
+        <Modal
+          isOpen={showVisitStatusModal}
+          onClose={() => setShowVisitStatusModal(false)}
+          title="Ward Visit Status"
+          size="xl"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              House visit tracking across all wards under your coordination
+            </p>
+            <WardClusterVisitStatus />
+          </div>
+        </Modal>
       </div>
     </Layout>
   );

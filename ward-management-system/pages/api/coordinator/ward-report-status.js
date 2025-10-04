@@ -67,7 +67,25 @@ export default async function handler(req, res) {
         formType: 'wardReport',
         ward: { $in: wardIds },
         $or: weeks.map(({ week, year }) => ({ weekNumber: week, year }))
-      }).populate('ward', 'name district');
+      })
+      .populate('ward', 'name district')
+      .populate('formTemplate', 'title');
+      
+      // Create a map of week-year to form titles (from any report for that week)
+      const weekFormTitles = {};
+      reports.forEach(report => {
+        const weekKey = `${report.weekNumber}_${report.year}`;
+        if (!weekFormTitles[weekKey] && report.formTemplate?.title) {
+          weekFormTitles[weekKey] = report.formTemplate.title;
+        }
+      });
+      
+      // Enhance weeks array with form titles
+      const enhancedWeeks = weeks.map(({ week, year }) => ({
+        week,
+        year,
+        formTitle: weekFormTitles[`${week}_${year}`] || `Week ${week} Report`
+      }));
       
       // Build the status data
       const wardStatusData = coordinatorWards.map(ward => {
@@ -107,7 +125,7 @@ export default async function handler(req, res) {
       });
       
       return res.status(200).json({
-        weeks: weeks.map(({ week, year }) => ({ week, year })),
+        weeks: enhancedWeeks,
         wardStatus: wardStatusData
       });
       

@@ -7,11 +7,15 @@ import axios from 'axios';
 import Layout from '../../../../components/Layout';
 import Card from '../../../../components/Card';
 import Button from '../../../../components/Button';
+import ClusterResponseSummary from '../../../../components/ClusterResponseSummary';
+
 export default function WardReportDetail() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { id, ward, week, year } = router.query;
   const [report, setReport] = useState(null);
+  const [formTemplate, setFormTemplate] = useState(null);
+  const [clusters, setClusters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -31,8 +35,36 @@ export default function WardReportDetail() {
       console.log('Fetching report detail for ID:', id);
       const response = await axios.get(`/api/responses/${id}`);
       console.log('Report detail response:', response.data);
-      setReport(response.data);
+      const reportData = response.data;
+      setReport(reportData);
       setError('');
+
+      // Fetch the form template to get field definitions
+      if (reportData.formTemplate) {
+        try {
+          const templateResponse = await axios.get(`/api/forms/${reportData.formTemplate._id}`);
+          setFormTemplate(templateResponse.data);
+          console.log('Ward Report Detail - Fetched form template:', templateResponse.data);
+        } catch (error) {
+          console.error('Error fetching form template:', error);
+          setFormTemplate(null);
+        }
+      }
+
+      // Fetch clusters for the ward if there are cluster-applicable fields
+      const hasClusterFields = reportData.formTemplate?.fields?.some(field => field.applicableToClusters);
+      if (hasClusterFields && reportData.ward?._id) {
+        try {
+          const clustersResponse = await axios.get(`/api/clusters?wardId=${reportData.ward._id}`);
+          setClusters(clustersResponse.data || []);
+          console.log('Ward Report Detail - Fetched clusters:', clustersResponse.data?.length || 0);
+        } catch (error) {
+          console.error('Error fetching clusters:', error);
+          setClusters([]);
+        }
+      } else {
+        setClusters([]);
+      }
     } catch (error) {
       console.error('Error fetching report detail:', error);
       let errorMessage = 'Failed to fetch report details';
@@ -219,7 +251,57 @@ export default function WardReportDetail() {
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Report Responses</h3>
             
-            {report.responses && Object.keys(report.responses).length > 0 ? (
+            {formTemplate && formTemplate.fields ? (
+              <div className="space-y-6">
+                {formTemplate.fields.map((field, index) => {
+                  // Handle cluster-applicable fields
+                  if (field.applicableToClusters) {
+                    return (
+                      <ClusterResponseSummary
+                        key={field.id || index}
+                        field={field}
+                        responses={report.responses || {}}
+                        clusters={clusters}
+                        questionIndex={index}
+                        getClusterName={(clusterId) => {
+                          const cluster = clusters.find(c => c._id === clusterId);
+                          return cluster ? cluster.name : `Cluster ${clusterId.slice(-4)}`;
+                        }}
+                        renderFieldValue={(field, value) => {
+                          if (value === undefined || value === null || value === '') {
+                            return <span className="text-gray-400 italic">Not answered</span>;
+                          }
+                          return renderResponseValue(value);
+                        }}
+                      />
+                    );
+                  }
+
+                  // Handle regular fields
+                  const answer = report.responses?.[field.label];
+                  return (
+                    <div key={field.id || index} className="border-l-4 border-blue-500 pl-6 py-3">
+                      <div className="flex flex-col space-y-2">
+                        <h4 className="text-sm font-medium text-gray-900 leading-relaxed">
+                          <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                            {index + 1}
+                          </span>
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </h4>
+                        <div className="text-sm text-gray-700">
+                          {answer === undefined || answer === null || answer === '' ? (
+                            <span className="text-gray-400 italic">Not answered</span>
+                          ) : (
+                            renderResponseValue(answer)
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : report.responses && Object.keys(report.responses).length > 0 ? (
               <div className="space-y-6">
                 {Object.entries(report.responses).map(([question, answer], index) => {
                   const displayQuestion = question.replace(/_sub_\d+$/, '').replace(/_/g, ' ');
@@ -227,6 +309,9 @@ export default function WardReportDetail() {
                     <div key={index} className="border-l-4 border-blue-500 pl-6 py-3">
                       <div className="flex flex-col space-y-2">
                         <h4 className="text-sm font-medium text-gray-900 leading-relaxed">
+                          <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
+                            {index + 1}
+                          </span>
                           {displayQuestion}
                         </h4>
                         <div className="text-sm text-gray-700">

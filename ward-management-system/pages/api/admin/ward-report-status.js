@@ -137,7 +137,9 @@ export default async function handler(req, res) {
         formType: 'wardReport',
         ward: { $in: wardIds },
         $or: weeks.map(({ week, year }) => ({ weekNumber: week, year }))
-      }).populate('ward', 'name district coordinator');
+      })
+      .populate('ward', 'name district coordinator')
+      .populate('formTemplate', 'title');
       
       console.log(`Found ${reports.length} reports for admin ward report status`);
       
@@ -173,7 +175,8 @@ export default async function handler(req, res) {
             year,
             hasReport,
             reportId: reportData ? reportData._id : null,
-            submittedAt: reportData ? reportData.submittedAt : null
+            submittedAt: reportData ? reportData.submittedAt : null,
+            formName: reportData?.formTemplate?.title || null
           };
         });
         

@@ -110,13 +110,20 @@ export default function CreateWardReport() {
       setIsLoadingForms(true);
       setError('');
       
-      // Fetch all ward report forms
-      const formsResponse = await axios.get('/api/forms', { params: { formType: 'wardReport' } });
-      console.log('Fetched forms:', formsResponse.data);
+      // Fetch only available (not expired) and published ward report forms
+      const formsResponse = await axios.get('/api/forms', { 
+        params: { 
+          formType: 'wardReport',
+          availableOnly: 'true' // This filters by enableDateTime and closeDateTime
+        } 
+      });
+      console.log('Fetched available forms:', formsResponse.data);
       console.log('Forms with sittingWardFields:', formsResponse.data.map(f => ({ 
         title: f.title, 
         hasSittingWardFields: f.sittingWardFields && f.sittingWardFields.length > 0,
-        sittingWardFieldsCount: f.sittingWardFields?.length || 0
+        sittingWardFieldsCount: f.sittingWardFields?.length || 0,
+        enableDateTime: f.enableDateTime,
+        closeDateTime: f.closeDateTime
       })));
       
       // Fetch all responses for the selected ward (only wardReport type)
@@ -130,14 +137,26 @@ export default function CreateWardReport() {
       console.log('Number of responses:', responsesResponse.data.length);
       
       // Create a set of filled form identifiers (formId + weekNumber + year)
-      // This allows the same form to be submitted for different weeks
+      // Hide any form that has already been submitted for this ward
       const filledFormKeys = new Set(
         responsesResponse.data
           .filter(response => {
             const hasFormTemplate = response.formTemplate && response.formTemplate._id;
             if (!hasFormTemplate) {
               console.log('Response missing formTemplate:', response);
+              return false;
             }
+            
+            // Log all responses found
+            console.log('Form already filled:', {
+              formTitle: response.formTemplate.title,
+              respondentRole: response.respondent?.role || 'Unknown',
+              respondentName: response.respondent?.name || 'Unknown',
+              weekNumber: response.weekNumber,
+              year: response.year
+            });
+            
+            // Include all responses (any form that has been filled should be hidden)
             return hasFormTemplate;
           })
           .map(response => {
@@ -145,35 +164,44 @@ export default function CreateWardReport() {
             const weekNumber = response.weekNumber;
             const year = response.year;
             const key = `${formId}-${weekNumber}-${year}`;
-            console.log('Creating key from response:', {
+            console.log('Creating key from filled response:', {
               formTitle: response.formTemplate.title,
               formId,
               weekNumber,
               year,
-              key
+              key,
+              respondentRole: response.respondent?.role || 'Unknown'
             });
             return key;
           })
       );
       
-      console.log('Filled form keys (formId-week-year):', Array.from(filledFormKeys));
+      console.log('All filled form keys (formId-week-year):', Array.from(filledFormKeys));
       
-      // Filter out forms that already have responses for the same week and year
+      // Filter out forms that:
+      // 1. Already have responses for the same week and year (any submission)
+      // 2. Are expired (handled by availableOnly parameter in API)
       const unfilledForms = formsResponse.data.filter(form => {
         const formKey = `${form._id}-${form.weekNumber}-${form.year}`;
         const isFilled = filledFormKeys.has(formKey);
+        const isExpired = new Date(form.closeDateTime) < new Date();
+        
         console.log(`Checking form "${form.title}":`, {
           formId: form._id,
           weekNumber: form.weekNumber,
           year: form.year,
           formKey,
           isFilled,
-          willShow: !isFilled
+          isExpired,
+          enableDateTime: form.enableDateTime,
+          closeDateTime: form.closeDateTime,
+          willShow: !isFilled && !isExpired
         });
-        return !isFilled;
+        
+        return !isFilled && !isExpired;
       });
       
-      console.log('Total forms fetched:', formsResponse.data.length);
+      console.log('Total forms fetched (available only):', formsResponse.data.length);
       console.log('Total responses (filled):', responsesResponse.data.length);
       console.log('Unfilled forms count:', unfilledForms.length);
       console.log('Unfilled forms:', unfilledForms.map(f => `${f.title} (Week ${f.weekNumber}, ${f.year})`));
@@ -439,8 +467,14 @@ export default function CreateWardReport() {
 
             {selectedWard && !isLoadingForms && formTemplates.length === 0 && (
               <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                <p className="font-medium">No unfilled forms available</p>
-                <p className="mt-1">All forms for this ward have already been filled by the ward admin or coordinator. Please check back when new forms are published.</p>
+                <p className="font-medium">No available forms</p>
+                <p className="mt-1">There are no forms available for this ward at the moment. This could be because:</p>
+                <ul className="mt-2 ml-4 list-disc space-y-1">
+                  <li>All forms have already been submitted for this ward</li>
+                  <li>Forms have expired (past the submission deadline)</li>
+                  <li>No new forms have been published yet</li>
+                </ul>
+                <p className="mt-2">Please check back later when new forms are published.</p>
               </div>
             )}
 

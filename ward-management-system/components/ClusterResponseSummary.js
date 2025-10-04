@@ -40,32 +40,48 @@ export default function ClusterResponseSummary({
       </div>
       
 
-      {/* Individual Cluster Responses */}
-      {Object.keys(clusterResponses).length > 0 ? (
+      {/* Individual Cluster Responses - Show ALL clusters */}
+      {clusters && clusters.length > 0 ? (
         <div className="space-y-3">
-          {Object.entries(clusterResponses).map(([clusterId, value]) => {
-            const cluster = clusters.find(c => c._id === clusterId);
-            const clusterName = cluster?.name || getClusterName(clusterId);
-            const clusterIndex = clusters.findIndex(c => c._id === clusterId);
+          {clusters.map((cluster, clusterIndex) => {
+            const clusterId = cluster._id;
+            const value = clusterResponses[clusterId];
+            const hasResponse = value !== undefined && value !== null && value !== '';
             
             return (
-              <div key={clusterId} className="bg-white border border-green-200 rounded-lg p-3">
+              <div key={clusterId} className={`bg-white rounded-lg p-3 ${
+                hasResponse ? 'border border-green-200' : 'border border-gray-300 border-dashed'
+              }`}>
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-blue-600">
-                      {clusterIndex >= 0 ? String.fromCharCode(97 + clusterIndex) : '?'}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                    hasResponse ? 'bg-blue-100' : 'bg-gray-100'
+                  }`}>
+                    <span className={`text-xs font-medium ${
+                      hasResponse ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
+                      {String.fromCharCode(97 + clusterIndex)}
                     </span>
                   </div>
-                  <span className="text-sm font-medium text-green-800">
-                    {clusterName}
+                  <span className={`text-sm font-medium ${
+                    hasResponse ? 'text-green-800' : 'text-gray-600'
+                  }`}>
+                    {cluster.name}
                   </span>
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Responded
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    hasResponse 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {hasResponse ? 'Responded' : 'Not Answered'}
                   </span>
                 </div>
-                <div className="text-sm text-gray-900 bg-gray-50 p-2 rounded border">
+                <div className={`text-sm p-2 rounded border ${
+                  hasResponse 
+                    ? 'text-gray-900 bg-gray-50 border-gray-200' 
+                    : 'text-gray-400 bg-gray-50 border-gray-200 italic'
+                }`}>
                   <span className="font-medium">Response: </span>
-                  {renderFieldValue(field, value)}
+                  {hasResponse ? renderFieldValue(field, value) : 'Not answered'}
                 </div>
               </div>
             );
@@ -73,7 +89,7 @@ export default function ClusterResponseSummary({
         </div>
       ) : (
         <div className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-md">
-          No cluster responses found
+          No clusters found for this ward
         </div>
       )}
     </div>
