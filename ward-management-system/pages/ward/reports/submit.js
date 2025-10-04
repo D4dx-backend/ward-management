@@ -43,18 +43,26 @@ export default function SubmitWardReport() {
     console.log('Session:', session);
     console.log('User role:', session?.user?.role);
     
+    if (status === 'loading') return;
+    
     // Check if user is authenticated and is Ward Incharge
     if (status === 'unauthenticated') {
       console.log('User unauthenticated, redirecting to signin');
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
-      console.log('User not ward admin, redirecting to home');
-      router.push('/');
-    } else if (status === 'authenticated') {
+      return;
+    }
+    
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'wardAdmin') {
+        console.log('User not ward admin, redirecting to home');
+        router.push('/');
+        return;
+      }
       console.log('User authenticated as ward admin, fetching data');
       fetchData();
     }
-  }, [status, session, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.role]);
 
   const fetchData = async () => {
     try {

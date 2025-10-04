@@ -31,14 +31,22 @@ export default function WardVisits() {
   });
 
   useEffect(() => {
+    if (status === 'loading') return;
+    
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
-      router.push('/');
-    } else if (status === 'authenticated') {
+      return;
+    }
+    
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'wardAdmin') {
+        router.push('/');
+        return;
+      }
       fetchVisits();
     }
-  }, [status, session, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.role]);
 
   const fetchVisits = async () => {
     try {

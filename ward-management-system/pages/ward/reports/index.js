@@ -22,14 +22,23 @@ export default function WardReports() {
   const { stats, recentReports, loading: dashboardLoading, error: dataError } = useDashboardData('wardAdmin');
 
   useEffect(() => {
+    if (status === 'loading') return; // Wait for session to load
+    
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
-      router.push('/');
-    } else if (status === 'authenticated') {
+      return;
+    }
+    
+    if (status === 'authenticated') {
+      if (session.user.role !== 'wardAdmin') {
+        router.push('/');
+        return;
+      }
+      // Only fetch reports if we're authenticated and authorized
       fetchReports();
     }
-  }, [status, session, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.role]); // Remove router from dependencies
 
   const fetchReports = async () => {
     try {

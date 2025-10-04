@@ -18,16 +18,18 @@ export default function Home() {
     }
 
     // Redirect to role-specific dashboards
-    if (session.user.role === 'coordinator') {
+    const role = session?.user?.role;
+    if (role === 'coordinator') {
       router.push('/coordinator');
-    } else if (session.user.role === 'wardAdmin') {
+    } else if (role === 'wardAdmin') {
       router.push('/ward');
-    } else if (session.user.role === 'stateAdmin') {
+    } else if (role === 'stateAdmin') {
       router.push('/admin');
     } else {
       router.push('/auth/signin');
     }
-  }, [session, status, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status]); // Remove router from dependencies to prevent loops
 
   if (status === 'loading') {
     return (

@@ -28,14 +28,22 @@ export default function EnhancedWardReport() {
   const [currentYear, setCurrentYear] = useState(null);
 
   useEffect(() => {
+    if (status === 'loading') return;
+    
     if (status === 'unauthenticated') {
       router.push('/auth/signin');
-    } else if (status === 'authenticated' && session.user.role !== 'wardAdmin') {
-      router.push('/');
-    } else if (status === 'authenticated') {
+      return;
+    }
+    
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'wardAdmin') {
+        router.push('/');
+        return;
+      }
       fetchData();
     }
-  }, [status, session, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session?.user?.role]);
 
   const fetchData = async () => {
     try {

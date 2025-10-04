@@ -5,6 +5,7 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
   const router = useRouter();
 
   const forceRefresh = useCallback(() => {
+    // Only allow force refresh if autoRefresh is enabled or explicitly called
     console.log('Force refreshing dashboard data...');
     
     // Clear all relevant cache
@@ -32,7 +33,14 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
   }, [refetchFunction]);
 
   useEffect(() => {
-    if (userRole !== 'wardAdmin' || !autoRefresh) return;
+    // CRITICAL: Exit early if autoRefresh is disabled
+    // This prevents ALL event listeners and intervals from being set up
+    if (!autoRefresh || userRole !== 'wardAdmin') {
+      console.log('Dashboard auto-refresh disabled for', userRole);
+      return;
+    }
+
+    console.log('Dashboard auto-refresh ENABLED for', userRole);
 
     // Check for form submission completion indicators
     const checkFormSubmission = () => {
@@ -126,14 +134,22 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
 
   // Periodic refresh for ward admin (every 2 minutes)
   useEffect(() => {
-    if (userRole !== 'wardAdmin' || !autoRefresh) return;
+    // CRITICAL: Exit early if autoRefresh is disabled
+    if (!autoRefresh || userRole !== 'wardAdmin') {
+      console.log('Periodic refresh disabled for', userRole);
+      return;
+    }
 
+    console.log('Setting up periodic refresh for ward admin...');
     const interval = setInterval(() => {
       console.log('Periodic dashboard refresh for ward admin...');
       forceRefresh();
     }, 2 * 60 * 1000); // 2 minutes
 
-    return () => clearInterval(interval);
+    return () => {
+      console.log('Clearing periodic refresh interval for ward admin');
+      clearInterval(interval);
+    };
   }, [userRole, forceRefresh, autoRefresh]);
 
   return { forceRefresh };
