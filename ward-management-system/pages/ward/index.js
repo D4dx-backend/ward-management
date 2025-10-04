@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -33,7 +33,8 @@ export default function WardAdminDashboard() {
   const recentReports = dashboardData?.recentReports || [];
   
   // Use the dashboard refresh hook for automatic refresh after form submissions
-  const { forceRefresh } = useDashboardRefresh(refresh, session?.user?.role);
+  // Disable auto-refresh to prevent infinite loops
+  const { forceRefresh } = useDashboardRefresh(refresh, session?.user?.role, false);
   
   // Fetch user info with caching
   const { data: userInfo, loading: userLoading } = useApiData(
@@ -117,9 +118,9 @@ export default function WardAdminDashboard() {
     }
   }, [dataError]);
 
-  // Debug logging for dashboard data
+  // Debug logging for dashboard data - use dashboardData to avoid infinite loops
   useEffect(() => {
-    if (session?.user?.role === 'wardAdmin') {
+    if (session?.user?.role === 'wardAdmin' && dashboardData) {
       console.log('Ward dashboard data updated:', {
         statsKeys: Object.keys(stats || {}),
         recentReportsCount: recentReports?.length || 0,
@@ -134,23 +135,36 @@ export default function WardAdminDashboard() {
         error: dataError?.message
       });
     }
-  }, [stats, recentReports, loading, dataError, session]);
+  }, [dashboardData, loading, dataError, session?.user?.role]);
 
+  // Track if we've initialized to prevent infinite loops
+  const lastDashboardDataRef = useRef(null);
+  const lastInstructionsDataRef = useRef(null);
+  
   useEffect(() => {
-    // Set additional data from stats and instructions
-    if (stats) {
-      const pendingForms = stats.pendingReportsList || stats.pendingFormsList || [];
-      const wardPendingReports = pendingForms.filter(form => 
-        form.formType === 'wardReport' && 
-        (!form.responses || !form.responses.some(r => r.respondent === session?.user?.id))
-      );
-      setPendingReportsList(wardPendingReports);
-    }
+    // Only update if data actually changed
+    const dashboardDataChanged = lastDashboardDataRef.current !== dashboardData;
+    const instructionsDataChanged = lastInstructionsDataRef.current !== instructionsData;
     
-    if (instructionsData) {
-      setRecentInstructions(instructionsData);
+    if (dashboardDataChanged || instructionsDataChanged) {
+      lastDashboardDataRef.current = dashboardData;
+      lastInstructionsDataRef.current = instructionsData;
+      
+      // Set additional data from stats and instructions
+      if (stats) {
+        const pendingForms = stats.pendingReportsList || stats.pendingFormsList || [];
+        const wardPendingReports = pendingForms.filter(form => 
+          form.formType === 'wardReport' && 
+          (!form.responses || !form.responses.some(r => r.respondent === session?.user?.id))
+        );
+        setPendingReportsList(wardPendingReports);
+      }
+      
+      if (instructionsData) {
+        setRecentInstructions(instructionsData);
+      }
     }
-  }, [stats, instructionsData, session?.user?.id]);
+  }, [dashboardData, instructionsData, session?.user?.id, stats]);
 
   // ELIMINATED: No loading states on revisit
 

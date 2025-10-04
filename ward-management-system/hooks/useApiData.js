@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { getCache, setCache, clearCache, invalidateCache } from '../lib/simpleCache';
 
@@ -16,6 +16,17 @@ export const useApiData = (url, options = {}) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Store callbacks in refs to avoid recreating fetchData
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+  const transformRef = useRef(transform);
+  
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+    onErrorRef.current = onError;
+    transformRef.current = transform;
+  });
 
   const fetchData = useCallback(async (forceRefresh = false) => {
     if (!enabled || !url) {
@@ -41,8 +52,8 @@ export const useApiData = (url, options = {}) => {
       let result = response.data;
 
       // Apply transform if provided
-      if (transform && typeof transform === 'function') {
-        result = transform(result);
+      if (transformRef.current && typeof transformRef.current === 'function') {
+        result = transformRef.current(result);
       }
 
       // Cache the result
@@ -52,8 +63,8 @@ export const useApiData = (url, options = {}) => {
 
       setData(result);
       
-      if (onSuccess) {
-        onSuccess(result);
+      if (onSuccessRef.current) {
+        onSuccessRef.current(result);
       }
 
       return result;
@@ -61,21 +72,28 @@ export const useApiData = (url, options = {}) => {
       console.error(`API Error for ${url}:`, err);
       setError(err);
       
-      if (onError) {
-        onError(err);
+      if (onErrorRef.current) {
+        onErrorRef.current(err);
       }
     } finally {
       setLoading(false);
     }
-  }, [url, enabled, cacheKey, cacheTTL, transform, onSuccess, onError]);
+  }, [url, enabled, cacheKey, cacheTTL]);
 
   const refetch = useCallback(() => {
     return fetchData(true);
   }, [fetchData]);
+  
+  // Track if initial fetch has been done
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData, ...dependencies]);
+    // Only fetch once on mount or when key dependencies change
+    if (!hasFetchedRef.current || dependencies.length > 0) {
+      hasFetchedRef.current = true;
+      fetchData();
+    }
+  }, [url, enabled, cacheKey, ...dependencies]);
 
   return {
     data,

@@ -341,3 +341,4 @@ All modal-related code has been commented out (not deleted) for easy rollback if
 **Lines Removed/Commented**: ~100  
 **Breaking Changes**: None (behavior change, but better UX)  
 **Backward Compatible**: Yes (same routes, just different navigation)
+

@@ -55,11 +55,19 @@ export default function EditWardReport() {
       
       setReport(response.data);
 
-      // Fetch clusters for cluster-applicable questions
+      // Fetch clusters for cluster-applicable questions (ward-specific)
+      let fetchedClusters = [];
+      const wardId = response.data.ward?._id;
+      
       try {
-        const clustersResponse = await axios.get('/api/clusters');
-        setClusters(clustersResponse.data || []);
-        console.log('Fetched clusters for edit:', clustersResponse.data?.length || 0);
+        // Fetch clusters for the specific ward, or all clusters if wardId not available
+        const clustersUrl = wardId ? `/api/clusters?wardId=${wardId}` : '/api/clusters';
+        console.log('Fetching clusters from:', clustersUrl);
+        
+        const clustersResponse = await axios.get(clustersUrl);
+        fetchedClusters = clustersResponse.data || [];
+        setClusters(fetchedClusters);
+        console.log('Fetched clusters for edit:', fetchedClusters.length, 'for ward:', wardId);
       } catch (error) {
         console.error('Error fetching clusters:', error);
         setClusters([]);
@@ -67,15 +75,26 @@ export default function EditWardReport() {
       
       // Convert responses back to form field format
       const convertedData = {};
+      console.log('Converting responses, fetched clusters:', fetchedClusters.length);
+      console.log('Response data keys:', Object.keys(response.data.responses || {}));
+      
       if (response.data.formTemplate?.fields && response.data.responses) {
         response.data.formTemplate.fields.forEach((field, fieldIndex) => {
           if (field.applicableToClusters) {
-            // Handle cluster-applicable fields
-            clusters.forEach(cluster => {
+            console.log(`Processing cluster field: ${field.label}, clusters:`, fetchedClusters.map(c => ({ id: c._id, name: c.name })));
+            
+            // Handle cluster-applicable fields - use fetchedClusters instead of state
+            fetchedClusters.forEach(cluster => {
               const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
               const responseKey = `${field.label}_cluster_${cluster._id}`;
+              
+              console.log(`Looking for response key: ${responseKey}`);
+              
               if (response.data.responses[responseKey] !== undefined) {
                 convertedData[fieldKey] = response.data.responses[responseKey];
+                console.log(`Found cluster response for ${cluster.name}: ${response.data.responses[responseKey]}`);
+              } else {
+                console.log(`No response found for key: ${responseKey}`);
               }
               
               // Handle sub-questions for cluster fields
@@ -85,6 +104,7 @@ export default function EditWardReport() {
                   const submittedKey = `${field.label}_cluster_${cluster._id}_${subQuestion.label}`;
                   if (response.data.responses[submittedKey] !== undefined) {
                     convertedData[subKey] = response.data.responses[submittedKey];
+                    console.log(`Found sub-question response: ${submittedKey}`);
                   }
                 });
               }
@@ -163,6 +183,9 @@ export default function EditWardReport() {
           }
         });
       }
+      
+      console.log('Final converted data:', convertedData);
+      console.log('Cluster-related keys:', Object.keys(convertedData).filter(k => k.includes('cluster')));
       
       setFormData(convertedData);
       setError('');
@@ -497,7 +520,9 @@ export default function EditWardReport() {
                   formData={formData}
                   setFormData={setFormData}
                   errors={validationErrors}
-                  ward={{ isSittingWard: report?.ward?.isSittingWard || false }} // Show sitting ward fields only if ward is a sitting ward
+                  ward={{ isSittingWard: report?.ward?.isSittingWard || false, _id: report?.ward?._id }} // Show sitting ward fields only if ward is a sitting ward
+                  clusters={clusters}
+                  isLoadingClusters={isLoading}
                 />
                 
                 <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">

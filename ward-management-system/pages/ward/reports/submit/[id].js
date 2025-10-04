@@ -173,10 +173,141 @@ export default function SubmitSpecificWardReport() {
   };
 
   const validateForm = () => {
-    // VALIDATION DISABLED - All frontend validation has been removed
-    console.log('Ward form - Validation disabled, proceeding with submission');
-    console.log('Ward form - Form data:', formData);
-    return true; // Always return true to allow submission
+    const errors = {};
+    let isValid = true;
+
+    console.log('Ward form - Validating form data:', formData);
+    console.log('Ward form - Form structure:', form);
+    console.log('Ward form - Clusters:', clusters);
+
+    // Helper function to check if sub-questions should be visible
+    const shouldShowSubQuestions = (field, fieldValue) => {
+      if (!field.showSubQuestionsWhen) return true;
+      
+      if (field.type === 'yesno') {
+        const showWhen = field.showSubQuestionsWhen.toLowerCase();
+        const currentValue = fieldValue?.toLowerCase();
+        return showWhen === currentValue || field.showSubQuestionsWhen === fieldValue;
+      } else if (field.type === 'select') {
+        return field.showSubQuestionsWhen === fieldValue;
+      } else if (field.type === 'multiselect') {
+        const selectedValues = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+        return selectedValues.includes(field.showSubQuestionsWhen);
+      }
+      
+      return true;
+    };
+
+    // Helper function to validate a field
+    const validateField = (field, fieldKey, fieldValue, fieldLabel) => {
+      if (field.required) {
+        if (field.type === 'checkbox') {
+          if (fieldValue === undefined || fieldValue === null) {
+            errors[fieldKey] = `${fieldLabel} is required`;
+            isValid = false;
+          }
+        } else if (field.type === 'multiselect') {
+          const selectedValues = Array.isArray(fieldValue) ? fieldValue : (fieldValue ? [fieldValue] : []);
+          if (selectedValues.length === 0) {
+            errors[fieldKey] = `${fieldLabel} is required - please select at least one option`;
+            isValid = false;
+          }
+        } else {
+          const trimmedValue = typeof fieldValue === 'string' ? fieldValue.trim() : fieldValue;
+          if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
+            errors[fieldKey] = `${fieldLabel} is required`;
+            isValid = false;
+          }
+        }
+      }
+    };
+
+    // Helper function to validate sub-questions
+    const validateSubQuestions = (field, fieldIndex, fieldValue, fieldPrefix = '', clusterId = null) => {
+      if (field.subQuestions && field.subQuestions.length > 0) {
+        const shouldShow = shouldShowSubQuestions(field, fieldValue);
+        
+        if (shouldShow) {
+          field.subQuestions.forEach((subQuestion, subIndex) => {
+            if (subQuestion.required) {
+              const subKey = clusterId 
+                ? `field_${fieldPrefix}${fieldIndex}_cluster_${clusterId}_sub_${subIndex}`
+                : fieldPrefix 
+                  ? `field_${fieldPrefix}${fieldIndex}_sub_${subIndex}`
+                  : `field_${fieldIndex}_sub_${subIndex}`;
+              const subValue = formData[subKey];
+              
+              if (subQuestion.type === 'checkbox') {
+                if (subValue === undefined || subValue === null) {
+                  errors[subKey] = `${subQuestion.label} is required`;
+                  isValid = false;
+                }
+              } else {
+                const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
+                if (!trimmedSubValue && trimmedSubValue !== 0 && trimmedSubValue !== false) {
+                  errors[subKey] = `${subQuestion.label} is required`;
+                  isValid = false;
+                }
+              }
+            }
+          });
+        }
+      }
+    };
+
+    // Validate regular form fields
+    if (form.fields && form.fields.length > 0) {
+      form.fields.forEach((field, fieldIndex) => {
+        if (field.applicableToClusters) {
+          // Validate cluster-applicable fields
+          clusters.forEach(cluster => {
+            const fieldKey = `field_${fieldIndex}_cluster_${cluster._id}`;
+            const fieldValue = formData[fieldKey];
+            const fieldLabel = `${field.label} for ${cluster.name}`;
+            
+            validateField(field, fieldKey, fieldValue, fieldLabel);
+            validateSubQuestions(field, fieldIndex, fieldValue, '', cluster._id);
+          });
+        } else if (!field.applicableToWards) {
+          // Validate regular ward-level fields (exclude ward-applicable questions)
+          const fieldKey = `field_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
+          
+          validateField(field, fieldKey, fieldValue, field.label);
+          validateSubQuestions(field, fieldIndex, fieldValue);
+        }
+      });
+    }
+
+    // Validate sitting ward fields - only for sitting wards
+    if (form.sittingWardFields && form.sittingWardFields.length > 0 && userWards[0]?.isSittingWard) {
+      form.sittingWardFields.forEach((field, fieldIndex) => {
+        if (field.applicableToClusters) {
+          // Validate cluster-applicable sitting ward fields
+          clusters.forEach(cluster => {
+            const fieldKey = `field_sitting_${fieldIndex}_cluster_${cluster._id}`;
+            const fieldValue = formData[fieldKey];
+            const fieldLabel = `${field.label} for ${cluster.name} (Sitting Ward)`;
+            
+            validateField(field, fieldKey, fieldValue, fieldLabel);
+            validateSubQuestions(field, fieldIndex, fieldValue, 'sitting_', cluster._id);
+          });
+        } else {
+          // Validate regular sitting ward fields
+          const fieldKey = `field_sitting_${fieldIndex}`;
+          const fieldValue = formData[fieldKey];
+          
+          validateField(field, fieldKey, fieldValue, `${field.label} (Sitting Ward)`);
+          validateSubQuestions(field, fieldIndex, fieldValue, 'sitting_');
+        }
+      });
+    }
+
+    console.log('Ward form - Validation errors:', errors);
+    console.log('Ward form - Validation result:', isValid);
+    
+    setValidationErrors(errors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
@@ -186,9 +317,23 @@ export default function SubmitSpecificWardReport() {
     console.log('DEBUG - Form data:', formData);
     console.log('DEBUG - Selected ward:', selectedWard);
 
+    // Validate form before submitting
+    if (!validateForm()) {
+      setError('Please fill in all required fields before submitting.');
+      // Scroll to the first error
+      setTimeout(() => {
+        const firstError = document.querySelector('.border-red-300, .text-red-600');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
     setSuccess('');
+    setValidationErrors({}); // Clear validation errors on successful validation
 
     try {
       // Convert form data from field_index format to field.label format for API
@@ -380,6 +525,28 @@ export default function SubmitSpecificWardReport() {
               </div>
               <div className="ml-2">
                 <p className="text-xs">{error}</p>
+                {Object.keys(validationErrors).length > 0 && (
+                  <p className="text-xs mt-1 font-medium">
+                    {Object.keys(validationErrors).length} field{Object.keys(validationErrors).length > 1 ? 's' : ''} require{Object.keys(validationErrors).length === 1 ? 's' : ''} your attention
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!error && Object.keys(validationErrors).length > 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-2">
+                <p className="text-xs font-medium">
+                  Please complete all required fields - {Object.keys(validationErrors).length} field{Object.keys(validationErrors).length > 1 ? 's' : ''} require{Object.keys(validationErrors).length === 1 ? 's' : ''} your attention
+                </p>
               </div>
             </div>
           </div>

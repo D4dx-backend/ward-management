@@ -36,7 +36,7 @@ export function useInstantLoad(key, fetcher, options = {}) {
 
     try {
       // Only show loading on very first fetch when no data exists
-      if (!data && !hasFetchedOnce.current && !silent) {
+      if (!hasFetchedOnce.current && !silent) {
         setLoading(true);
       }
 
@@ -52,19 +52,17 @@ export function useInstantLoad(key, fetcher, options = {}) {
     } catch (err) {
       console.error(`Fetch error for ${key}:`, err);
       setError(err);
-      
-      // Keep showing cached data even on error
-      if (!data) {
-        setError(err);
-      }
     } finally {
       fetchInProgress.current = false;
       setLoading(false);
     }
-  }, [key, fetcher, enabled, data, ttl]);
+  }, [key, fetcher, enabled, ttl]);
 
   // Initial effect - check cache first, fetch only if needed
   useEffect(() => {
+    // Only run once on mount or when key changes
+    if (hasFetchedOnce.current) return;
+    
     const cachedData = getInstantCache(key);
     
     if (cachedData) {
@@ -73,10 +71,11 @@ export function useInstantLoad(key, fetcher, options = {}) {
       setLoading(false);
       hasFetchedOnce.current = true;
       
+      // Skip background refresh to prevent repeated calls
       // Optionally fetch fresh data in background (silent)
-      setTimeout(() => {
-        fetchData(true);
-      }, 100);
+      // setTimeout(() => {
+      //   fetchData(true);
+      // }, 100);
     } else if (enabled) {
       // No cached data - fetch it (this is the only time we might show loading)
       fetchData(false);
