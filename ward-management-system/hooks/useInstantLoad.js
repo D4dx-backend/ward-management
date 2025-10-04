@@ -60,7 +60,7 @@ export function useInstantLoad(key, fetcher, options = {}) {
 
   // Initial effect - check cache first, fetch only if needed
   useEffect(() => {
-    // Only run once on mount or when key changes
+    // Prevent multiple runs - only run once per key change
     if (hasFetchedOnce.current) return;
     
     const cachedData = getInstantCache(key);
@@ -71,16 +71,24 @@ export function useInstantLoad(key, fetcher, options = {}) {
       setLoading(false);
       hasFetchedOnce.current = true;
       
-      // Skip background refresh to prevent repeated calls
-      // Optionally fetch fresh data in background (silent)
-      // setTimeout(() => {
-      //   fetchData(true);
-      // }, 100);
-    } else if (enabled) {
+      // Skip background refresh to prevent repeated calls and infinite loops
+      // Manual refresh can be triggered by user if needed
+    } else if (enabled && !fetchInProgress.current) {
       // No cached data - fetch it (this is the only time we might show loading)
+      // Guard against multiple simultaneous fetches
       fetchData(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled]);
+  
+  // Reset hasFetchedOnce when key changes to allow refetch with new key
+  useEffect(() => {
+    return () => {
+      if (fetchInProgress.current) {
+        hasFetchedOnce.current = false;
+      }
+    };
+  }, [key]);
 
   const refresh = useCallback(() => {
     return fetchData(true); // Always silent refresh

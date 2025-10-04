@@ -19,7 +19,6 @@ export default function FormResponses() {
   const [form, setForm] = useState(null);
   const [responses, setResponses] = useState([]);
   const [filteredResponses, setFilteredResponses] = useState([]);
-  const [selectedResponse, setSelectedResponse] = useState(null);
   const [coordinators, setCoordinators] = useState([]);
   const [wardNames, setWardNames] = useState({});
   const [clusters, setClusters] = useState([]);
@@ -49,25 +48,11 @@ export default function FormResponses() {
   }, [status, session, router, id]);
 
   useEffect(() => {
-    // If direct navigation with responseId, scroll to that response
-    if (direct === 'true' && responseId && responses.length > 0) {
-      const targetResponse = responses.find(r => r._id === responseId);
-      if (targetResponse) {
-        setSelectedResponse(targetResponse);
-        // Scroll to the response after a short delay
-        setTimeout(() => {
-          const element = document.getElementById(`response-${responseId}`);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
-            setTimeout(() => {
-              element.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
-            }, 3000);
-          }
-        }, 100);
-      }
+    // If direct navigation with responseId, redirect to the detail view page
+    if (direct === 'true' && responseId) {
+      router.push(`/admin/reports/view/${responseId}`);
     }
-  }, [direct, responseId, responses]);
+  }, [direct, responseId, router]);
 
   // Reset pagination when filters change
   useEffect(() => {
@@ -406,7 +391,7 @@ export default function FormResponses() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setSelectedResponse(row)}
+            onClick={() => router.push(`/admin/reports/view/${row._id}`)}
           >
             View Details
           </Button>
@@ -1284,123 +1269,6 @@ export default function FormResponses() {
                 </div>
               </Card>
             )}
-          </div>
-        )}
-
-        {/* Response Details Modal */}
-        {selectedResponse && (() => {
-          console.log('Modal opened with selectedResponse:', {
-            hasWardData: !!selectedResponse.wardData,
-            wardDataKeys: Object.keys(selectedResponse.wardData || {}),
-            wardDataLength: Object.keys(selectedResponse.wardData || {}).length,
-            wardData: selectedResponse.wardData
-          });
-          return null;
-        })()}
-        {selectedResponse && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Response Details - {selectedResponse.respondent?.name || 'Unknown User'}
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedResponse(null)}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </Button>
-              </div>
-              
-              <div className="max-h-96 overflow-y-auto">
-                <div className="space-y-4">
-                  {form?.fields && form.fields.length > 0 ? (
-                    form.fields.map((field, index) => {
-                      // Handle cluster-applicable fields
-                      if (field.applicableToClusters) {
-                        return (
-                          <ClusterResponseSummary
-                            key={field._id || field.id}
-                            field={field}
-                            responses={selectedResponse.responses}
-                            clusters={clusters}
-                            questionIndex={index}
-                            getClusterName={getClusterName}
-                            renderFieldValue={renderFieldValue}
-                          />
-                        );
-                      }
-
-                      return (
-                        <div key={field._id || field.id} className="border-b border-gray-100 pb-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold mr-2">
-                              Q{index + 1}
-                            </span>
-                            {field.label}
-                            {field.required && <span className="text-red-500 ml-1">*</span>}
-                            {field.applicableToWards && (
-                              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                Ward-specific
-                              </span>
-                            )}
-                          </label>
-                        
-                        {/* Show ward data for ward-applicable questions - only ward answers, no main answer */}
-                        {field.applicableToWards && selectedResponse.wardData && Object.keys(selectedResponse.wardData).length > 0 ? (
-                          <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-4">
-                            <h5 className="text-sm font-medium text-orange-800 mb-3 flex items-center">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                              </svg>
-                              Ward-specific Answers
-                            </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                              {Object.entries(selectedResponse.wardData).map(([wardId, wardResponses]) => {
-                                const fieldKey = `field_${index}`;
-                                const wardAnswer = wardResponses[fieldKey];
-                                return (
-                                  <div key={wardId} className="bg-white border border-orange-200 rounded-md p-3">
-                                    <div className="flex items-center mb-2">
-                                      <div className="w-4 h-4 bg-orange-100 rounded-full flex items-center justify-center mr-2">
-                                        <span className="text-xs font-medium text-orange-600">W</span>
-                                      </div>
-                                      <span className="text-xs font-medium text-orange-700">
-                                        {wardNames[wardId] || `Ward ${wardId.slice(-4)}`}
-                                      </span>
-                                    </div>
-                                    <div className="text-sm text-gray-900">
-                                      {wardAnswer !== undefined && wardAnswer !== null && wardAnswer !== '' ? (
-                                        <span>{String(wardAnswer)}</span>
-                                      ) : (
-                                        <span className="text-gray-400 italic">No response</span>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ) : field.applicableToWards ? (
-                          <div className="text-sm text-gray-500 italic">No ward-specific data available</div>
-                        ) : (
-                          <div className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
-                            {renderFieldValue(field, selectedResponse.responses?.[field.label])}
-                          </div>
-                        )}
-                      </div>
-                      );
-                    })
-                  ) : (
-                    <p className="text-gray-500">No form fields available</p>
-                  )}
-
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
