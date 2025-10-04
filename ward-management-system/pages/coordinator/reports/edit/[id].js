@@ -53,6 +53,10 @@ export default function EditCoordinatorReport() {
       setReport(reportData);
       setResponses(reportData.responses || {});
       setWardData(reportData.wardData || {});
+      
+      // Debug: Log the responses to see what values are being loaded
+      console.log('Coordinator Report Edit - Loaded responses:', reportData.responses);
+      console.log('Coordinator Report Edit - Response keys:', Object.keys(reportData.responses || {}));
 
       // Log ward data for debugging
       console.log('Coordinator Report Edit - Ward Data:', {
@@ -168,6 +172,11 @@ export default function EditCoordinatorReport() {
             console.log(`Validation error: ${field.label} is required (checkbox)`);
             errors[field.label] = `${field.label} is required`;
           }
+        } else if (field.type === 'yesno') {
+          if (!value || (value !== 'Yes' && value !== 'No' && value !== 'yes' && value !== 'no')) {
+            console.log(`Validation error: ${field.label} is required (yesno)`);
+            errors[field.label] = `${field.label} is required (please select Yes or No)`;
+          }
         } else {
           const trimmedValue = typeof value === 'string' ? value.trim() : value;
           if (!trimmedValue && trimmedValue !== 0 && trimmedValue !== false) {
@@ -196,6 +205,11 @@ export default function EditCoordinatorReport() {
                 if (subValue === undefined || subValue === null) {
                   console.log(`Validation error: ${subKey} is required (checkbox)`);
                   errors[subKey] = `${subQuestion.label} is required`;
+                }
+              } else if (subQuestion.type === 'yesno') {
+                if (!subValue || (subValue !== 'Yes' && subValue !== 'No' && subValue !== 'yes' && subValue !== 'no')) {
+                  console.log(`Validation error: ${subKey} is required (yesno)`);
+                  errors[subKey] = `${subQuestion.label} is required (please select Yes or No)`;
                 }
               } else {
                 const trimmedSubValue = typeof subValue === 'string' ? subValue.trim() : subValue;
@@ -272,6 +286,11 @@ export default function EditCoordinatorReport() {
   const renderField = (field, index) => {
     const value = responses[field.label] || '';
     const error = validationErrors[field.label];
+    
+    // Debug: Log yes/no field values
+    if (field.type === 'yesno') {
+      console.log(`Yes/No field "${field.label}" value:`, value, 'type:', typeof value);
+    }
     
     const baseInputClasses = `w-full border rounded-md px-3 py-2 ${
       error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
@@ -362,6 +381,35 @@ export default function EditCoordinatorReport() {
         );
         break;
         
+      case 'yesno':
+        fieldElement = (
+          <div className="flex space-x-4">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name={`${field.label}_yesno`}
+                value="Yes"
+                checked={value === 'Yes' || value === 'yes'}
+                onChange={(e) => handleInputChange(field.label, e.target.value)}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
+            </label>
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                name={`${field.label}_yesno`}
+                value="No"
+                checked={value === 'No' || value === 'no'}
+                onChange={(e) => handleInputChange(field.label, e.target.value)}
+                className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm font-medium text-gray-700">No</span>
+            </label>
+          </div>
+        );
+        break;
+        
       default:
         fieldElement = (
           <input
@@ -427,6 +475,31 @@ export default function EditCoordinatorReport() {
                       />
                       <label className="ml-2 text-sm text-gray-600">
                         {subQuestion.checkboxLabel || 'Yes'}
+                      </label>
+                    </div>
+                  ) : subQuestion.type === 'yesno' ? (
+                    <div className="mt-1 flex space-x-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`${subKey}_yesno`}
+                          value="Yes"
+                          checked={subValue === 'Yes' || subValue === 'yes'}
+                          onChange={(e) => handleInputChange(subKey, e.target.value)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`${subKey}_yesno`}
+                          value="No"
+                          checked={subValue === 'No' || subValue === 'no'}
+                          onChange={(e) => handleInputChange(subKey, e.target.value)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">No</span>
                       </label>
                     </div>
                   ) : (
@@ -570,6 +643,35 @@ export default function EditCoordinatorReport() {
                       onChange={(e) => handleWardDataChange(wardId, fieldKey, e.target.value)}
                       className={baseInputClasses}
                     />
+                  );
+                  break;
+                  
+                case 'yesno':
+                  fieldElement = (
+                    <div className="flex space-x-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`${fieldKey}_${wardId}_yesno`}
+                          value="Yes"
+                          checked={wardAnswer === 'Yes' || wardAnswer === 'yes'}
+                          onChange={(e) => handleWardDataChange(wardId, fieldKey, e.target.value)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">Yes</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`${fieldKey}_${wardId}_yesno`}
+                          value="No"
+                          checked={wardAnswer === 'No' || wardAnswer === 'no'}
+                          onChange={(e) => handleWardDataChange(wardId, fieldKey, e.target.value)}
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-700">No</span>
+                      </label>
+                    </div>
                   );
                   break;
                   
