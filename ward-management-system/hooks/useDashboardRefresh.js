@@ -78,19 +78,27 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
     };
 
     // Listen for page visibility changes
+    let visibilityTimeout;
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('Page became visible, checking for updates...');
-        checkFormSubmission();
-        // Always refresh when page becomes visible for ward admin
-        setTimeout(() => forceRefresh(), 200);
+        clearTimeout(visibilityTimeout);
+        visibilityTimeout = setTimeout(() => {
+          console.log('Page became visible, checking for updates...');
+          checkFormSubmission();
+          // Refresh when page becomes visible for ward admin
+          forceRefresh();
+        }, 500); // 500ms debounce
       }
     };
 
-    // Listen for window focus
+    // Listen for window focus - but debounce to prevent infinite loops
+    let focusTimeout;
     const handleFocus = () => {
-      console.log('Window focused, refreshing dashboard...');
-      forceRefresh();
+      clearTimeout(focusTimeout);
+      focusTimeout = setTimeout(() => {
+        console.log('Window focused, refreshing dashboard...');
+        forceRefresh();
+      }, 1000); // 1 second debounce
     };
 
     // Listen for router events (navigation)
@@ -107,6 +115,8 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
     router.events.on('routeChangeComplete', handleRouteChange);
 
     return () => {
+      clearTimeout(visibilityTimeout);
+      clearTimeout(focusTimeout);
       window.removeEventListener('storage', handleStorageChange);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
 export default function FormRenderer({ form, formData, setFormData, errors = {}, readOnly = false, ward = null, clusters: externalClusters = null, isLoadingClusters: externalIsLoadingClusters = false }) {
@@ -40,7 +40,12 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
     }
   }, [form, externalClusters, externalIsLoadingClusters, ward]);
 
+  const hasInitialized = useRef(false);
+  
   useEffect(() => {
+    // Only initialize once to prevent infinite loops
+    if (hasInitialized.current) return;
+    
     // Initialize form data structure only if formData is empty or missing fields
     const initialData = {};
     
@@ -160,8 +165,9 @@ export default function FormRenderer({ form, formData, setFormData, errors = {},
     
     if (Object.keys(initialData).length > 0) {
       setFormData(prev => ({ ...prev, ...initialData }));
+      hasInitialized.current = true;
     }
-  }, [form, setFormData, clusters]);
+  }, [form, setFormData, formData, clusters]);
 
   const handleFieldChange = (fieldIndex, value, field, clusterId = null) => {
     const fieldKey = clusterId ? `field_${fieldIndex}_cluster_${clusterId}` : `field_${fieldIndex}`;
