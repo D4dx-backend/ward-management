@@ -255,14 +255,18 @@ export default function WardAdminDashboard() {
                   </span>
                 )}
                 <button
-                  onClick={() => refresh()}
+                  onClick={() => {
+                    // Use comprehensive cache clearing with user feedback
+                    const { clearCacheWithFeedback } = require('../../lib/cacheUtils');
+                    clearCacheWithFeedback(refresh, true);
+                  }}
                   className="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-fit"
-                  title="Refresh dashboard data"
+                  title="Hard refresh - clears all cache and reloads data"
                 >
                   <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  Hard Refresh
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 text-sm">

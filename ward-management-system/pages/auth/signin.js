@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import { useApiData } from '../../hooks/useApiData';
 
 export default function SignIn() {
+  const { data: session, status } = useSession();
   const [loginMethod, setLoginMethod] = useState('mobile'); // Default to mobile login
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,6 +16,17 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(true);
   const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === 'loading') return; // Wait for session check
+    
+    if (session) {
+      // User is already logged in, redirect to home
+      router.replace('/');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, status]);
 
   useEffect(() => {
     // Check if device is mobile
@@ -33,18 +44,24 @@ export default function SignIn() {
     setIsLoading(true);
     setError('');
 
-    const result = await signIn('credentials', {
-      redirect: false,
-      email,
-      password,
-    });
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
 
-    setIsLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      router.push('/');
+      if (result.error) {
+        setError(result.error);
+        setIsLoading(false);
+      } else if (result.ok) {
+        // Use replace instead of push to prevent back button issues
+        router.replace('/');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -53,18 +70,24 @@ export default function SignIn() {
     setIsLoading(true);
     setError('');
 
-    const result = await signIn('mobile-pin', {
-      redirect: false,
-      mobileNumber,
-      pinCode,
-    });
+    try {
+      const result = await signIn('mobile-pin', {
+        redirect: false,
+        mobileNumber,
+        pinCode,
+      });
 
-    setIsLoading(false);
-
-    if (result.error) {
-      setError(result.error);
-    } else {
-      router.push('/');
+      if (result.error) {
+        setError(result.error);
+        setIsLoading(false);
+      } else if (result.ok) {
+        // Use replace instead of push to prevent back button issues
+        router.replace('/');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An unexpected error occurred. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -79,6 +102,15 @@ export default function SignIn() {
     const value = e.target.value.replace(/[^0-9]/g, '');
     setMobileNumber(value);
   };
+
+  // Show loading spinner while checking session
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

@@ -47,6 +47,10 @@ const WardVisitSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  guestVisit: {
+    type: String,
+    trim: true
+  },
   remarks: {
     type: String,
     trim: true

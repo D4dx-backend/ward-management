@@ -18,13 +18,9 @@ export default function WardVisitsSimple() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     visitDate: new Date().toISOString().split('T')[0],
-    visitTime: '10:00',
     purpose: '',
     findings: '',
-    recommendations: '',
-    followUpRequired: false,
-    followUpDate: '',
-    attendees: ''
+    guestVisit: ''
   });
 
   useEffect(() => {
@@ -78,13 +74,9 @@ export default function WardVisitsSimple() {
       setShowForm(false);
       setFormData({
         visitDate: new Date().toISOString().split('T')[0],
-        visitTime: '10:00',
         purpose: '',
         findings: '',
-        recommendations: '',
-        followUpRequired: false,
-        followUpDate: '',
-        attendees: ''
+        guestVisit: ''
       });
       fetchVisits();
     } catch (error) {
@@ -99,14 +91,15 @@ export default function WardVisitsSimple() {
     setShowForm(false);
     setFormData({
       visitDate: new Date().toISOString().split('T')[0],
-      visitTime: '10:00',
       purpose: '',
       findings: '',
-      recommendations: '',
-      followUpRequired: false,
-      followUpDate: '',
-      attendees: ''
+      guestVisit: ''
     });
+  };
+
+  const handleViewVisit = (visit) => {
+    // For simple version, just show an alert with visit details
+    alert(`Visit Details:\n\nDate: ${new Date(visit.visitDate).toLocaleDateString()}\nGuest: ${visit.guestVisit}\nPurpose: ${visit.purpose}\nFindings & Recommendations: ${visit.findings || 'N/A'}`);
   };
 
   if (status === 'loading' || isLoading) {
@@ -172,14 +165,15 @@ export default function WardVisitsSimple() {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Visit Time
+                      Guest Visit
                     </label>
                     <input
-                      type="time"
-                      name="visitTime"
-                      value={formData.visitTime}
+                      type="text"
+                      name="guestVisit"
+                      value={formData.guestVisit}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter guest visitor name..."
                     />
                   </div>
                 </div>
@@ -201,73 +195,19 @@ export default function WardVisitsSimple() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Findings
+                    Findings & Recommendations
                   </label>
                   <textarea
                     name="findings"
                     value={formData.findings}
                     onChange={handleInputChange}
-                    rows={3}
+                    rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Key findings from the visit..."
+                    placeholder="Enter findings and recommendations..."
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Recommendations
-                  </label>
-                  <textarea
-                    name="recommendations"
-                    value={formData.recommendations}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Recommendations or action items..."
-                  />
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Attendees
-                  </label>
-                  <input
-                    type="text"
-                    name="attendees"
-                    value={formData.attendees}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="List of attendees..."
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="followUpRequired"
-                    checked={formData.followUpRequired}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 block text-sm text-gray-700">
-                    Follow-up required
-                  </label>
-                </div>
-
-                {formData.followUpRequired && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Follow-up Date
-                    </label>
-                    <input
-                      type="date"
-                      name="followUpDate"
-                      value={formData.followUpDate}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                )}
 
                 <div className="flex justify-end space-x-3">
                   <Button
@@ -298,44 +238,51 @@ export default function WardVisitsSimple() {
                 <p className="text-sm text-gray-400 mt-1">Click "Record New Visit" to get started</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {visits.map((visit) => (
-                  <div key={visit._id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-4 mb-2">
-                          <span className="text-sm font-medium text-gray-900">
-                            {new Date(visit.visitDate).toLocaleDateString()}
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Visit Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Guest Visit
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Purpose
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {visits.map((visit) => (
+                      <tr 
+                        key={visit._id} 
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => handleViewVisit(visit)}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(visit.visitDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {visit.guestVisit}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          <div className="max-w-xs truncate">
+                            {visit.purpose}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <span className="text-blue-600 hover:text-blue-900">
+                            View Details
                           </span>
-                          <span className="text-sm text-gray-500">
-                            {visit.visitTime}
-                          </span>
-                          {visit.followUpRequired && (
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                              Follow-up Required
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-900 mb-2">{visit.purpose}</p>
-                        {visit.findings && (
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Findings:</strong> {visit.findings}
-                          </p>
-                        )}
-                        {visit.recommendations && (
-                          <p className="text-sm text-gray-600 mb-1">
-                            <strong>Recommendations:</strong> {visit.recommendations}
-                          </p>
-                        )}
-                        {visit.attendees && (
-                          <p className="text-sm text-gray-600">
-                            <strong>Attendees:</strong> {visit.attendees}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -8,28 +8,9 @@ export const useDashboardRefresh = (refetchFunction, userRole, autoRefresh = tru
     // Only allow force refresh if autoRefresh is enabled or explicitly called
     console.log('Force refreshing dashboard data...');
     
-    // Clear all relevant cache
-    try {
-      const { clearCache, invalidateCache } = require('../lib/simpleCache');
-      
-      // Clear all cache for immediate refresh
-      clearCache();
-      
-      // Clear specific patterns
-      invalidateCache('dashboard');
-      invalidateCache('user-');
-      invalidateCache('responses');
-      invalidateCache('forms');
-      
-      console.log('Cache cleared, triggering refetch...');
-    } catch (error) {
-      console.warn('Failed to clear cache:', error);
-    }
-    
-    // Force refetch
-    if (refetchFunction) {
-      refetchFunction();
-    }
+    // Use comprehensive cache clearing utility
+    const { forceRefresh: clearAndRefresh } = require('../lib/cacheUtils');
+    clearAndRefresh(refetchFunction);
   }, [refetchFunction]);
 
   useEffect(() => {

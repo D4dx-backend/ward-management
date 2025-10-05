@@ -236,7 +236,7 @@ export default function AdminInstructions() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Instructions Management</h1>
             <p className="mt-1 text-sm text-gray-600">
-              Manage instructions for coordinators and Ward Incharges
+              SEC Docs for coordinators and Ward Incharges
             </p>
           </div>
           <Button onClick={() => {
@@ -302,34 +302,26 @@ export default function AdminInstructions() {
         </div>
 
         <Card className="overflow-hidden p-0">
-          <div>
-            <table className="w-full divide-y divide-gray-200 table-fixed">
-              <colgroup>
-                <col className="w-1/4" />
-                <col className="w-1/3" />
-                <col className="w-1/8" />
-                <col className="w-1/8" />
-                <col className="w-1/12" />
-                <col className="w-1/6" />
-              </colgroup>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Title
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Description
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Priority
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Attachment
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Target Audience
                   </th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -337,63 +329,45 @@ export default function AdminInstructions() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInstructions.map((instruction) => (
                   <tr key={instruction._id}>
-                    <td className="px-3 py-3">
-                      <div className="text-sm font-medium text-gray-900 truncate" title={instruction.title}>
-                        {instruction.title}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{instruction.title}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                        {instruction.description}
                       </div>
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="text-sm text-gray-900 truncate" title={instruction.description}>
-                        {(() => {
-                          const desc = instruction.description || 'No description';
-                          // Show only first 25 characters for very compact display
-                          if (desc.length > 25) {
-                            return desc.substring(0, 25) + '...';
-                          }
-                          return desc;
-                        })()}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-flex px-1 py-1 text-xs font-semibold rounded ${getPriorityColor(instruction.priority)}`}>
-                        {instruction.priority === 'high' ? 'H' :
-                          instruction.priority === 'low' ? 'L' : 'M'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(instruction.priority)}`}>
+                        {instruction.priority.charAt(0).toUpperCase() + instruction.priority.slice(1)}
                       </span>
                     </td>
-                    <td className="px-3 py-3 text-sm text-gray-900">
-                      <div className="truncate">
-                        {instruction.fileUrl ? (
-                          <a
-                            href={`/api/instructions/download/${instruction._id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 underline"
-                            title={instruction.fileName}
-                          >
-                            {instruction.fileName ?
-                              (instruction.fileName.length > 8 ?
-                                instruction.fileName.substring(0, 8) + '...' :
-                                instruction.fileName)
-                              : 'File'}
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {instruction.fileUrl ? (
+                        <a 
+                          href={`/api/instructions/download/${instruction._id}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          {instruction.fileName || 'Download File'}
+                        </a>
+                      ) : (
+                        'No file'
+                      )}
                     </td>
-                    <td className="px-3 py-3">
-                      <span className="inline-flex px-1 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {instruction.targetAudience === 'coordinators' ? 'Coord' :
-                          instruction.targetAudience === 'ward_admins' ? 'Ward' : 'All'}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {instruction.targetAudience === 'coordinators' ? 'Coordinators' :
+                         instruction.targetAudience === 'ward_admins' ? 'Ward Incharges' : 'All'}
                       </span>
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="flex space-x-1">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleView(instruction)}
-                          className="text-xs px-2 py-1"
                         >
                           View
                         </Button>
@@ -401,7 +375,6 @@ export default function AdminInstructions() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEdit(instruction)}
-                          className="text-xs px-2 py-1"
                         >
                           Edit
                         </Button>
@@ -409,7 +382,6 @@ export default function AdminInstructions() {
                           variant="danger"
                           size="sm"
                           onClick={() => handleDelete(instruction._id)}
-                          className="text-xs px-2 py-1"
                         >
                           Delete
                         </Button>
@@ -432,10 +404,10 @@ export default function AdminInstructions() {
           )}
         </Card>
 
-        {/* Create Instruction Modal */}
+        {/* Create SEC Docs Modal */}
         <Modal
           isOpen={showCreateModal}
-          title="Create New Instruction"
+          title="Create SEC Docs"
           onClose={() => {
             setShowCreateModal(false);
             resetForm();
@@ -453,7 +425,7 @@ export default function AdminInstructions() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter instruction title"
+                placeholder="Enter SEC Docs title"
                 required
               />
             </div>
@@ -468,7 +440,7 @@ export default function AdminInstructions() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={4}
-                placeholder="Enter instruction description"
+                placeholder="Enter SEC Docs description"
                 required
               />
             </div>
@@ -544,7 +516,7 @@ export default function AdminInstructions() {
                 Cancel
               </Button>
               <Button type="submit">
-                Create Instruction
+                Create SEC Docs
               </Button>
             </div>
           </form>
@@ -572,7 +544,7 @@ export default function AdminInstructions() {
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter instruction title"
+                placeholder="Enter SEC Docs title"
                 required
               />
             </div>
@@ -587,7 +559,7 @@ export default function AdminInstructions() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={4}
-                placeholder="Enter instruction description"
+                placeholder="Enter SEC Docs description"
                 required
               />
             </div>

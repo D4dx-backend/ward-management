@@ -126,19 +126,21 @@ export default async function handler(req, res) {
         followUpRequired,
         followUpDate,
         attendees,
+        guestVisit,
         remarks,
         status
       } = req.body;
 
       // Update visit fields
       if (visitDate) visit.visitDate = new Date(visitDate);
-      if (visitTime) visit.visitTime = visitTime;
+      visit.visitTime = ''; // Ward incharge is the default visitor
       if (purpose) visit.purpose = purpose;
       if (findings !== undefined) visit.findings = findings;
       if (recommendations !== undefined) visit.recommendations = recommendations;
-      if (followUpRequired !== undefined) visit.followUpRequired = followUpRequired;
-      if (followUpDate !== undefined) visit.followUpDate = followUpDate ? new Date(followUpDate) : null;
-      if (attendees !== undefined) visit.attendees = attendees;
+      visit.followUpRequired = false;
+      visit.followUpDate = null;
+      visit.attendees = ''; // No attendees field needed
+      if (guestVisit !== undefined) visit.guestVisit = guestVisit || 'Ward Admin';
       if (remarks !== undefined) visit.remarks = remarks;
       if (status) visit.status = status;
 

@@ -216,10 +216,13 @@ export default function AdminDocuments() {
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="policy">Policy</option>
-            <option value="guideline">Guideline</option>
-            <option value="form">Form</option>
-            <option value="report">Report</option>
+            <option value="Letter">Policy</option>
+            <option value="Handbook">Guideline</option>
+            <option value="Circular">Form</option>
+            <option value="Order">Form</option>
+            <option value="Direction">Report</option>
+            <option value="Forms">Report</option>
+            <option value="Press Release">Report</option>
             <option value="other">Other</option>
           </select>
         </div>

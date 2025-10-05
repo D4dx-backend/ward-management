@@ -91,8 +91,15 @@ export function useInstantLoad(key, fetcher, options = {}) {
   }, [key]);
 
   const refresh = useCallback(() => {
+    // Clear instant cache before refreshing
+    const { clearInstantCache } = require('../lib/instantCache');
+    clearInstantCache(key);
+    
+    // Reset the hasFetchedOnce flag to allow fresh fetch
+    hasFetchedOnce.current = false;
+    
     return fetchData(true); // Always silent refresh
-  }, [fetchData]);
+  }, [fetchData, key]);
 
   return {
     data,
