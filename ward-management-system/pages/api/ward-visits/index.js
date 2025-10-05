@@ -83,12 +83,8 @@ export default async function handler(req, res) {
         ward,
         visitDate,
         purpose,
-        findings,
-        recommendations,
-        followUpRequired,
-        followUpDate,
-        guestVisit,
-        remarks
+        findingsAndRecommendations,
+        guest
       } = req.body;
 
       console.log('Creating new ward visit:', { ward, visitDate, purpose });
@@ -115,15 +111,9 @@ export default async function handler(req, res) {
         ward,
         coordinator: session.user.id,
         visitDate: new Date(visitDate),
-        visitTime: '', // Ward incharge is the default visitor
         purpose,
-        findings: findings || '',
-        recommendations: recommendations || '',
-        followUpRequired: false,
-        followUpDate: null,
-        attendees: '', // No attendees field needed
-        guestVisit: guestVisit || 'Ward Admin',
-        remarks: remarks || '',
+        findingsAndRecommendations: findingsAndRecommendations || '',
+        guest: guest || '',
         recordedBy: session.user.id,
         recordedByRole: 'coordinator'
       });
@@ -143,12 +133,8 @@ export default async function handler(req, res) {
       const {
         visitDate,
         purpose,
-        findings,
-        recommendations,
-        followUpRequired,
-        followUpDate,
-        guestVisit,
-        remarks
+        findingsAndRecommendations,
+        guest
       } = req.body;
 
       if (!visitId) {
@@ -170,15 +156,9 @@ export default async function handler(req, res) {
 
       // Update visit fields
       visit.visitDate = visitDate ? new Date(visitDate) : visit.visitDate;
-      visit.visitTime = ''; // Ward incharge is the default visitor
       visit.purpose = purpose || visit.purpose;
-      visit.findings = findings || visit.findings;
-      visit.recommendations = recommendations || visit.recommendations;
-      visit.followUpRequired = false;
-      visit.followUpDate = null;
-      visit.attendees = ''; // No attendees field needed
-      visit.guestVisit = guestVisit !== undefined ? (guestVisit || 'Ward Admin') : visit.guestVisit;
-      visit.remarks = remarks || visit.remarks;
+      visit.findingsAndRecommendations = findingsAndRecommendations !== undefined ? findingsAndRecommendations : visit.findingsAndRecommendations;
+      visit.guest = guest !== undefined ? guest : visit.guest;
 
       await visit.save();
 

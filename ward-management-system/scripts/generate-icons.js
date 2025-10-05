@@ -55,3 +55,4 @@ sizes.forEach(size => {
 
 console.log('\n✨ All icon placeholders generated successfully!');
 console.log('💡 Tip: Replace these SVG files with proper PNG icons for production.');
+

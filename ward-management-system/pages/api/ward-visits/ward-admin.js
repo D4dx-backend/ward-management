@@ -24,14 +24,10 @@ export default async function handler(req, res) {
       const { limit } = req.query;
       const limitNum = limit ? parseInt(limit) : undefined;
 
-      // Find visits for the Ward Incharge's ward, but only those recorded by Ward Incharge
-      // Exclude coordinator-recorded visits from Ward Incharge view
+      // Find visits for the Ward Incharge's ward
+      // Include both coordinator visits and ward admin recorded visits
       const visits = await WardVisit.find({
-        ward: userWard._id,
-        $or: [
-          { recordedByRole: 'wardAdmin' },
-          { recordedBy: session.user.id }
-        ]
+        ward: userWard._id
       })
         .populate('coordinator', 'name email role')
         .populate('recordedBy', 'name email role')
@@ -71,7 +67,7 @@ export default async function handler(req, res) {
         followUpRequired: false,
         followUpDate: null,
         attendees: '', // No attendees field needed
-        guestVisit: guestVisit || 'Ward Admin',
+        guestVisit: guestVisit || '',
         remarks: remarks || '',
         recordedBy: session.user.id,
         recordedByRole: 'wardAdmin'
@@ -126,7 +122,7 @@ export default async function handler(req, res) {
           followUpRequired: false,
           followUpDate: null,
           attendees: '', // No attendees field needed
-          guestVisit: guestVisit !== undefined ? (guestVisit || 'Ward Admin') : visit.guestVisit,
+          guestVisit: guestVisit !== undefined ? guestVisit : visit.guestVisit,
           remarks: remarks !== undefined ? remarks : visit.remarks,
           updatedAt: new Date()
         },

@@ -156,7 +156,29 @@ export default async function handler(req, res) {
       res.status(200).json({ weeks });
     } catch (error) {
       console.error('Error fetching coordinator House Visit data:', error);
-      res.status(500).json({ error: 'Failed to fetch House Visit data' });
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // Provide more specific error messages
+      if (error.name === 'MongoError' || error.name === 'MongooseError') {
+        res.status(500).json({ 
+          error: 'Database connection failed', 
+          details: process.env.NODE_ENV === 'development' ? error.message : 'Database error'
+        });
+      } else if (error.message.includes('timeout')) {
+        res.status(504).json({ 
+          error: 'Request timeout', 
+          details: 'The request took too long to process'
+        });
+      } else {
+        res.status(500).json({ 
+          error: 'Failed to fetch House Visit data',
+          details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+      }
     }
   } else {
     res.setHeader('Allow', ['GET']);

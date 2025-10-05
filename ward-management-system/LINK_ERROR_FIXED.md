@@ -65,3 +65,4 @@ After the fix:
 **Issue:** Invalid Link component usage  
 **Location:** Ward Reports page - Submitted Reports section  
 **Fix:** Removed `<a>` tag and `passHref` prop from Link component
+

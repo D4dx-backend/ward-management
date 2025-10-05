@@ -27,7 +27,8 @@ export default function ClusterConsolidation() {
   });
   const [filterOptions, setFilterOptions] = useState({
     districts: [],
-    localBodies: []
+    localBodies: [],
+    coordinators: []
   });
 
   // Persistent pagination state
@@ -50,7 +51,8 @@ export default function ClusterConsolidation() {
     searchTerm: '',
     filterDistrict: '',
     filterLocalBody: '',
-    filterSittingWard: ''
+    filterSittingWard: '',
+    filterCoordinator: ''
   }, {
     filterKey: 'clusterConsolidationFilters'
   });
@@ -59,11 +61,13 @@ export default function ClusterConsolidation() {
   const filterDistrict = filters.filterDistrict || '';
   const filterLocalBody = filters.filterLocalBody || '';
   const filterSittingWard = filters.filterSittingWard || '';
+  const filterCoordinator = filters.filterCoordinator || '';
 
   const setSearchTerm = (value) => updateFilter('searchTerm', value);
   const setFilterDistrict = (value) => updateFilter('filterDistrict', value);
   const setFilterLocalBody = (value) => updateFilter('filterLocalBody', value);
   const setFilterSittingWard = (value) => updateFilter('filterSittingWard', value);
+  const setFilterCoordinator = (value) => updateFilter('filterCoordinator', value);
 
   useEffect(() => {
     // Check if user is authenticated
@@ -84,7 +88,7 @@ export default function ClusterConsolidation() {
       const response = await axios.get('/api/admin/cluster-consolidation');
       setData(response.data.data || []);
       setSummary(response.data.summary || {});
-      setFilterOptions(response.data.filters || { districts: [], localBodies: [] });
+      setFilterOptions(response.data.filters || { districts: [], localBodies: [], coordinators: [] });
       setError('');
     } catch (error) {
       console.error('Error fetching cluster consolidation data:', error);
@@ -129,8 +133,18 @@ export default function ClusterConsolidation() {
       }
     }
 
+    // Apply coordinator filter
+    if (filterCoordinator) {
+      filtered = filtered.filter(item => 
+        item.coordinator && (
+          item.coordinator._id === filterCoordinator ||
+          item.coordinator._id?.toString() === filterCoordinator
+        )
+      );
+    }
+
     return filtered;
-  }, [data, searchTerm, filterDistrict, filterLocalBody, filterSittingWard]);
+  }, [data, searchTerm, filterDistrict, filterLocalBody, filterSittingWard, filterCoordinator]);
 
   // Calculate pagination
   const totalItems = filteredData.length;
@@ -218,6 +232,7 @@ export default function ClusterConsolidation() {
     setFilterDistrict('');
     setFilterLocalBody('');
     setFilterSittingWard('');
+    setFilterCoordinator('');
     setSearchTerm('');
   };
 
@@ -375,7 +390,18 @@ export default function ClusterConsolidation() {
                   <option value="regular">Regular Wards Only</option>
                 </select>
                 
-                {(filterDistrict || filterLocalBody || filterSittingWard || searchTerm) && (
+                <select
+                  value={filterCoordinator}
+                  onChange={(e) => setFilterCoordinator(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Coordinators</option>
+                  {filterOptions.coordinators.map(coordinator => (
+                    <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
+                  ))}
+                </select>
+                
+                {(filterDistrict || filterLocalBody || filterSittingWard || filterCoordinator || searchTerm) && (
                   <button
                     onClick={handleClearFilters}
                     className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -581,7 +607,7 @@ export default function ClusterConsolidation() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <p className="mt-2 text-sm">
-                          {(searchTerm || filterDistrict || filterLocalBody || filterSittingWard)
+                          {(searchTerm || filterDistrict || filterLocalBody || filterSittingWard || filterCoordinator)
                             ? 'No wards found matching your filters'
                             : 'No data available'}
                         </p>
