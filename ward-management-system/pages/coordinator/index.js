@@ -63,13 +63,29 @@ export default function CoordinatorDashboard() {
       </Head>
 
       <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Welcome back, {session?.user?.name || 'Coordinator'}!
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Here's what's happening in your district today.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome back, {session?.user?.name || 'Coordinator'}!
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Here's what's happening in your district today.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              // Use comprehensive cache clearing with user feedback
+              const { clearCacheWithFeedback } = require('../../lib/cacheUtils');
+              clearCacheWithFeedback(refresh, true);
+            }}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 w-fit"
+            title="Hard refresh - clears all cache and reloads data"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Hard Refresh
+          </button>
         </div>
 
         {dashboardError && (

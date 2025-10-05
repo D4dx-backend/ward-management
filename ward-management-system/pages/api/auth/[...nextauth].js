@@ -114,41 +114,33 @@ export const authOptions = {
     },
     async redirect({ url, baseUrl }) {
       // Enhanced redirect handling to prevent localhost redirects in production
-      console.log('NextAuth redirect callback - url:', url, 'baseUrl:', baseUrl);
+      // Only log in development to reduce console noise
+      if (process.env.NODE_ENV === 'development') {
+        console.log('NextAuth redirect callback - url:', url, 'baseUrl:', baseUrl);
+      }
       
       // Get the proper base URL for production environments
       const getProperBaseUrl = () => {
         // Priority 1: Use NEXTAUTH_URL if set and not localhost
         if (process.env.NEXTAUTH_URL && !process.env.NEXTAUTH_URL.includes('localhost')) {
-          console.log('Using NEXTAUTH_URL for redirect:', process.env.NEXTAUTH_URL);
           return process.env.NEXTAUTH_URL;
         }
         
         // Priority 2: Use VERCEL_URL if available (for Vercel deployments)
         if (process.env.VERCEL_URL) {
-          const vercelUrl = `https://${process.env.VERCEL_URL}`;
-          console.log('Using VERCEL_URL for redirect:', vercelUrl);
-          return vercelUrl;
+          return `https://${process.env.VERCEL_URL}`;
         }
         
         // Priority 3: Hardcoded fallback for known production domain
         if (process.env.NODE_ENV === 'production' && baseUrl.includes('localhost')) {
-          const productionUrl = 'https://model.myward.in';
-          console.log('Production environment detected with localhost baseUrl, using hardcoded production URL:', productionUrl);
-          console.error('WARNING: Production environment is using localhost baseUrl. Please set NEXTAUTH_URL=https://model.myward.in in your environment variables.');
-          return productionUrl;
+          return 'https://model.myward.in';
         }
         
         // Priority 4: Check if we can detect the production domain from request headers
-        if (baseUrl.includes('localhost') && typeof window === 'undefined') {
-          // We're on server-side and got localhost, but this might be wrong
-          // Let's try to use the known production domain
-          const productionUrl = 'https://model.myward.in';
-          console.log('Server-side localhost detected, overriding with production URL:', productionUrl);
-          return productionUrl;
+        if (baseUrl.includes('localhost') && typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+          return 'https://model.myward.in';
         }
         
-        console.log('Using NextAuth provided baseUrl:', baseUrl);
         return baseUrl;
       };
       
@@ -156,32 +148,27 @@ export const authOptions = {
       
       // If url is a relative path, prepend proper baseUrl
       if (url.startsWith('/')) {
-        const finalUrl = `${properBaseUrl}${url}`;
-        console.log('Redirecting to relative URL:', finalUrl);
-        return finalUrl;
+        return `${properBaseUrl}${url}`;
       }
       
       // If url is already absolute and matches our proper domain, allow it
       if (url.startsWith(properBaseUrl)) {
-        console.log('Allowing absolute URL that matches domain:', url);
         return url;
       }
       
       // Check if the URL matches any of our valid domains (in case of multiple domains)
-      const validDomains = [properBaseUrl];
+      const validDomains = [properBaseUrl, baseUrl];
       if (process.env.NEXTAUTH_URL) {
         validDomains.push(process.env.NEXTAUTH_URL);
       }
       
       for (const domain of validDomains) {
         if (url.startsWith(domain)) {
-          console.log('Allowing URL that matches valid domain:', url);
           return url;
         }
       }
       
       // For any other case, redirect to proper baseUrl home page
-      console.log('Redirecting to home page:', properBaseUrl);
       return properBaseUrl;
     },
     async signIn({ user, account, profile, email, credentials }) {

@@ -32,6 +32,7 @@ export const menuConfig = {
       icon: '🏢',
       items: [
         { name: 'Clusters', href: '/admin/clusters', icon: '🏢' },
+        { name: 'Cluster Consolidation', href: '/admin/cluster-consolidation', icon: '📊' },
         { name: 'House Visits', href: '/admin/cluster-visits', icon: '📍' }
       ]
     },
@@ -56,7 +57,7 @@ export const menuConfig = {
       type: 'category',
       icon: '📚',
       items: [
-        { name: 'Guidelines & Instructions', href: '/admin/instructions', icon: '📋' },
+        { name: 'SEC Docs', href: '/admin/instructions', icon: '📋' },
         { name: 'Document Library', href: '/admin/documents', icon: '📄' }
       ]
     },
@@ -117,7 +118,7 @@ export const menuConfig = {
       type: 'category',
       icon: '📚',
       items: [
-        { name: 'Guidelines & Instructions', href: '/instructions', icon: '📋' },
+        { name: 'SEC Docs', href: '/instructions', icon: '📋' },
         { name: 'Document Library', href: '/documents', icon: '📄' }
       ]
     }
@@ -152,7 +153,8 @@ export const menuConfig = {
       icon: '🏘️',
       items: [
         { name: 'Ward Profile', href: '/ward/profile', icon: '📋' },
-        { name: 'Manage Cluster', href: '/ward/clusters', icon: '🏢' }
+        { name: 'Manage Cluster', href: '/ward/clusters', icon: '🏢' },
+        { name: 'Cluster Consolidation', href: '/admin/cluster-consolidation', icon: '📊' }
       ]
     },
     'Survey Status': {
@@ -165,7 +167,7 @@ export const menuConfig = {
       type: 'category',
       icon: '📚',
       items: [
-        { name: 'Guidelines & Instructions', href: '/instructions', icon: '📋' },
+        { name: 'SEC Docs', href: '/instructions', icon: '📋' },
         { name: 'Document Library', href: '/documents', icon: '📄' }
       ]
     }

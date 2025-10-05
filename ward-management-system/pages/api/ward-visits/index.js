@@ -82,13 +82,12 @@ export default async function handler(req, res) {
       const {
         ward,
         visitDate,
-        visitTime,
         purpose,
         findings,
         recommendations,
         followUpRequired,
         followUpDate,
-        attendees,
+        guestVisit,
         remarks
       } = req.body;
 
@@ -116,13 +115,14 @@ export default async function handler(req, res) {
         ward,
         coordinator: session.user.id,
         visitDate: new Date(visitDate),
-        visitTime: visitTime || '10:00',
+        visitTime: '', // Ward incharge is the default visitor
         purpose,
         findings: findings || '',
         recommendations: recommendations || '',
-        followUpRequired: followUpRequired || false,
-        followUpDate: followUpRequired && followUpDate ? new Date(followUpDate) : null,
-        attendees: attendees || '',
+        followUpRequired: false,
+        followUpDate: null,
+        attendees: '', // No attendees field needed
+        guestVisit: guestVisit || 'Ward Admin',
         remarks: remarks || '',
         recordedBy: session.user.id,
         recordedByRole: 'coordinator'
@@ -142,13 +142,12 @@ export default async function handler(req, res) {
       const { visitId } = req.query;
       const {
         visitDate,
-        visitTime,
         purpose,
         findings,
         recommendations,
         followUpRequired,
         followUpDate,
-        attendees,
+        guestVisit,
         remarks
       } = req.body;
 
@@ -171,13 +170,14 @@ export default async function handler(req, res) {
 
       // Update visit fields
       visit.visitDate = visitDate ? new Date(visitDate) : visit.visitDate;
-      visit.visitTime = visitTime || visit.visitTime;
+      visit.visitTime = ''; // Ward incharge is the default visitor
       visit.purpose = purpose || visit.purpose;
       visit.findings = findings || visit.findings;
       visit.recommendations = recommendations || visit.recommendations;
-      visit.followUpRequired = followUpRequired !== undefined ? followUpRequired : visit.followUpRequired;
-      visit.followUpDate = followUpRequired && followUpDate ? new Date(followUpDate) : null;
-      visit.attendees = attendees || visit.attendees;
+      visit.followUpRequired = false;
+      visit.followUpDate = null;
+      visit.attendees = ''; // No attendees field needed
+      visit.guestVisit = guestVisit !== undefined ? (guestVisit || 'Ward Admin') : visit.guestVisit;
       visit.remarks = remarks || visit.remarks;
 
       await visit.save();

@@ -128,7 +128,7 @@ export default function CreateInstruction() {
       if (response.status === 201) {
         router.push('/admin/instructions');
       } else {
-        throw new Error('Failed to create instruction');
+        throw new Error('Failed to Create SEC Docs');
       }
     } catch (error) {
       console.error('Instruction creation error:', error);
@@ -153,13 +153,13 @@ export default function CreateInstruction() {
   return (
     <Layout>
       <Head>
-        <title>Create Instruction - Ward Management System</title>
+        <title>Create SEC Docs - Ward Management System</title>
       </Head>
 
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Create New Instruction</h1>
-          <p className="mt-1 text-sm text-gray-600">Create instructions or documents for coordinators and Ward Incharges</p>
+          <h1 className="text-2xl font-bold text-gray-900">Create SEC Docs</h1>
+          <p className="mt-1 text-sm text-gray-600">Create SEC Docs or documents for coordinators and Ward Incharges</p>
         </div>
 
         {error && (
@@ -193,7 +193,7 @@ export default function CreateInstruction() {
                 className={`w-full px-3 py-2 border rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   formData.title.length > 180 ? 'border-yellow-300' : 'border-gray-300'
                 }`}
-                placeholder="Enter instruction title"
+                placeholder="Enter SEC Docs title"
                 required
               />
               {formData.title.length > 180 && (
@@ -329,7 +329,7 @@ export default function CreateInstruction() {
                     Creating...
                   </div>
                 ) : (
-                  'Create Instruction'
+                  'Create SEC Docs'
                 )}
               </Button>
             </div>

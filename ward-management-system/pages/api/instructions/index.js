@@ -183,7 +183,7 @@ export default async function handler(req, res) {
       });
     }
   } else if (req.method === 'POST') {
-    // Only state admins can create instructions
+    // Only state admins can Create SEC Docs
     if (session.user.role !== 'stateAdmin') {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -269,7 +269,7 @@ export default async function handler(req, res) {
         name: error.name
       });
       res.status(500).json({ 
-        error: 'Failed to create instruction',
+        error: 'Failed to Create SEC Docs',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
