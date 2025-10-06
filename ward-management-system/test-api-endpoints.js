@@ -48,3 +48,4 @@ async function testAPIEndpoints() {
 
 // Run the test
 testAPIEndpoints().catch(console.error);
+

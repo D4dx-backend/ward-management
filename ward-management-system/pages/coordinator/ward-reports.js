@@ -8,8 +8,6 @@ import Card from '../../components/Card';
 import Button from '../../components/Button';
 import SearchInput from '../../components/SearchInput';
 import Pagination from '../../components/Pagination';
-import Modal from '../../components/Modal';
-import ClusterResponseSummary from '../../components/ClusterResponseSummary';
 import { usePersistedData } from '../../lib/simpleCache';
 
 
@@ -18,10 +16,6 @@ export default function CoordinatorWardReports() {
   const router = useRouter();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(false);
-  const [formTemplate, setFormTemplate] = useState(null);
-  const [clusters, setClusters] = useState([]);
   const [filter, setFilter] = useState({
     ward: '',
     week: '',
@@ -172,37 +166,10 @@ export default function CoordinatorWardReports() {
 
   const handleViewReport = async (report) => {
     try {
-      setSelectedReport(report);
-      setShowReportModal(true);
-
-      // Fetch the form template to get field definitions
-      if (report.formTemplate) {
-        try {
-          const templateResponse = await axios.get(`/api/forms/${report.formTemplate._id}`);
-          setFormTemplate(templateResponse.data);
-          console.log('Ward Reports - Fetched form template:', templateResponse.data);
-        } catch (error) {
-          console.error('Error fetching form template:', error);
-          setFormTemplate(null);
-        }
-      }
-
-      // Fetch clusters for the ward if there are cluster-applicable fields
-      const hasClusterFields = report.formTemplate?.fields?.some(field => field.applicableToClusters);
-      if (hasClusterFields && report.ward?._id) {
-        try {
-          const clustersResponse = await axios.get(`/api/clusters?wardId=${report.ward._id}`);
-          setClusters(clustersResponse.data || []);
-          console.log('Ward Reports - Fetched clusters:', clustersResponse.data?.length || 0);
-        } catch (error) {
-          console.error('Error fetching clusters:', error);
-          setClusters([]);
-        }
-      } else {
-        setClusters([]);
-      }
+      // Navigate to the detail page instead of showing modal
+      router.push(`/coordinator/ward-reports/detail/${report._id}?ward=${encodeURIComponent(report.ward?.name || '')}&week=${report.weekNumber}&year=${report.year}`);
     } catch (error) {
-      console.error('Error in handleViewReport:', error);
+      console.error('Error navigating to report detail:', error);
     }
   };
 
@@ -450,179 +417,6 @@ export default function CoordinatorWardReports() {
         </div>
       </div>
 
-      {/* Report Details Modal */}
-      <Modal
-        isOpen={showReportModal}
-        onClose={() => {
-          setShowReportModal(false);
-          setFormTemplate(null);
-          setClusters([]);
-        }}
-        title={selectedReport ? `Ward Report Details - ${selectedReport.ward?.name}` : 'Report Details'}
-        size="lg"
-      >
-        {selectedReport && (
-          <div className="space-y-6">
-            {/* Report Header Info */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Ward:</span>
-                  <span className="ml-2 font-medium">{selectedReport.ward?.name}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">District:</span>
-                  <span className="ml-2 font-medium">{selectedReport.ward?.district}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Week:</span>
-                  <span className="ml-2 font-medium">Week {selectedReport.weekNumber}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Year:</span>
-                  <span className="ml-2 font-medium">{selectedReport.year}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Submitted by:</span>
-                  <span className="ml-2 font-medium">{selectedReport.submittedBy?.name}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Submitted at:</span>
-                  <span className="ml-2 font-medium">{formatDate(selectedReport.submittedAt)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Report Responses */}
-            <div>
-              <h4 className="font-medium text-gray-900 mb-4">Report Responses</h4>
-              <div className="space-y-4">
-                {formTemplate && formTemplate.fields ? (
-                  formTemplate.fields.map((field, index) => {
-                    // Handle cluster-applicable fields
-                    if (field.applicableToClusters) {
-                      return (
-                        <ClusterResponseSummary
-                          key={field.id || index}
-                          field={field}
-                          responses={selectedReport.responses || {}}
-                          clusters={clusters}
-                          questionIndex={index}
-                          getClusterName={(clusterId) => {
-                            const cluster = clusters.find(c => c._id === clusterId);
-                            return cluster ? cluster.name : `Cluster ${clusterId.slice(-4)}`;
-                          }}
-                          renderFieldValue={(field, value) => {
-                            if (value === undefined || value === null || value === '') {
-                              return <span className="text-gray-400 italic">Not answered</span>;
-                            }
-                            if (typeof value === 'boolean') {
-                              return (
-                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                  value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {value ? 'Yes' : 'No'}
-                                </span>
-                              );
-                            }
-                            if (typeof value === 'string' && value.length > 100) {
-                              return (
-                                <div className="bg-gray-50 p-3 rounded border">
-                                  <p className="whitespace-pre-wrap text-sm">{value}</p>
-                                </div>
-                              );
-                            }
-                            return <span>{String(value)}</span>;
-                          }}
-                        />
-                      );
-                    }
-
-                    // Handle regular fields
-                    const answer = selectedReport.responses?.[field.label];
-                    return (
-                      <div key={field.id || index} className="border-l-4 border-blue-500 pl-4 py-2">
-                        <div className="flex flex-col space-y-1">
-                          <h5 className="text-sm font-medium text-gray-900">
-                            <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
-                              {index + 1}
-                            </span>
-                            {field.label}
-                            {field.required && <span className="text-red-500 ml-1">*</span>}
-                          </h5>
-                          <div className="text-sm text-gray-700">
-                            {answer === undefined || answer === null || answer === '' ? (
-                              <span className="text-gray-400 italic">Not answered</span>
-                            ) : typeof answer === 'boolean' ? (
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                answer ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                              }`}>
-                                {answer ? 'Yes' : 'No'}
-                              </span>
-                            ) : typeof answer === 'string' && answer.length > 100 ? (
-                              <div className="bg-gray-50 p-3 rounded border">
-                                <p className="whitespace-pre-wrap">{answer}</p>
-                              </div>
-                            ) : (
-                              <span>{String(answer)}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : selectedReport.responses && Object.keys(selectedReport.responses).length > 0 ? (
-                  Object.entries(selectedReport.responses).map(([question, answer], index) => (
-                    <div key={question} className="border-l-4 border-blue-500 pl-4 py-2">
-                      <div className="flex flex-col space-y-1">
-                        <h5 className="text-sm font-medium text-gray-900">
-                          <span className="inline-flex items-center justify-center w-6 h-6 mr-3 text-xs font-bold text-white bg-blue-500 rounded-full">
-                            {index + 1}
-                          </span>
-                          {question}
-                        </h5>
-                        <div className="text-sm text-gray-700">
-                          {typeof answer === 'boolean' ? (
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              answer ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {answer ? 'Yes' : 'No'}
-                            </span>
-                          ) : typeof answer === 'string' && answer.length > 100 ? (
-                            <div className="bg-gray-50 p-3 rounded border">
-                              <p className="whitespace-pre-wrap">{answer}</p>
-                            </div>
-                          ) : (
-                            <span>{String(answer)}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <p className="mt-2 text-sm">No response data available</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex justify-end pt-4 border-t border-gray-200">
-              <Button variant="outline" onClick={() => {
-                setShowReportModal(false);
-                setFormTemplate(null);
-                setClusters([]);
-              }}>
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </Layout>
   );
 }
