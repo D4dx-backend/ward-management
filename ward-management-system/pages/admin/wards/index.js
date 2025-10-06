@@ -65,9 +65,20 @@ export default function AdminWards() {
 
   useEffect(() => {
     if (wardsError || usersError) {
-      setError('Failed to fetch data');
+      let errorMessage = 'Failed to fetch data';
+      if (wardsError && usersError) {
+        errorMessage = 'Failed to fetch wards and users data';
+      } else if (wardsError) {
+        errorMessage = 'Failed to fetch wards data';
+      } else if (usersError) {
+        errorMessage = 'Failed to fetch users data';
+      }
+      setError(errorMessage);
+    } else if (wardsData && usersData) {
+      // Clear error when both data sources are successfully loaded
+      setError('');
     }
-  }, [wardsError, usersError]);
+  }, [wardsError, usersError, wardsData, usersData]);
   
   // Persistent pagination state - survives tab switches and page reloads
   const {

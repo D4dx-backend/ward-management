@@ -108,20 +108,40 @@ export default function RecentWardVisits() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">
-                      {visit.coordinator?.name || 'Coordinator'} Visit
+                      {visit.guestVisit && visit.guestVisit.trim() !== '' 
+                        ? visit.guestVisit
+                        : (visit.visitTime && visit.visitTime.trim() !== '' && !visit.visitTime.match(/^\d{1,2}:\d{2}$/))
+                          ? visit.visitTime
+                        : (visit.purpose && visit.purpose.trim() !== '' 
+                          ? visit.purpose
+                          : (visit.recordedByRole === 'coordinator' 
+                            ? `${visit.coordinator?.name || 'Coordinator'} Visit`
+                            : 'Ward Admin Visit'
+                          )
+                        )
+                      }
                     </h3>
                     <p className="text-sm text-gray-600">
                       {visit.purpose?.substring(0, 60)}
                       {visit.purpose?.length > 60 ? '...' : ''}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {formatDate(visit.visitDate)} at {formatTime(visit.visitTime)}
+                      {formatDate(visit.visitDate)}
                     </p>
+                    {visit.recordedByRole === 'coordinator' && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Recorded by: {visit.recordedBy?.name || 'Coordinator'}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                    Visit
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    visit.recordedByRole === 'coordinator' 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {visit.recordedByRole === 'coordinator' ? 'Coordinator' : 'Ward Admin'}
                   </span>
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

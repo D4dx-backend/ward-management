@@ -9,17 +9,29 @@ export default function ClusterResponseSummary({
   renderFieldValue = (field, value) => value || 'No response'
 }) {
   console.log('ClusterResponseSummary - Field:', field?.label, 'Responses:', responses, 'Clusters:', clusters);
+  console.log('ClusterResponseSummary - Field details:', {
+    label: field?.label,
+    applicableToClusters: field?.applicableToClusters,
+    type: field?.type,
+    required: field?.required
+  });
+  console.log('ClusterResponseSummary - Clusters details:', clusters.map(c => ({ id: c._id, name: c.name })));
 
   // Extract cluster responses for this field
   const clusterResponses = {};
-  Object.keys(responses || {}).forEach(key => {
+  const responseKeys = Object.keys(responses || {});
+  console.log('ClusterResponseSummary - All response keys:', responseKeys);
+  console.log('ClusterResponseSummary - Looking for keys starting with:', `${field.label}_cluster_`);
+  
+  responseKeys.forEach(key => {
     if (key.startsWith(`${field.label}_cluster_`)) {
       const clusterId = key.replace(`${field.label}_cluster_`, '');
       clusterResponses[clusterId] = responses[key];
+      console.log(`ClusterResponseSummary - Found cluster response: ${key} -> ${responses[key]}`);
     }
   });
 
-  console.log('Extracted cluster responses:', clusterResponses);
+  console.log('ClusterResponseSummary - Extracted cluster responses:', clusterResponses);
 
 
   return (
@@ -65,7 +77,7 @@ export default function ClusterResponseSummary({
                   <span className={`text-sm font-medium ${
                     hasResponse ? 'text-green-800' : 'text-gray-600'
                   }`}>
-                    {cluster.name}
+                    {cluster.name || `Cluster ${clusterId.slice(-4)}`}
                   </span>
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                     hasResponse 
@@ -89,7 +101,17 @@ export default function ClusterResponseSummary({
         </div>
       ) : (
         <div className="text-sm text-gray-500 italic bg-gray-50 p-3 rounded-md">
-          No clusters found for this ward
+          <div className="flex items-center space-x-2">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <span>No clusters found for this ward. This might be because:</span>
+          </div>
+          <ul className="mt-2 ml-6 list-disc text-xs space-y-1">
+            <li>No clusters have been created for this ward yet</li>
+            <li>Cluster data is not available at the moment</li>
+            <li>There might be a permission issue accessing cluster data</li>
+          </ul>
         </div>
       )}
     </div>

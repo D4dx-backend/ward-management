@@ -235,3 +235,4 @@ GET /ward/reports/ 200
 **Root Cause:** Router dependency in useEffect + useDashboardRefresh hook  
 **Solution:** Remove router from dependencies, add proper guards, memoize objects  
 **Status:** Fixed - Requires dev server restart to take effect
+

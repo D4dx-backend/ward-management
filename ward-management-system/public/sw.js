@@ -157,15 +157,24 @@ self.addEventListener('fetch', (event) => {
   } else if (isAPI(request)) {
     // Network-first for API calls (always try fresh data)
     event.respondWith(
-      fetch(request).catch(() => {
-        // API calls fail silently - don't serve stale data
-        return new Response(
-          JSON.stringify({ error: 'Offline', offline: true }),
-          { 
-            headers: { 'Content-Type': 'application/json' },
-            status: 503 
-          }
-        );
+      fetch(request).catch((error) => {
+        console.log('[SW] API request failed:', request.url, error);
+        
+        // Check if it's a network error (truly offline)
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          // Only return offline response for actual network failures
+          return new Response(
+            JSON.stringify({ error: 'Offline', offline: true }),
+            { 
+              headers: { 'Content-Type': 'application/json' },
+              status: 503 
+            }
+          );
+        }
+        
+        // For other errors (like 401, 403, 500, etc.), let them pass through
+        // This allows the application to handle authentication and server errors properly
+        throw error;
       })
     );
   } else {

@@ -267,7 +267,15 @@ export default function WardVisitsSimple() {
                           {new Date(visit.visitDate).toLocaleDateString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {visit.guestVisit}
+                          {visit.guestVisit && visit.guestVisit.trim() !== '' 
+                            ? visit.guestVisit 
+                            : (visit.visitTime && visit.visitTime.trim() !== '' && !visit.visitTime.match(/^\d{1,2}:\d{2}$/))
+                              ? visit.visitTime
+                            : (visit.purpose && visit.purpose.trim() !== '' 
+                              ? visit.purpose
+                              : (visit.recordedByRole === 'coordinator' ? 'Coordinator' : 'Ward Admin')
+                            )
+                          }
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           <div className="max-w-xs truncate">

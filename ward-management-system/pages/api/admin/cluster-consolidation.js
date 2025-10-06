@@ -1,4 +1,5 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '../../../lib/mongodb';
 import Ward from '../../../models/Ward';
 import Cluster from '../../../models/Cluster';
@@ -9,7 +10,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await getSession({ req });
+    let session;
+    try {
+      session = await getServerSession(req, res, authOptions);
+    } catch (sessionError) {
+      console.error('Session error:', sessionError);
+      return res.status(401).json({ 
+        message: 'Session authentication failed',
+        error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
+      });
+    }
     
     if (!session) {
       return res.status(401).json({ message: 'Unauthorized' });
@@ -20,7 +30,16 @@ export default async function handler(req, res) {
       return res.status(403).json({ message: 'Access denied. Admin or coordinator role required.' });
     }
 
-    await dbConnect();
+    // Connect to database with error handling
+    try {
+      await dbConnect();
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return res.status(503).json({ 
+        message: 'Database connection failed',
+        error: process.env.NODE_ENV === 'development' ? dbError.message : 'Service unavailable'
+      });
+    }
 
     // Fetch all active wards with their coordinator details
     const wards = await Ward.find({ isActive: true })
@@ -56,6 +75,7 @@ export default async function handler(req, res) {
           clusterCount: clusterCount,
           clusters: clusters,
           coordinator: ward.coordinator ? {
+            _id: ward.coordinator._id,
             name: ward.coordinator.name,
             mobileNumber: ward.coordinator.mobileNumber,
             email: ward.coordinator.email
@@ -71,15 +91,32 @@ export default async function handler(req, res) {
       })
     );
 
-    // Get unique districts and panchayaths for filters
+    // Get unique districts, panchayaths, and coordinators for filters
     const uniqueDistricts = [...new Set(consolidatedData.map(item => item.district))].sort();
     const uniqueLocalBodies = [...new Set(consolidatedData.map(item => item.localBody))].sort();
+    
+    // Get unique coordinators - use a Map to ensure uniqueness by both ID and name
+    const coordinatorMap = new Map();
+    consolidatedData
+      .filter(item => item.coordinator && item.coordinator.name)
+      .forEach(item => {
+        const coord = item.coordinator;
+        const key = coord._id ? coord._id.toString() : coord.name;
+        if (!coordinatorMap.has(key)) {
+          coordinatorMap.set(key, {
+            id: coord._id,
+            name: coord.name
+          });
+        }
+      });
+    const uniqueCoordinators = Array.from(coordinatorMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
     res.status(200).json({
       data: consolidatedData,
       filters: {
         districts: uniqueDistricts,
-        localBodies: uniqueLocalBodies
+        localBodies: uniqueLocalBodies,
+        coordinators: uniqueCoordinators
       },
       summary: {
         totalWards: consolidatedData.length,

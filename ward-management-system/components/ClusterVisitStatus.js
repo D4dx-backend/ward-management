@@ -44,7 +44,22 @@ export default function ClusterVisitStatus() {
       setError('');
     } catch (error) {
       console.error('Error fetching House Visit data:', error);
-      setError('Failed to load House Visit data');
+      console.error('Error details:', error.response?.data || error.message);
+      
+      // Handle different types of errors
+      if (error.response?.status === 503 && error.response?.data?.offline) {
+        setError('You are currently offline. Please check your internet connection and try again.');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 403) {
+        setError('Access denied. You may not have permission to view this data.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else if (error.response?.status === 504) {
+        setError('Request timeout. The server is taking too long to respond.');
+      } else {
+        setError('Failed to load House Visit data');
+      }
       
       // Fallback to mock data if both APIs fail
       console.log('Both APIs failed, generating mock data');
