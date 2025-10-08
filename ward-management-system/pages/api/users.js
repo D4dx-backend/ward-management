@@ -149,8 +149,13 @@ async function handleGetUsers(req, res, session) {
     try {
       console.log('Executing users query...');
       
+      // For state admins, include pinCode for display purposes
+      const selectFields = session.user.role === 'stateAdmin' 
+        ? '-password' // Include pinCode for state admins
+        : '-password -pinCode'; // Exclude both for other roles
+      
       const userQuery = User.find(query)
-        .select('-password -pinCode') // Exclude sensitive fields
+        .select(selectFields)
         .sort({ role: 1, name: 1 })
         .skip(skip)
         .limit(limitNum);
@@ -190,6 +195,19 @@ async function handleGetUsers(req, res, session) {
     const usersWithWards = await Promise.all(
       users.map(async (user) => {
         const userObj = { ...user };
+        
+        // Add displayPin for state admins to see PINs
+        if (session.user.role === 'stateAdmin') {
+          if (user.pinCode && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
+            userObj.displayPin = user.pinCode;
+          } else {
+            userObj.displayPin = user.role === 'stateAdmin' ? 'N/A' : '[Not Set]';
+          }
+          // Remove the actual pinCode from response for security
+          delete userObj.pinCode;
+        } else {
+          userObj.displayPin = 'N/A';
+        }
         
         if (user.role === 'coordinator' || user.role === 'wardAdmin') {
           try {
@@ -402,4 +420,6 @@ async function handleCreateUser(req, res, session) {
     });
   }
 }
+
+
 
