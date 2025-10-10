@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     });
   } catch (sessionError) {
     console.error('Session error:', sessionError);
-    return res.status(401).json({ 
+    return res.status(401).json({
       message: 'Session authentication failed',
       error: process.env.NODE_ENV === 'development' ? sessionError.message : 'Authentication error'
     });
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     await dbConnect();
   } catch (dbError) {
     console.error('Database connection error:', dbError);
-    return res.status(503).json({ 
+    return res.status(503).json({
       message: 'Database connection failed',
       error: process.env.NODE_ENV === 'development' ? dbError.message : 'Service unavailable'
     });
@@ -103,7 +103,7 @@ async function handleGetUsers(req, res, session) {
 
     // Build query based on user role and permissions
     let query = {};
-    
+
     // For Ward Incharges, only return their own data
     if (session.user.role === 'wardAdmin') {
       query._id = new mongoose.Types.ObjectId(session.user.id);
@@ -132,49 +132,54 @@ async function handleGetUsers(req, res, session) {
     const limitNum = limit ? Math.min(1000, Math.max(1, parseInt(limit))) : 1000;
     const skip = (pageNum - 1) * limitNum;
 
-    console.log('Pagination:', { 
-      page: pageNum, 
-      limit: limitNum, 
+    console.log('Pagination:', {
+      page: pageNum,
+      limit: limitNum,
       skip
     });
-    
+
     // Test database connection
     if (mongoose.connection.readyState !== 1) {
       console.error('Database not connected, state:', mongoose.connection.readyState);
       return res.status(503).json({ message: 'Database connection not ready' });
     }
-    
+
     // Fetch users with production-optimized query
     let users;
     try {
       console.log('Executing users query...');
-      
+
+      // For state admins, include pinCode for display purposes
+      const selectFields = session.user.role === 'stateAdmin'
+        ? '-password' // Include pinCode for state admins
+        : '-password -pinCode'; // Exclude both for other roles
+
       const userQuery = User.find(query)
-        .select('-password -pinCode') // Exclude sensitive fields
+        .select(selectFields)
         .sort({ role: 1, name: 1 })
         .skip(skip)
         .limit(limitNum);
-      
+
       const queryPromise = userQuery.lean().exec();
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Query timeout')), 30000)
       );
 
       users = await Promise.race([queryPromise, timeoutPromise]);
-      
+
       console.log(`Query successful: Found ${users.length} users`);
-      
+
     } catch (queryError) {
       console.error('Database query error:', queryError);
-      
+
       if (queryError.message === 'Query timeout') {
-        return res.status(504).json({ 
+        return res.status(504).json({
           message: 'Database query timeout',
           error: 'Request took too long to process'
         });
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         message: 'Database query failed',
         error: process.env.NODE_ENV === 'development' ? queryError.message : 'Query error'
       });
@@ -190,11 +195,24 @@ async function handleGetUsers(req, res, session) {
     const usersWithWards = await Promise.all(
       users.map(async (user) => {
         const userObj = { ...user };
-        
+
+        // Add displayPin for state admins to see PINs
+        if (session.user.role === 'stateAdmin') {
+          if (user.pinCode && (user.role === 'coordinator' || user.role === 'wardAdmin')) {
+            userObj.displayPin = user.pinCode;
+          } else {
+            userObj.displayPin = user.role === 'stateAdmin' ? 'N/A' : '[Not Set]';
+          }
+          // Remove the actual pinCode from response for security
+          delete userObj.pinCode;
+        } else {
+          userObj.displayPin = 'N/A';
+        }
+
         if (user.role === 'coordinator' || user.role === 'wardAdmin') {
           try {
             let assignedWards = [];
-            
+
             if (user.role === 'coordinator') {
               // Find wards where this user is the coordinator
               assignedWards = await Ward.find({ coordinator: user._id })
@@ -205,34 +223,34 @@ async function handleGetUsers(req, res, session) {
               const ward = await Ward.findOne({ wardAdmin: user._id })
                 .select('name wardNumber panchayath district isSittingWard')
                 .lean();
-              
+
               if (ward) {
                 assignedWards = [ward];
               }
             }
-            
+
             userObj.assignedWards = assignedWards;
           } catch (wardError) {
             console.warn(`Error fetching wards for user ${user._id}:`, wardError.message);
             userObj.assignedWards = [];
           }
         }
-        
+
         return userObj;
       })
     );
 
     console.log(`Found ${usersWithWards.length} users for user ${session.user.id}`);
-    
+
     // Get total count for pagination
     let totalCount = usersWithWards.length;
     if (limitNum < 1000) { // Only count if we're using pagination
       try {
         const countPromise = User.countDocuments(query).exec();
-        const countTimeoutPromise = new Promise((_, reject) => 
+        const countTimeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Count timeout')), 10000)
         );
-        
+
         totalCount = await Promise.race([countPromise, countTimeoutPromise]);
       } catch (countError) {
         console.warn('Count query failed, using result length:', countError.message);
@@ -244,7 +262,7 @@ async function handleGetUsers(req, res, session) {
 
     // Set cache headers for production
     res.setHeader('Cache-Control', 'private, max-age=60');
-    
+
     // Return users with metadata
     const response = {
       users: usersWithWards,
@@ -266,11 +284,11 @@ async function handleGetUsers(req, res, session) {
     console.error('Error stack:', error.stack);
     console.error('Session user:', session?.user);
     console.error('Database state:', require('mongoose').connection.readyState);
-    
+
     // Provide more specific error messages
     let errorMessage = 'Failed to fetch users';
     let statusCode = 500;
-    
+
     if (error.name === 'CastError') {
       errorMessage = 'Invalid user ID format';
       statusCode = 400;
@@ -281,8 +299,8 @@ async function handleGetUsers(req, res, session) {
       errorMessage = 'Data validation error';
       statusCode = 400;
     }
-    
-    res.status(statusCode).json({ 
+
+    res.status(statusCode).json({
       message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
       details: process.env.NODE_ENV === 'development' ? {
@@ -308,22 +326,22 @@ async function handleCreateUser(req, res, session) {
 
     // Validate required fields
     if (!name || !email || !mobileNumber || !role) {
-      return res.status(400).json({ 
-        message: 'Name, email, mobile number, and role are required' 
+      return res.status(400).json({
+        message: 'Name, email, mobile number, and role are required'
       });
     }
 
     // Validate role
     if (!['stateAdmin', 'coordinator', 'wardAdmin'].includes(role)) {
-      return res.status(400).json({ 
-        message: 'Invalid role. Must be stateAdmin, coordinator, or wardAdmin' 
+      return res.status(400).json({
+        message: 'Invalid role. Must be stateAdmin, coordinator, or wardAdmin'
       });
     }
 
     // Validate district for coordinators and wardAdmins
     if ((role === 'coordinator' || role === 'wardAdmin') && !district) {
-      return res.status(400).json({ 
-        message: 'District is required for coordinators and ward admins' 
+      return res.status(400).json({
+        message: 'District is required for coordinators and ward admins'
       });
     }
 
@@ -332,7 +350,7 @@ async function handleCreateUser(req, res, session) {
     // Check if user with same email already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(409).json({ 
+      return res.status(409).json({
         message: 'User with this email already exists',
         conflictingUser: {
           id: existingUser._id,
@@ -346,7 +364,7 @@ async function handleCreateUser(req, res, session) {
     // Check if user with same mobile number already exists
     const existingMobile = await User.findOne({ mobileNumber });
     if (existingMobile) {
-      return res.status(409).json({ 
+      return res.status(409).json({
         message: 'User with this mobile number already exists',
         conflictingUser: {
           id: existingMobile._id,
@@ -384,10 +402,10 @@ async function handleCreateUser(req, res, session) {
   } catch (error) {
     console.error('=== USERS API CREATE ERROR ===');
     console.error('Error creating user:', error);
-    
+
     let errorMessage = 'Failed to create user';
     let statusCode = 500;
-    
+
     if (error.name === 'ValidationError') {
       errorMessage = 'User validation failed';
       statusCode = 400;
@@ -395,11 +413,15 @@ async function handleCreateUser(req, res, session) {
       errorMessage = 'User with this email or mobile number already exists';
       statusCode = 409;
     }
-    
-    res.status(statusCode).json({ 
+
+    res.status(statusCode).json({
       message: errorMessage,
       error: process.env.NODE_ENV === 'development' ? error.message : 'Creation failed'
     });
   }
 }
+
+
+
+
 

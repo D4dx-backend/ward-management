@@ -1,13 +1,7 @@
-<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg">
-  <rect width="192" height="192" fill="#10b981"/>
-  <text 
-    x="50%" 
-    y="50%" 
-    dominant-baseline="middle" 
-    text-anchor="middle" 
-    font-family="Arial, sans-serif" 
-    font-weight="bold" 
-    font-size="76.80000000000001" 
-    fill="white"
-  >WP</text>
+<svg width="192" height="192" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" fill="#16a34a"/>
+  <circle cx="32" cy="32" r="26" fill="#16a34a" stroke="#ffffff" stroke-width="2"/>
+  <path d="M16 20 L20 40 L24 28 L28 40 L32 20" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M36 20 L36 40 M36 20 L44 20 Q48 20 48 26 Q48 32 44 32 L36 32" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M50 44 Q52 42 54 44 Q52 46 50 44 M51 44 L51 48 M49 46 Q51 45 53 46" stroke="#ffffff" stroke-width="1.5" fill="none" stroke-linecap="round"/>
 </svg>
