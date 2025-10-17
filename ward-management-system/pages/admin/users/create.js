@@ -21,6 +21,7 @@ export default function CreateUser() {
     role: 'coordinator',
     mobileNumber: '',
     pinCode: '',
+    district: '',
   });
 
   useEffect(() => {
@@ -109,8 +110,26 @@ export default function CreateUser() {
         // No additional validation needed for Ward Incharge
       }
 
+      // Prepare data based on role
+      const submitData = {
+        name: formData.name,
+        role: formData.role,
+        district: formData.district
+      };
+
+      // Add role-specific fields
+      if (formData.role === 'stateAdmin') {
+        submitData.email = formData.email;
+        submitData.password = formData.password;
+      } else {
+        submitData.mobileNumber = formData.mobileNumber;
+        submitData.pinCode = formData.pinCode;
+      }
+
+      console.log('Submitting user data:', submitData);
+
       // Submit form
-      await axios.post('/api/users', formData);
+      await axios.post('/api/users', submitData);
       router.push('/admin/users');
     } catch (error) {
       setError(error.response?.data?.message || error.message);
@@ -272,6 +291,21 @@ export default function CreateUser() {
                         required={formData.role !== 'stateAdmin'}
                       />
                     </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-1">
+                      District (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="district"
+                      name="district"
+                      value={formData.district}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter district name"
+                    />
                   </div>
                 </div>
               )}

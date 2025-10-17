@@ -263,17 +263,6 @@ async function handleGetUsers(req, res, session) {
     // Set cache headers for production
     res.setHeader('Cache-Control', 'private, max-age=60');
 
-    // Return users with metadata
-    const response = {
-      users: usersWithWards,
-      meta: {
-        total: totalCount,
-        page: pageNum,
-        limit: limitNum,
-        hasMore: totalCount > (pageNum * limitNum)
-      }
-    };
-
     // For backward compatibility, return just the users array
     res.status(200).json(usersWithWards);
   } catch (error) {
@@ -322,13 +311,38 @@ async function handleCreateUser(req, res, session) {
     const { name, email, mobileNumber, role, district, pinCode } = req.body;
 
     console.log('=== USERS API CREATE DEBUG ===');
+    console.log('Request body:', req.body);
     console.log('Creating user:', { name, email, mobileNumber, role, district });
+    console.log('Field validation:', {
+      hasName: !!name,
+      hasEmail: !!email,
+      hasMobileNumber: !!mobileNumber,
+      hasRole: !!role,
+      hasDistrict: !!district,
+      hasPinCode: !!pinCode
+    });
 
-    // Validate required fields
-    if (!name || !email || !mobileNumber || !role) {
+    // Validate required fields based on role
+    if (!name || !role) {
       return res.status(400).json({
-        message: 'Name, email, mobile number, and role are required'
+        message: 'Name and role are required'
       });
+    }
+
+    // Role-specific validation
+    if (role === 'stateAdmin') {
+      if (!email) {
+        return res.status(400).json({
+          message: 'Email is required for state admin'
+        });
+      }
+    } else {
+      // For coordinator and wardAdmin
+      if (!mobileNumber) {
+        return res.status(400).json({
+          message: 'Mobile number is required for coordinators and ward admins'
+        });
+      }
     }
 
     // Validate role
@@ -338,55 +352,66 @@ async function handleCreateUser(req, res, session) {
       });
     }
 
-    // Validate district for coordinators and wardAdmins
-    if ((role === 'coordinator' || role === 'wardAdmin') && !district) {
-      return res.status(400).json({
-        message: 'District is required for coordinators and ward admins'
-      });
-    }
+    // District is optional - can be set later when assigning wards
 
     const mongoose = require('mongoose');
 
-    // Check if user with same email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(409).json({
-        message: 'User with this email already exists',
-        conflictingUser: {
-          id: existingUser._id,
-          name: existingUser.name,
-          email: existingUser.email,
-          role: existingUser.role
-        }
-      });
+    // Check if user with same email already exists (only for roles that use email)
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(409).json({
+          message: 'User with this email already exists',
+          conflictingUser: {
+            id: existingUser._id,
+            name: existingUser.name,
+            email: existingUser.email,
+            role: existingUser.role
+          }
+        });
+      }
     }
 
-    // Check if user with same mobile number already exists
-    const existingMobile = await User.findOne({ mobileNumber });
-    if (existingMobile) {
-      return res.status(409).json({
-        message: 'User with this mobile number already exists',
-        conflictingUser: {
-          id: existingMobile._id,
-          name: existingMobile.name,
-          mobileNumber: existingMobile.mobileNumber,
-          role: existingMobile.role
-        }
-      });
+    // Check if user with same mobile number already exists (only when mobile number is provided)
+    if (mobileNumber) {
+      const existingMobile = await User.findOne({ mobileNumber });
+      if (existingMobile) {
+        return res.status(409).json({
+          message: 'User with this mobile number already exists',
+          conflictingUser: {
+            id: existingMobile._id,
+            name: existingMobile.name,
+            mobileNumber: existingMobile.mobileNumber,
+            role: existingMobile.role
+          }
+        });
+      }
     }
 
     // Create new user
     const userData = {
       name: name.trim(),
-      email: email.toLowerCase().trim(),
-      mobileNumber: mobileNumber.trim(),
       role,
       district: district ? district.trim() : undefined,
-      pinCode: pinCode ? pinCode.trim() : undefined,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
     };
+
+    // Add email only for roles that use it
+    if (email) {
+      userData.email = email.toLowerCase().trim();
+    }
+
+    // Add mobile number only when provided
+    if (mobileNumber) {
+      userData.mobileNumber = mobileNumber.trim();
+    }
+
+    // Add PIN code only when provided
+    if (pinCode) {
+      userData.pinCode = pinCode.trim();
+    }
 
     const newUser = new User(userData);
     await newUser.save();
