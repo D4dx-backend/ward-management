@@ -42,6 +42,7 @@ export default function AdminWards() {
     coordinatorId: '',
     wardAdminId: '',
     isSittingWard: false,
+    isActive: true,
   });
   const [selectedDistrict, setSelectedDistrict] = useState('');
   const [availablePanchayaths, setAvailablePanchayaths] = useState([]);
@@ -101,7 +102,8 @@ export default function AdminWards() {
     filterDistrict: '',
     filterPanchayath: '',
     filterCoordinator: '',
-    filterSittingWardStatus: ''
+    filterSittingWardStatus: '',
+    filterActiveStatus: ''
   }, {
     filterKey: 'adminWardsFilters'
   });
@@ -111,12 +113,14 @@ export default function AdminWards() {
   const filterPanchayath = filters.filterPanchayath || '';
   const filterCoordinator = filters.filterCoordinator || '';
   const filterSittingWardStatus = filters.filterSittingWardStatus || '';
+  const filterActiveStatus = filters.filterActiveStatus || '';
   
   const setSearchTerm = (value) => updateFilter('searchTerm', value);
   const setFilterDistrict = (value) => updateFilter('filterDistrict', value);
   const setFilterPanchayath = (value) => updateFilter('filterPanchayath', value);
   const setFilterCoordinator = (value) => updateFilter('filterCoordinator', value);
   const setFilterSittingWardStatus = (value) => updateFilter('filterSittingWardStatus', value);
+  const setFilterActiveStatus = (value) => updateFilter('filterActiveStatus', value);
   
   // Calculate pagination values
   const totalItems = filteredWards.length;
@@ -164,6 +168,12 @@ export default function AdminWards() {
       router.push('/');
     }
   }, [status, session, router]);
+
+  // Force clear cache on first mount to ensure we get latest data including inactive wards
+  useEffect(() => {
+    clearCache('wards');
+    refetchWards();
+  }, []); // Run only once on mount
 
   // Track previous filter values to detect actual changes
   const prevFiltersRef = useRef({
@@ -214,10 +224,19 @@ export default function AdminWards() {
       }
     }
 
+    // Apply active status filter
+    if (filterActiveStatus) {
+      if (filterActiveStatus === 'active') {
+        filtered = filtered.filter(ward => ward.isActive !== false);
+      } else if (filterActiveStatus === 'inactive') {
+        filtered = filtered.filter(ward => ward.isActive === false);
+      }
+    }
+
     setFilteredWards(filtered);
     
     // Check if any filter actually changed (not just component mounting or data loading)
-    const currentFilters = { searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus };
+    const currentFilters = { searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus, filterActiveStatus };
     const prevFilters = prevFiltersRef.current;
     
     const filtersChanged = Object.keys(currentFilters).some(key => 
@@ -225,7 +244,7 @@ export default function AdminWards() {
     );
     
     // Only reset to page 1 if filters actually changed and we have data
-    if (filtersChanged && wards.length > 0 && (prevFilters.searchTerm !== '' || prevFilters.filterDistrict !== '' || prevFilters.filterPanchayath !== '' || prevFilters.filterCoordinator !== '' || prevFilters.filterSittingWardStatus !== '')) {
+    if (filtersChanged && wards.length > 0 && (prevFilters.searchTerm !== '' || prevFilters.filterDistrict !== '' || prevFilters.filterPanchayath !== '' || prevFilters.filterCoordinator !== '' || prevFilters.filterSittingWardStatus !== '' || prevFilters.filterActiveStatus !== '')) {
       console.log('[AdminWards] Filters actually changed, resetting pagination', { 
         from: prevFilters, 
         to: currentFilters 
@@ -235,7 +254,7 @@ export default function AdminWards() {
     
     // Update previous filters reference
     prevFiltersRef.current = currentFilters;
-  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus, handlePageChange]);
+  }, [wards, searchTerm, filterDistrict, filterPanchayath, filterCoordinator, filterSittingWardStatus, filterActiveStatus, handlePageChange]);
 
   // Get unique districts, panchayaths, and coordinators for filters
   const uniqueDistricts = [...new Set(wards.map(ward => ward.district))].sort();
@@ -273,6 +292,7 @@ export default function AdminWards() {
       coordinatorId: '',
       wardAdminId: '',
       isSittingWard: false,
+      isActive: true,
     });
     setSelectedDistrict('');
     setAvailablePanchayaths([]);
@@ -333,6 +353,7 @@ export default function AdminWards() {
       }
 
       console.log('Updating ward:', editingWard._id, 'with data:', formData);
+      console.log('isActive value being sent:', formData.isActive, 'Type:', typeof formData.isActive);
 
       // Update ward
       const response = await axios.put(`/api/wards/${editingWard._id}`, formData);
@@ -372,6 +393,17 @@ export default function AdminWards() {
 
   const handleEdit = (ward) => {
     setEditingWard(ward);
+    
+    // Ensure isActive is correctly interpreted (undefined or true = active, false = inactive)
+    const isActiveValue = ward.isActive === false ? false : true;
+    
+    console.log('Editing ward - isActive status:', {
+      wardId: ward._id,
+      wardName: ward.name,
+      rawIsActive: ward.isActive,
+      interpretedIsActive: isActiveValue
+    });
+    
     setFormData({
       name: ward.name,
       wardNumber: ward.wardNumber,
@@ -380,6 +412,7 @@ export default function AdminWards() {
       coordinatorId: ward.coordinator?._id || '',
       wardAdminId: ward.wardAdmin?._id || '',
       isSittingWard: ward.isSittingWard || false,
+      isActive: isActiveValue,
     });
     setSelectedDistrict(ward.district);
     setAvailablePanchayaths(getPanchayathsByDistrict(ward.district));
@@ -645,6 +678,22 @@ export default function AdminWards() {
             Mark this ward as a sitting ward for specialized question handling
           </p>
         </div>
+        
+        <div>
+          <label className="flex items-center">
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={formData.isActive}
+              onChange={handleInputChange}
+              className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <span className="ml-2 text-sm font-medium text-gray-700">Active Ward</span>
+          </label>
+          <p className="text-xs text-gray-500 mt-1">
+            Uncheck to deactivate this ward (ward will be hidden from active lists)
+          </p>
+        </div>
       </div>
 
 
@@ -803,13 +852,24 @@ export default function AdminWards() {
                   <option value="regular">Regular Wards Only</option>
                 </select>
                 
-                {(filterDistrict || filterPanchayath || filterCoordinator || filterSittingWardStatus) && (
+                <select
+                  value={filterActiveStatus}
+                  onChange={(e) => setFilterActiveStatus(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">All Status</option>
+                  <option value="active">Active Only</option>
+                  <option value="inactive">Inactive Only</option>
+                </select>
+                
+                {(filterDistrict || filterPanchayath || filterCoordinator || filterSittingWardStatus || filterActiveStatus) && (
                   <button
                     onClick={() => {
                       setFilterDistrict('');
                       setFilterPanchayath('');
                       setFilterCoordinator('');
                       setFilterSittingWardStatus('');
+                      setFilterActiveStatus('');
                     }}
                     className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
                   >
@@ -857,6 +917,11 @@ export default function AdminWards() {
                           {ward.isSittingWard && (
                             <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                               🪑 Sitting
+                            </span>
+                          )}
+                          {ward.isActive === false && (
+                            <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              Inactive
                             </span>
                           )}
                         </Link>
@@ -919,6 +984,7 @@ export default function AdminWards() {
                         <Link href={`/admin/wards/reports/${ward._id}`} className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                           Reports
                         </Link>
+                        
                         <Button variant="outline" size="sm" onClick={() => handleEdit(ward)}>
                           Edit
                         </Button>

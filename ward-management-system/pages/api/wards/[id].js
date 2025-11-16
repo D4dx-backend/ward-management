@@ -111,10 +111,11 @@ function escapeRegex(string) {
 async function handleUpdateWard(req, res, session) {
   try {
     const { id } = req.query;
-    const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard } = req.body;
+    const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard, isActive } = req.body;
 
     console.log('=== WARD UPDATE DEBUG ===');
-    console.log('Updating ward:', id, { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard });
+    console.log('Updating ward:', id, { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard, isActive });
+    console.log('isActive received - Value:', isActive, 'Type:', typeof isActive, 'Will be converted to:', Boolean(isActive));
 
     // Only allow stateAdmin to update ward details
     if (session.user.role !== 'stateAdmin') {
@@ -217,8 +218,11 @@ async function handleUpdateWard(req, res, session) {
       district: district.trim(),
       coordinator: new mongoose.Types.ObjectId(coordinatorId),
       isSittingWard: Boolean(isSittingWard),
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
       updatedAt: new Date()
     };
+    
+    console.log('Final isActive value to be saved:', updateData.isActive);
 
     // Handle ward admin assignment
     if (wardAdminId) {
@@ -237,6 +241,7 @@ async function handleUpdateWard(req, res, session) {
     .lean();
 
     console.log('Ward updated successfully:', updatedWard._id);
+    console.log('Updated ward isActive value:', updatedWard.isActive);
 
     res.status(200).json(updatedWard);
   } catch (error) {

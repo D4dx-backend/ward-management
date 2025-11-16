@@ -121,8 +121,8 @@ async function handleGetWards(req, res, session) {
       console.log('Other role query:', query);
     }
 
-    // Add active ward filter
-    query.isActive = { $ne: false };
+    // Remove isActive filter - show all wards (active and inactive)
+    // Admins can filter by status using the frontend filter
 
     // Calculate pagination only if limit is explicitly provided
     const pageNum = Math.max(1, parseInt(page) || 1);
@@ -302,10 +302,10 @@ async function handleCreateWard(req, res, session) {
   }
 
   try {
-    const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard } = req.body;
+    const { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard, isActive } = req.body;
 
     console.log('=== WARDS API CREATE DEBUG ===');
-    console.log('Creating ward:', { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard });
+    console.log('Creating ward:', { name, wardNumber, panchayath, district, coordinatorId, wardAdminId, isSittingWard, isActive });
 
     // Validate required fields
     if (!name || !wardNumber || !panchayath || !district || !coordinatorId) {
@@ -393,10 +393,12 @@ async function handleCreateWard(req, res, session) {
       district: district.trim(),
       coordinator: new mongoose.Types.ObjectId(coordinatorId),
       isSittingWard: Boolean(isSittingWard),
-      isActive: true,
+      isActive: isActive !== undefined ? Boolean(isActive) : true,
       createdAt: new Date(),
       updatedAt: new Date()
     };
+    
+    console.log('Ward data being saved:', wardData);
 
     // Add ward admin if provided
     if (wardAdminId) {
@@ -413,6 +415,7 @@ async function handleCreateWard(req, res, session) {
       .lean();
 
     console.log('Ward created successfully:', populatedWard._id);
+    console.log('Ward isActive value saved:', populatedWard.isActive);
 
     res.status(201).json(populatedWard);
   } catch (error) {
